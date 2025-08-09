@@ -19,41 +19,41 @@
 	"screen1_continue_button": "Continue with this model", 
 	"model1_name": "Model 1: Energy demand", 
 	"model1_eq": "dO/dt = kO<br>O(t) = O<sub>0</sub>e<sup>kt</sup>",
-	"model1_desc": ("Exponential growth model describing energy consumption over time.<br>"
+	"model1_desc": "Exponential growth model describing energy consumption over time.<br>"
 	"O(t): Energy consumption level at time t.<br>"
 	"dO/dt: Rate of growth of energy consumption.<br>"
 	"O<sub>0</sub>: Initial energy consumption level at time t<sub>0</sub>.<br>"
-	"k: Constant representing the growth rate.<br>"),
+	"k: Constant representing the growth rate.<br>",
 	"model1_param1": "Initial energy consumption (O₀)",
 	"model1_param2": "Growth rate constant (k)",
 	"model1_param3": "Initial time (t₀)",
 	"model1_param4": "End time (t₁)",
 	"model2_name": "Model 2: Cell growth", 
 	"model2_eq": "dx/dt = cx<sup>2/3</sup><br>x(t) = (x<sub>0</sub><sup>1/3</sup> + ct/3)<sup>3</sup>",
-	"model2_desc": ("Model simulating the growth of cell mass.<br>"
+	"model2_desc": "Model simulating the growth of cell mass.<br>"
 	"x(t): Mass of the cell at time t.<br>"
 	"c: Constant representing the cell growth rate.<br>"
 	"dx/dt: Rate of change of cell mass over time.<br>"
-	"x<sub>0</sub>: Initial mass of the cell (at t=0 if solution is ct/3)."),
+	"x<sub>0</sub>: Initial mass of the cell (at t=0 if solution is ct/3).",
 	"model2_param1": "Initial mass (x₀)",
 	"model2_param3": "Initial time (t₀)",
 	"model2_param4": "End time (t₁)",
 	"model2_calculated_c_label": "Growth rate constant (c):",
 	"model3_name": "Model 3: Spread of epidemic", 
 	"model3_eq": "y'(t) = -r*y(t)*(n+1-y(t))<br>y(t)  = n(n+1)e<sup>-r(n+1)(t-t<sub>0</sub>)</sup>/(1+ne<sup>-r(n+1)(t-t<sub>0</sub>)</sup>)",
-	"model3_desc": ("Model simulating the change in the number of uninfected individuals in a community over time.<br>"
+	"model3_desc": "Model simulating the change in the number of uninfected individuals in a community over time.<br>"
 	"x(t): Number of uninfected individuals at time t.<br>"
 	"n: Initial number of susceptible individuals.<br>"
 	"r: Positive constant measuring the rate of infection.<br>"
 	"dx/dt: Rate of decrease of uninfected individuals (infection rate).<br>"
-	"t<sub>0</sub>: Initial time."),
+	"t<sub>0</sub>: Initial time.",
 	"model3_param2": "Initial number of susceptible individuals (n)",
 	"model3_param4": "Initial time (t₀)",
 	"model3_param5": "End time (t₁)",
 	"model3_calculated_r_label": "Infection rate constant (r):",
 	"model4_name": "Model 4: National economy", 
 	"model4_eq": "Y''(t) + αY'(t) + βY(t) = mlG",
-	"model4_desc": ("The model simulates economic changes over time based on macroeconomic variables.<br>"
+	"model4_desc": "The model simulates economic changes over time based on macroeconomic variables.<br>"
 	"Y(t): National income.<br>"
 	"Y'(t): Rate of change of income.<br>"
 	"α: Coefficient related to propensity to consume/invest (α = m + ls - lma).<br>"
@@ -62,7 +62,7 @@
 	"l: Parameter related to money demand.<br>"
 	"a: Investment sensitivity to interest rate.<br>"
 	"s: Money demand sensitivity to interest rate.<br>"
-	"G: Government spending (constant)."),
+	"G: Government spending (constant).",
 	"model4_param_alpha": "Coefficient α", 
 	"model4_param_beta": "Coefficient β", 
 	"model4_param_a": "Parameter a",
@@ -76,12 +76,12 @@
 	"model4_param_t1": "Time t₁",
 	"model5_name": "Model 5: Pursuit curve", 
 	"model5_eq": "dx/dt = -v * x / √(x<sup>2</sup>+y<sup>2</sup>)<br>dy/dt = -v * y / √(x<sup>2</sup>+y<sup>2</sup>) - u",
-	"model5_desc": ("Model to find the trajectory of a boat moving under the influence of a current.<br>"
+	"model5_desc": "Model to find the trajectory of a boat moving under the influence of a current.<br>"
 	"(x(t), y(t)): Coordinates of the boat at time t.<br>"
 	"v: Velocity of the boat (relative to water).<br>"
 	"u: Velocity of the current (in the negative y-direction).<br>"
 	"x<sub>0</sub>, y<sub>0</sub>: Initial coordinates of the boat.<br>"
-	"t<sub>0</sub>, t<sub>1</sub>: Simulation time interval."),
+	"t<sub>0</sub>, t<sub>1</sub>: Simulation time interval.",
 	"model5_param_x0": "Initial x-coordinate (x₀)",
 	"model5_param_y0": "Initial y-coordinate (y₀)",
 	"model5_param_u": "Current velocity (u)",
