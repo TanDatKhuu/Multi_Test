@@ -1903,7 +1903,6 @@ def show_welcome_page():
         <style>
         .main { background-color: #E6ECF4; }
         div[data-testid="stAppViewBlockContainer"] { padding-top: 2rem; }
-        .welcome-container { background-color: white; padding: 2rem 3rem; border-radius: 10px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
         .header-col h2 { font-size: 1.5rem; font-weight: bold; color: #1E3A8A; line-height: 1.4; margin: 0; text-align: center; }
         .project-title { font-size: 2.2rem; font-weight: bold; color: #1E3A8A; line-height: 1.3; }
         .welcome-text { color: #475569; font-size: 1rem; }
@@ -1911,7 +1910,6 @@ def show_welcome_page():
         .welcome-credits p { font-size: 1rem; color: #334155; margin-bottom: 0; }
         
         div[data-testid="stHorizontalBlock"] {
-            border-bottom: 2px solid #D1D5DB;
             padding-bottom: 1rem;
             margin-bottom: 2rem;
         }
@@ -1928,7 +1926,7 @@ def show_welcome_page():
         nav_cols = st.columns([3, 2, 1, 1, 1.5]) 
         
         with nav_cols[0]:
-            icon_path_nav = os.path.join(FIG_FOLDER, "icon-app.png")
+            icon_path_nav = os.path.join(FIG_FOLDER, "icon app.png")
             if os.path.exists(icon_path_nav):
                 import base64
                 with open(icon_path_nav, "rb") as img_file:
@@ -1992,16 +1990,16 @@ def show_welcome_page():
                 st.markdown(f"<div class='project-title'>{tr('welcome_project_title').replace('\\n', '<br>')}</div>", unsafe_allow_html=True)
                 st.markdown("<p class='welcome-text'>Dự án này được thực hiện nhằm mục đích xây dựng một công cụ trực quan và tương tác để nghiên cứu và tìm hiểu về ứng dụng của các phương pháp số đa bước, cụ thể là Adams-Bashforth và Adams-Moulton, trong việc giải các phương trình vi phân thông thường (ODEs) mô hình hóa các hiện tượng thực tế.</p>", unsafe_allow_html=True)
             with col5:
-                main_image_path = os.path.join(FIG_FOLDER, "multistepsim.png") 
+                main_image_path = os.path.join(FIG_FOLDER, "multi.png") 
                 if os.path.exists(main_image_path): st.image(main_image_path)
-                else: st.warning("Không tìm thấy file 'multistepsim.png' trong thư mục 'fig'.")
+                else: st.warning("Không tìm thấy file 'multi.png' trong thư mục 'fig'.")
             
             st.divider()
             col6, col7 = st.columns(2)
             with col6:
                 st.markdown(f"<div class='welcome-credits'><h3>Sinh viên thực hiện</h3><p>{tr('welcome_authors_names')}</p></div>", unsafe_allow_html=True)
             with col7:
-                st.markdown(f"<div class='welcome-credits'><h3>Giảng viên hướng dẫn</h3><p>{tr('welcome_advisor1')}<br>{tr('welcome_advisor2')}</p></div>", unsafe_allow_html=True)
+                st.markdown(f"<div class='welcome-credits'><h3>Giảng viên hướng dẫn</h3><p>{tr('welcome_advisor1')} & {tr('welcome_advisor2')}</p></div>", unsafe_allow_html=True)
             
             st.write("") 
             
