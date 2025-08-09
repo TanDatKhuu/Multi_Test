@@ -15,6 +15,16 @@ import random
 import json
 import time # Cần cho animation
 
+def html_to_latex(html_string):
+    """Chuyển đổi một số thẻ HTML đơn giản sang cú pháp LaTeX."""
+    s = html_string.replace('<br>', r' \\ ') # Xuống dòng trong LaTeX
+    s = s.replace('<sup>', '^{')
+    s = s.replace('</sup>', '}')
+    s = s.replace('<sub>', '_{')
+    s = s.replace('</sub>', '}')
+    s = s.replace('*', r'\cdot ') # Thay dấu * bằng dấu nhân
+    return s
+	
 # Giả định file ảnh và các tài nguyên khác nằm cùng thư mục với script
 base_path = os.path.dirname(os.path.abspath(__file__))
 # Highlight: Đường dẫn đến thư mục chứa ảnh
@@ -2025,13 +2035,13 @@ def show_welcome_page():
         st.markdown('</div>', unsafe_allow_html=True)
 # --- Thay thế hàm show_model_selection_page cũ ---
 def show_model_selection_page():
-    # --- CSS TÙY CHỈNH (CÓ THỂ DÙNG CHUNG VỚI CSS CỦA WELCOME PAGE) ---
+    # --- CSS TÙY CHỈNH ---
     st.markdown("""
         <style>
         .main { background-color: #E6ECF4; }
         div[data-testid="stAppViewBlockContainer"] { padding-top: 2rem; }
         .nav-button { margin: auto 0; }
-        .stSelectbox div[data-baseweb="select"] > div { font-size: 1.2rem; font-weight: bold; }
+        .stSelectbox div[data-baseweb="select"] > div { font-size: 1rem; } /* Chỉnh lại font cho selectbox */
         </style>
     """, unsafe_allow_html=True)
     
@@ -2039,15 +2049,14 @@ def show_model_selection_page():
         st.markdown('<div class="page-container">', unsafe_allow_html=True)
         
         # --- THANH ĐIỀU HƯỚNG ---
-        # (Tái sử dụng logic từ trang welcome)
-        nav_cols = st.columns([3, 3, 1, 1, 1.5]) 
+        nav_cols = st.columns([3, 2, 1, 1, 1.5]) 
         with nav_cols[0]:
             icon_path_nav = os.path.join(FIG_FOLDER, "icon app.png")
             if os.path.exists(icon_path_nav):
                 import base64
                 with open(icon_path_nav, "rb") as img_file:
                     img_base64 = base64.b64encode(img_file.read()).decode()
-                st.markdown(f"""<div style="display: flex; align-items: center; height: 100%;"><img src="data:image/png;base64,{img_base64}" width="30"><h3 style='color: #1E3A8A; margin-left: 10px; margin-bottom: 0;'>MultiStepSim</h3></div>""", unsafe_allow_html=True)
+                st.markdown(f"""<div style="display: flex; align-items- center; height: 100%;"><img src="data:image/png;base64,{img_base64}" width="30"><h3 style='color: #1E3A8A; margin-left: 10px; margin-bottom: 0;'>MultiStepSim</h3></div>""", unsafe_allow_html=True)
             else:
                 st.markdown("<h3 style='color: #1E3A8A; margin-top: 5px;'>MultiStepSim</h3>", unsafe_allow_html=True)
         
@@ -2061,18 +2070,17 @@ def show_model_selection_page():
             lang_options_display = (tr('lang_vi'), tr('lang_en'))
             lang_options_codes = ('vi', 'en')
             current_lang_index = lang_options_codes.index(st.session_state.lang)
-            def on_lang_change_nav():
-                selected_display = st.session_state.lang_selector_nav_model
-                selected_index = lang_options_display.index(selected_display)
+            selected_display = st.selectbox("Language", lang_options_display, index=current_lang_index, key='lang_selector_page2', label_visibility="collapsed")
+            selected_index = lang_options_display.index(selected_display)
+            if st.session_state.lang != lang_options_codes[selected_index]:
                 st.session_state.lang = lang_options_codes[selected_index]
-            st.selectbox("Language", lang_options_display, index=current_lang_index, key='lang_selector_nav_model', on_change=on_lang_change_nav, label_visibility="collapsed")
+                st.rerun()
         
         st.divider()
 
         # --- NỘI DUNG CHÍNH CỦA TRANG ---
         st.title(tr('screen1_title'))
         
-        # Bộ chọn mô hình
         model_display_names = [tr(f"{data['id']}_name") for data in MODELS_DATA.values()]
         model_vi_keys = list(MODELS_DATA.keys())
         current_selection_index = model_vi_keys.index(st.session_state.selected_model_key) if st.session_state.selected_model_key in model_vi_keys else 0
@@ -2081,24 +2089,19 @@ def show_model_selection_page():
         selected_key = model_vi_keys[selected_model_index]
         st.session_state.selected_model_key = selected_key
         model_data = MODELS_DATA[selected_key]
+        st.write("") 
         
-        st.write("") # Thêm khoảng trống
-
-        # --- KHỐI THÔNG TIN MÔ HÌNH ---
         with st.container(border=True):
             st.subheader(tr('screen1_model_info_group_title'))
             st.markdown(f"**{tr('screen1_equation_label')}**")
-            # Highlight: Thay thế thẻ <br> bằng \n và dùng st.latex để hiển thị đẹp hơn
-            eq_text = tr(model_data['equation_key']).replace('<br>', '\n').replace('<sub>', '_{').replace('</sub>', '}')
-            for line in eq_text.split('\n'):
-                st.latex(line)
-
+            eq_text = tr(model_data['equation_key'])
+            latex_eq = html_to_latex(eq_text)
+            st.latex(latex_eq)
             st.markdown(f"**{tr('screen1_description_label')}**")
             st.markdown(tr(model_data['description_key']), unsafe_allow_html=True)
             
-        st.write("") # Thêm khoảng trống
+        st.write("") 
 
-        # --- KHỐI ỨNG DỤNG CỦA MÔ HÌNH ---
         with st.container(border=True):
             st.subheader(tr('screen1_model_application_group_title'))
             model_id = model_data.get("id")
@@ -2110,10 +2113,9 @@ def show_model_selection_page():
             else:
                 st.warning(f"Không tìm thấy ảnh: {image_filename}")
         
-        st.write("") # Thêm khoảng trống
+        st.write("")
         st.write("")
         
-        # --- NÚT TIẾP TỤC ---
         _, col_continue_btn, _ = st.columns([2, 1, 2])
         with col_continue_btn:
             if st.button(tr('screen1_continue_button'), type="primary", use_container_width=True):
