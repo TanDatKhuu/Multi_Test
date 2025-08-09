@@ -1869,6 +1869,20 @@ def main():
     # Bước 1: Khởi tạo session_state trước tiên để đảm bảo nó tồn tại
     initialize_session_state()
 
+	icon_path = os.path.join(FIG_FOLDER, "icon.app (circle).png")
+    if os.path.exists(icon_path):
+        st.set_page_config(
+            layout="wide", 
+            page_title=tr("app_title"),
+            page_icon=icon_path # Đặt icon cho tab trình duyệt
+        )
+    else:
+        # Cấu hình mặc định nếu không tìm thấy icon
+        st.set_page_config(
+            layout="wide", 
+            page_title=tr("app_title")
+        )
+		
     # Bước 2: Cấu hình trang. Bây giờ hàm tr() đã có thể truy cập session_state an toàn
     st.set_page_config(layout="wide", page_title=tr("app_title"))	
   	
@@ -1942,7 +1956,26 @@ def show_welcome_page():
 
         nav_cols = st.columns([2, 3, 1, 1])
         with nav_cols[0]:
-            st.markdown("<h3 style='color: #1E3A8A; margin-top: 5px;'>MultiStepSim</h3>", unsafe_allow_html=True)
+            icon_path_nav = os.path.join(FIG_FOLDER, "icon-app.png")
+            if os.path.exists(icon_path_nav):
+                # Đọc ảnh và chuyển sang base64 để nhúng vào HTML
+                import base64
+                with open(icon_path_nav, "rb") as img_file:
+                    img_base64 = base64.b64encode(img_file.read()).decode()
+                
+                # Dùng HTML để đặt ảnh và chữ cạnh nhau
+                st.markdown(
+                    f"""
+                    <div style="display: flex; align-items: center;">
+                        <img src="data:image/png;base64,{img_base64}" width="30">
+                        <h3 style='color: #1E3A8A; margin-left: 10px; margin-top: 5px;'>MultiStepSim</h3>
+                    </div>
+                    """,
+                    unsafe_allow_html=True
+                )
+            else:
+                # Fallback nếu không có ảnh
+                st.markdown("<h3 style='color: #1E3A8A; margin-top: 5px;'>MultiStepSim</h3>", unsafe_allow_html=True)
         with nav_cols[2]:
             if st.button("Trang chủ", use_container_width=True):
                 st.session_state.welcome_subpage = "home"
