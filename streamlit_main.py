@@ -2010,13 +2010,17 @@ def show_welcome_page():
                     st.rerun()
 
         elif st.session_state.welcome_subpage == "contact":
-            contact_file_path = os.path.join(base_path, "contact.txt")
+            # Chọn file contact dựa trên ngôn ngữ hiện tại
+            lang_code = st.session_state.lang
+            contact_filename = f"contact_{lang_code}.txt"
+            contact_file_path = os.path.join(base_path, contact_filename)
+
             if os.path.exists(contact_file_path):
                 with open(contact_file_path, "r", encoding="utf-8") as f:
                     contact_content = f.read()
                 st.markdown(contact_content, unsafe_allow_html=True)
             else:
-                st.error("Không tìm thấy file contact.txt.")
+                st.error(f"Không tìm thấy file {contact_filename}.")
 
         st.markdown('</div>', unsafe_allow_html=True)
 # --- Thay thế hàm show_model_selection_page cũ ---
