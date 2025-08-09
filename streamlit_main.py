@@ -2517,105 +2517,134 @@ def show_simulation_page():
     model_id = model_data.get("id", "")
     model_name_tr = tr(f"{model_id}_name")
 
-    # --- Header của trang ---
-    col_h1, col_h2, col_h3 = st.columns([1, 4, 1])
+    # --- CSS TÙY CHỈNH ---
+    st.markdown("""
+        <style>
+        .main { background-color: #F0F2F6; }
+        div[data-testid="stAppViewBlockContainer"] { padding-top: 2rem; }
+        .stButton button { width: 100%; }
+        </style>
+    """, unsafe_allow_html=True)
+    
+    # --- THANH ĐIỀU HƯỚNG ---
+    # Highlight: Thêm thanh điều hướng vào đầu trang
+    with st.container(border=True):
+        nav_cols = st.columns([3, 2, 1, 1, 1.5]) 
+        with nav_cols[0]:
+            icon_path_nav = os.path.join(FIG_FOLDER, "icon-app.png")
+            if os.path.exists(icon_path_nav):
+                import base64
+                with open(icon_path_nav, "rb") as img_file:
+                    img_base64 = base64.b64encode(img_file.read()).decode()
+                st.markdown(f"""<div style="display: flex; align-items: center; height: 100%;"><img src="data:image/png;base64,{img_base64}" width="30"><h3 style='color: #1E3A8A; margin-left: 10px; margin-bottom: 0;'>MultiStepSim</h3></div>""", unsafe_allow_html=True)
+            else:
+                st.markdown("<h3 style='color: #1E3A8A; margin-top: 5px;'>MultiStepSim</h3>", unsafe_allow_html=True)
+        with nav_cols[2]:
+            if st.button(tr("nav_home"), use_container_width=True): 
+                st.session_state.page = "welcome"; st.rerun()
+        with nav_cols[3]:
+            if st.button(tr("nav_contact"), use_container_width=True): 
+                st.session_state.welcome_subpage = "contact"; st.session_state.page = "welcome"; st.rerun()
+        with nav_cols[4]:
+            lang_options_display = (tr('lang_vi'), tr('lang_en'))
+            lang_options_codes = ('vi', 'en')
+            current_lang_index = lang_options_codes.index(st.session_state.lang)
+            selected_display = st.selectbox("Language", lang_options_display, index=current_lang_index, key='lang_selector_page3', label_visibility="collapsed")
+            selected_index = lang_options_display.index(selected_display)
+            if st.session_state.lang != lang_options_codes[selected_index]:
+                st.session_state.lang = lang_options_codes[selected_index]
+                st.rerun()
+    st.write("") # Khoảng trống
+
+    # --- HEADER CỦA TRANG ---
+    col_h1, col_h2 = st.columns([1, 4])
     with col_h1:
         if st.button(f"ᐊ {tr('screen1_title')}"):
             st.session_state.page = 'model_selection'
-            st.session_state.simulation_results = {}
-            st.session_state.validated_params = {}
+            st.session_state.simulation_results = {}; st.session_state.validated_params = {}
             st.rerun()
     with col_h2:
         st.title(model_name_tr)
-    with col_h3:
-        show_dynamic_button = model_data.get("can_run_abm_on_screen3", False) or model_id in ["model2", "model5"]
-        if show_dynamic_button and st.session_state.simulation_results:
-            if st.button(tr('screen2_goto_screen3_button')):
-                st.session_state.page = 'dynamic_simulation'
-                st.rerun()
+    st.divider()
 
-    st.markdown("---")
-    
+    # --- BỐ CỤC CHÍNH ---
     col_controls, col_display = st.columns([1, 2])
 
     with col_controls:
-        # 1. Chọn phương pháp
-        st.subheader(tr('screen2_method_group'))
-        method_options = {tr('screen2_method_ab'): "Bashforth", tr('screen2_method_am'): "Moulton"}
-        selected_method_display = st.radio("Phương pháp", options=method_options.keys(), label_visibility="collapsed", horizontal=True, key=f"method_{model_id}")
-        selected_method_short = method_options[selected_method_display]
+        # --- CÁC KHỐI ĐIỀU KHIỂN ---
+        with st.container(border=True):
+            st.subheader(tr('screen2_method_group'))
+            method_options = {tr('screen2_method_ab'): "Bashforth", tr('screen2_method_am'): "Moulton"}
+            selected_method_display = st.radio("Phương pháp", options=method_options.keys(), label_visibility="collapsed", horizontal=True, key=f"method_{model_id}")
+            selected_method_short = method_options[selected_method_display]
 
-        # 2. Chi tiết
-        details_title = tr('screen2_details_group_ab') if selected_method_short == 'Bashforth' else tr('screen2_details_group_am')
-        st.subheader(details_title)
+        with st.container(border=True):
+            details_title = tr('screen2_details_group_ab') if selected_method_short == 'Bashforth' else tr('screen2_details_group_am')
+            st.subheader(details_title)
+            step_options = {tr('screen2_step2'): 2, tr('screen2_step3'): 3, tr('screen2_step4'): 4}
+            if selected_method_short == 'Bashforth' and model_id != "model5":
+                step_options[tr('screen2_step5')] = 5
+            selected_steps_display = st.multiselect(tr('screen2_steps_label'), options=step_options.keys(), default=list(step_options.keys())[2] if len(step_options) > 2 else list(step_options.keys())[0], key=f"steps_{model_id}_{selected_method_short}")
+            selected_steps_int = [step_options[s] for s in selected_steps_display]
+            h_values = ["0.1", "0.05", "0.01", "0.005", "0.001"]
+            selected_h_str = st.radio(tr('screen2_h_label'), options=h_values, index=2, horizontal=True, key=f"h_{model_id}")
+            h_float = float(selected_h_str)
 
-        step_options = {tr('screen2_step2'): 2, tr('screen2_step3'): 3, tr('screen2_step4'): 4}
-        if selected_method_short == 'Bashforth' and model_id != "model5":
-            step_options[tr('screen2_step5')] = 5
-        selected_steps_display = st.multiselect(tr('screen2_steps_label'), options=step_options.keys(), default=list(step_options.keys())[2] if len(step_options) > 2 else list(step_options.keys())[0], key=f"steps_{model_id}_{selected_method_short}")
-        selected_steps_int = [step_options[s] for s in selected_steps_display]
-        
-        h_values = ["0.1", "0.05", "0.01", "0.005", "0.001"]
-        selected_h_str = st.radio(tr('screen2_h_label'), options=h_values, index=2, horizontal=True, key=f"h_{model_id}")
-        h_float = float(selected_h_str)
+        with st.container(border=True):
+            st.subheader(tr('screen2_params_group'))
+            param_inputs = {}
+            # ... (Phần code nhập liệu tham số giữ nguyên) ...
+            param_labels_key = f"param_keys_{st.session_state.lang}"
+            all_param_labels = model_data.get(param_labels_key, model_data.get("param_keys_vi", []))
+            internal_keys = model_data.get("internal_param_keys", [])
+            default_values = {'t₀': 0.0, 't₁': 10.0, 'O₀': 1.0, 'k': 0.5, 'x₀': 1.0, 'n': 10.0, 'm': 0.5, 'l': 0.2, 'a': 0.1, 's': 0.25, 'G': 20.0, 'Y0': 100.0, 'dY0': 1.0, 'x0': 10.0, 'y0': 0.0, 'u': 1.0, 'v': 2.0}
+            if model_id == "model4":
+                cols_m4 = st.columns(2)
+                for i, key in enumerate(internal_keys):
+                    label = tr(f"model4_param_{key}") if key in ['m', 'l', 'a', 's', 'G', 'Y0', 'dY0', 't₀', 't₁'] else key
+                    with cols_m4[i%2]:
+                        param_inputs[key] = st.number_input(label, value=default_values.get(key, 0.0), format="%.4f", key=f"param_{model_id}_{key}")
+            elif model_id == "model5":
+                cols_m5 = st.columns(2)
+                for i, key in enumerate(internal_keys):
+                    label = all_param_labels[i]
+                    with cols_m5[i%2]:
+                        param_inputs[key] = st.number_input(label, value=default_values.get(key, 0.0), format="%.4f", key=f"param_{model_id}_{key}")
+            else:
+                for i, key in enumerate(internal_keys):
+                    label = all_param_labels[i]
+                    param_inputs[key] = st.number_input(label, value=default_values.get(key, 1.0), format="%.4f", key=f"param_{model_id}_{key}")
 
-        # 3. Tham số
-        st.subheader(tr('screen2_params_group'))
-        param_inputs = {}
-        param_labels_key = f"param_keys_{st.session_state.lang}"
-        all_param_labels = model_data.get(param_labels_key, model_data.get("param_keys_vi", []))
-        internal_keys = model_data.get("internal_param_keys", [])
+            if 'last_calculated_c' in st.session_state and model_id == 'model2': st.text_input(tr('model2_calculated_c_label'), value=f"{st.session_state.last_calculated_c:.6g}", disabled=True)
+            if 'last_calculated_r' in st.session_state and model_id == 'model3': st.text_input(tr('model3_calculated_r_label'), value=f"{st.session_state.last_calculated_r:.8g}", disabled=True)
+            if 'last_calculated_alpha' in st.session_state and model_id == 'model4':
+                col_alpha, col_beta = st.columns(2)
+                col_alpha.text_input(tr('model4_param_alpha'), value=f"{st.session_state.last_calculated_alpha:.6g}", disabled=True)
+                col_beta.text_input(tr('model4_param_beta'), value=f"{st.session_state.last_calculated_beta:.6g}", disabled=True)
 
-        default_values = {'t₀': 0.0, 't₁': 10.0, 'O₀': 1.0, 'k': 0.5, 'x₀': 1.0, 'n': 10.0,
-                          'm': 0.5, 'l': 0.2, 'a': 0.1, 's': 0.25, 'G': 20.0, 'Y0': 100.0, 'dY0': 1.0,
-                          'x0': 10.0, 'y0': 0.0, 'u': 1.0, 'v': 2.0}
+            selected_component = 'x'
+            if model_id == "model5":
+                comp_options = {tr('model5_component_x'): 'x', tr('model5_component_y'): 'y'}
+                selected_comp_disp = st.radio(tr('model5_select_component'), options=comp_options.keys(), horizontal=True, key=f"comp_{model_id}")
+                selected_component = comp_options[selected_comp_disp]
 
-        if model_id == "model4":
-            cols_m4 = st.columns(2)
-            for i, key in enumerate(internal_keys):
-                label = tr(f"model4_param_{key}") if key in ['m', 'l', 'a', 's', 'G', 'Y0', 'dY0', 't₀', 't₁'] else key
-                with cols_m4[i%2]:
-                    param_inputs[key] = st.number_input(label, value=default_values.get(key, 0.0), format="%.4f", key=f"param_{model_id}_{key}")
-        elif model_id == "model5":
-            cols_m5 = st.columns(2)
-            for i, key in enumerate(internal_keys):
-                label = all_param_labels[i]
-                with cols_m5[i%2]:
-                    param_inputs[key] = st.number_input(label, value=default_values.get(key, 0.0), format="%.4f", key=f"param_{model_id}_{key}")
-        else:
-            for i, key in enumerate(internal_keys):
-                label = all_param_labels[i]
-                param_inputs[key] = st.number_input(label, value=default_values.get(key, 1.0), format="%.4f", key=f"param_{model_id}_{key}")
-
-        # Hiển thị tham số được tính toán
-        if 'last_calculated_c' in st.session_state and model_id == 'model2':
-            st.text_input(tr('model2_calculated_c_label'), value=f"{st.session_state.last_calculated_c:.6g}", disabled=True)
-        if 'last_calculated_r' in st.session_state and model_id == 'model3':
-            st.text_input(tr('model3_calculated_r_label'), value=f"{st.session_state.last_calculated_r:.8g}", disabled=True)
-        if 'last_calculated_alpha' in st.session_state and model_id == 'model4':
-            col_alpha, col_beta = st.columns(2)
-            col_alpha.text_input(tr('model4_param_alpha'), value=f"{st.session_state.last_calculated_alpha:.6g}", disabled=True)
-            col_beta.text_input(tr('model4_param_beta'), value=f"{st.session_state.last_calculated_beta:.6g}", disabled=True)
-
-        selected_component = 'x'
-        if model_id == "model5":
-            comp_options = {tr('model5_component_x'): 'x', tr('model5_component_y'): 'y'}
-            selected_comp_disp = st.radio(tr('model5_select_component'), options=comp_options.keys(), horizontal=True, key=f"comp_{model_id}")
-            selected_component = comp_options[selected_comp_disp]
-
-        # 4. Thực thi
-        st.subheader(tr('screen2_actions_group'))
-        col_btn1, col_btn2 = st.columns(2)
-        run_simulation = col_btn1.button(tr('screen2_init_button'), use_container_width=True, type="primary")
-        if col_btn2.button(tr('screen2_refresh_button'), use_container_width=True):
-            st.session_state.simulation_results = {}
-            st.session_state.validated_params = {}
-            for key in ['last_calculated_c', 'last_calculated_r', 'last_calculated_alpha', 'last_calculated_beta']:
-                if key in st.session_state:
-                    del st.session_state[key]
-            st.rerun()
-
+        with st.container(border=True):
+            st.subheader(tr('screen2_actions_group'))
+            run_simulation = st.button(tr('screen2_init_button'), use_container_width=True, type="primary")
+            
+            col_btn1, col_btn2 = st.columns(2)
+            if col_btn1.button(tr('screen2_refresh_button'), use_container_width=True):
+                st.session_state.simulation_results = {}
+                st.session_state.validated_params = {}
+                for key in ['last_calculated_c', 'last_calculated_r', 'last_calculated_alpha', 'last_calculated_beta']:
+                    if key in st.session_state: del st.session_state[key]
+                st.rerun()
+            
+            # Nút lưu sẽ được xử lý ở cột hiển thị
+    
+    # --- Xử lý logic khi nhấn nút ---
     if run_simulation:
+        # ... (Toàn bộ logic của 'if run_simulation' giữ nguyên) ...
         with st.spinner(tr('screen2_info_area_running')):
             is_valid = True
             if not selected_steps_int:
@@ -2650,102 +2679,83 @@ def show_simulation_page():
         if not results:
             st.info(tr('screen2_info_area_init'))
         else:
-            n_steps = len(results)
-            colors = plt.cm.jet(np.linspace(0, 1, max(1, n_steps)))
-            
-            # --- TẠO CÁC ĐỒ THỊ TRONG BỘ NHỚ ---
-            @st.cache_data
-            def generate_plots(results_data, lang, model_id, selected_method_short):
-                # Hàm này được cache để không vẽ lại nếu dữ liệu không đổi
-                figs = {}
-                # Đồ thị nghiệm
-                fig_sol = Figure(); ax_sol = fig_sol.subplots()
-                exact_plotted = False; color_idx = 0
-                for step, res in sorted(results_data.items()):
-                    method_label = f"{selected_method_short[:2].upper()}-{step}"
-                    if not exact_plotted and res.get('exact_sol_plot') is not None:
-                        ax_sol.plot(res['t_plot'], res['exact_sol_plot'], color='black', ls='--', label=tr('screen2_plot_exact_label'))
-                        exact_plotted = True
-                    ax_sol.plot(res['t_plot'], res['approx_sol_plot'], color=colors[color_idx], label=method_label)
-                    color_idx += 1
-                ax_sol.set_title(tr('screen2_plot_solution_title'))
-                ax_sol.set_xlabel(tr('screen2_plot_t_axis'))
-                ax_sol.set_ylabel(tr('screen2_plot_value_axis'))
-                ax_sol.grid(True, linestyle=':'); ax_sol.legend()
-                figs['solution'] = fig_sol
-
-                # Đồ thị sai số và bậc hội tụ
-                fig_err_ord, (ax_err, ax_ord) = plt.subplots(1, 2, figsize=(12, 4))
-                color_idx = 0
-                for step, res in sorted(results_data.items()):
-                    method_label = f"{selected_method_short[:2].upper()}-{step}"
-                    if res.get('n_values_convergence') is not None and len(res['n_values_convergence']) > 0:
-                        ax_err.plot(res['n_values_convergence'], res['errors_convergence'], marker='.', color=colors[color_idx], label=method_label)
-                    if res.get('log_h_convergence') is not None and len(res['log_h_convergence']) >= 2:
-                        slope = res.get('order_slope', 0)
-                        fit_label = tr('screen2_plot_order_fit_label_suffix').format(slope)
-                        log_h, log_err = res['log_h_convergence'], res['log_error_convergence']
-                        ax_ord.plot(log_h, log_err, 'o', color=colors[color_idx], label=f"{method_label}{tr('screen2_plot_order_data_label_suffix')}")
-                        ax_ord.plot(log_h, np.polyval(np.polyfit(log_h, log_err, 1), log_h), '-', color=colors[color_idx], label=fit_label)
-                    color_idx += 1
-                ax_err.set_title(tr('screen2_plot_error_title')); ax_err.set_xlabel(tr('screen2_plot_n_axis'))
-                ax_err.set_ylabel(tr('screen2_plot_error_axis')); ax_err.set_yscale('log')
-                ax_err.grid(True, which='both', linestyle=':'); ax_err.legend()
-                ax_ord.set_title(tr('screen2_plot_order_title')); ax_ord.set_xlabel(tr('screen2_plot_log_h_axis'))
-                ax_ord.set_ylabel(tr('screen2_plot_log_error_axis')); ax_ord.grid(True, linestyle=':'); ax_ord.legend()
-                fig_err_ord.tight_layout()
-                figs['error_order'] = fig_err_ord
-                return figs
-            
-            # Gọi hàm tạo plot và hiển thị
-            generated_figures = generate_plots(tuple(sorted(results.items())), st.session_state.lang, model_id, selected_method_short)
-            st.pyplot(generated_figures['solution'])
-            st.pyplot(generated_figures['error_order'])
-
-            # --- HIỂN THỊ DỮ LIỆU SỐ (ĐÃ HOÀN THIỆN) ---
-            with st.expander(tr('screen2_show_data_button')):
-                for step, res in sorted(results.items()):
-                    method_label = f"Adam-{selected_method_short} {step} {tr('screen2_info_area_show_data_textCont1')}"
-                    slope_str = f"{res.get('order_slope', 'N/A'):.4f}" if isinstance(res.get('order_slope'), float) else "N/A"
-                    st.markdown(f"#### {method_label}")
-                    st.markdown(f"**{tr('screen2_info_area_show_data_order')}** {slope_str}")
+            with st.container(border=True):
+                # ... (Toàn bộ logic vẽ đồ thị và hiển thị dữ liệu giữ nguyên) ...
+                n_steps = len(results)
+                colors = plt.cm.jet(np.linspace(0, 1, max(1, n_steps)))
+                @st.cache_data
+                def generate_plots(results_data, lang, model_id, selected_method_short):
+                    figs = {}
+                    fig_sol = Figure(); ax_sol = fig_sol.subplots()
+                    exact_plotted = False; color_idx = 0
+                    for step, res in sorted(results_data.items()):
+                        method_label = f"{selected_method_short[:2].upper()}-{step}"
+                        if not exact_plotted and res.get('exact_sol_plot') is not None:
+                            ax_sol.plot(res['t_plot'], res['exact_sol_plot'], color='black', ls='--', label=tr('screen2_plot_exact_label'))
+                            exact_plotted = True
+                        ax_sol.plot(res['t_plot'], res['approx_sol_plot'], color=colors[color_idx], label=method_label)
+                        color_idx += 1
+                    ax_sol.set_title(tr('screen2_plot_solution_title')); ax_sol.set_xlabel(tr('screen2_plot_t_axis')); ax_sol.set_ylabel(tr('screen2_plot_value_axis'))
+                    ax_sol.grid(True, linestyle=':'); ax_sol.legend()
+                    figs['solution'] = fig_sol
                     
-                    t = res.get('t_plot')
-                    approx = res.get('approx_sol_plot')
-                    exact = res.get('exact_sol_plot')
-                    
-                    if t is not None and approx is not None and len(t) > 0:
-                        df_data = {'t': t, tr('screen2_info_area_show_data_approx'): approx}
-                        if exact is not None:
-                            df_data[tr('screen2_info_area_show_data_exact')] = exact
-                            df_data[tr('screen2_info_area_show_data_error')] = np.abs(approx - exact)
-                        
-                        df = pd.DataFrame(df_data)
-                        st.dataframe(df.head(15).style.format("{:.6f}"), use_container_width=True)
-                    else:
-                        st.write(tr("screen2_info_area_no_points"))
-                    st.markdown("---")
-            
-            # --- NÚT LƯU HÌNH ẢNH (ĐÃ HOÀN THIỆN) ---
-            zip_buffer = io.BytesIO()
-            with zipfile.ZipFile(zip_buffer, 'w') as zf:
-                # Lưu đồ thị nghiệm
-                buf_sol = io.BytesIO()
-                generated_figures['solution'].savefig(buf_sol, format="png", dpi=300)
-                zf.writestr("solution_plot.png", buf_sol.getvalue())
+                    fig_err_ord, (ax_err, ax_ord) = plt.subplots(1, 2, figsize=(12, 4))
+                    color_idx = 0
+                    for step, res in sorted(results_data.items()):
+                        method_label = f"{selected_method_short[:2].upper()}-{step}"
+                        if res.get('n_values_convergence') is not None and len(res['n_values_convergence']) > 0:
+                            ax_err.plot(res['n_values_convergence'], res['errors_convergence'], marker='.', color=colors[color_idx], label=method_label)
+                        if res.get('log_h_convergence') is not None and len(res['log_h_convergence']) >= 2:
+                            slope = res.get('order_slope', 0)
+                            fit_label = tr('screen2_plot_order_fit_label_suffix').format(slope)
+                            log_h, log_err = res['log_h_convergence'], res['log_error_convergence']
+                            ax_ord.plot(log_h, log_err, 'o', color=colors[color_idx], label=f"{method_label}{tr('screen2_plot_order_data_label_suffix')}")
+                            ax_ord.plot(log_h, np.polyval(np.polyfit(log_h, log_err, 1), log_h), '-', color=colors[color_idx], label=fit_label)
+                        color_idx += 1
+                    ax_err.set_title(tr('screen2_plot_error_title')); ax_err.set_xlabel(tr('screen2_plot_n_axis')); ax_err.set_ylabel(tr('screen2_plot_error_axis')); ax_err.set_yscale('log')
+                    ax_err.grid(True, which='both', linestyle=':'); ax_err.legend()
+                    ax_ord.set_title(tr('screen2_plot_order_title')); ax_ord.set_xlabel(tr('screen2_plot_log_h_axis')); ax_ord.set_ylabel(tr('screen2_plot_log_error_axis'))
+                    ax_ord.grid(True, linestyle=':'); ax_ord.legend()
+                    fig_err_ord.tight_layout()
+                    figs['error_order'] = fig_err_ord
+                    return figs
                 
-                # Lưu đồ thị sai số/bậc
-                buf_err = io.BytesIO()
-                generated_figures['error_order'].savefig(buf_err, format="png", dpi=300)
-                zf.writestr("error_and_order_plots.png", buf_err.getvalue())
+                generated_figures = generate_plots(tuple(sorted(results.items())), st.session_state.lang, model_id, selected_method_short)
+                st.pyplot(generated_figures['solution'])
+                st.pyplot(generated_figures['error_order'])
 
-            st.download_button(
-                label=tr('screen2_save_button'),
-                data=zip_buffer.getvalue(),
-                file_name=f"simulation_plots_{model_id}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.zip",
-                mime="application/zip",
-                use_container_width=True
-            )
+            # --- HIỂN THỊ DỮ LIỆU SỐ VÀ LƯU ẢNH ---
+            st.write("")
+            with st.container(border=True):
+                # Nút xem dữ liệu và lưu ảnh đặt cạnh nhau
+                data_cols = st.columns(2)
+                with data_cols[0]:
+                    show_data = st.toggle(tr('screen2_show_data_button'))
+                with data_cols[1]:
+                    zip_buffer = io.BytesIO()
+                    with zipfile.ZipFile(zip_buffer, 'w') as zf:
+                        buf_sol = io.BytesIO(); generated_figures['solution'].savefig(buf_sol, format="png", dpi=300); zf.writestr("solution_plot.png", buf_sol.getvalue())
+                        buf_err = io.BytesIO(); generated_figures['error_order'].savefig(buf_err, format="png", dpi=300); zf.writestr("error_and_order_plots.png", buf_err.getvalue())
+                    st.download_button(label=tr('screen2_save_button'), data=zip_buffer.getvalue(), file_name=f"simulation_plots_{model_id}.zip", mime="application/zip", use_container_width=True)
+                
+                if show_data:
+                    st.divider()
+                    for step, res in sorted(results.items()):
+                        method_label = f"Adam-{selected_method_short} {step} {tr('screen2_info_area_show_data_textCont1')}"
+                        slope_str = f"{res.get('order_slope', 'N/A'):.4f}" if isinstance(res.get('order_slope'), float) else "N/A"
+                        st.markdown(f"#### {method_label}")
+                        st.markdown(f"**{tr('screen2_info_area_show_data_order')}** {slope_str}")
+                        t = res.get('t_plot'); approx = res.get('approx_sol_plot'); exact = res.get('exact_sol_plot')
+                        if t is not None and approx is not None and len(t) > 0:
+                            df_data = {'t': t, tr('screen2_info_area_show_data_approx'): approx}
+                            if exact is not None:
+                                df_data[tr('screen2_info_area_show_data_exact')] = exact
+                                df_data[tr('screen2_info_area_show_data_error')] = np.abs(approx - exact)
+                            df = pd.DataFrame(df_data)
+                            st.dataframe(df.head(15).style.format("{:.6f}"), use_container_width=True)
+                        else:
+                            st.write(tr("screen2_info_area_no_points"))
+                        st.markdown("---")
             
 # ==============================================
 #           PHẦN 4: TRANG MÔ PHỎNG ĐỘNG
