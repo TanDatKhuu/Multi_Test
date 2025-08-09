@@ -1,6 +1,5 @@
 {
 	"app_title": "Ứng dụng mô phỏng phương pháp đa bước - FMS TDTU", 
-	# Welcome Screen
 	"welcome_uni": "TRƯỜNG ĐẠI HỌC TÔN ĐỨC THẮNG",
 	"welcome_faculty": "KHOA TOÁN - THỐNG KÊ", 
 	"welcome_project_title": "Phương pháp đa bước và ứng dụng\ntrong mô phỏng một số mô hình thực tế", 
@@ -12,55 +11,49 @@
 	"lang_vi": "Tiếng Việt",
 	"lang_en": "English", 
 	"start_button": "Bắt đầu",
-	# Screen 1
 	"screen1_title": "Chọn mô hình thực tế",
 	"screen1_model_info_group_title": "Thông tin mô hình",
 	"screen1_model_application_group_title": "Ứng dụng của mô hình",
 	"screen1_equation_label": "Phương trình vi phân/Nghiệm giải tích:",
 	"screen1_description_label": "Mô tả và ý nghĩa tham số:",
 	"screen1_continue_button": "Tiếp tục với mô hình này",
-	# ================== MODEL 1: Energy Demand ==================
 	"model1_name": "Mô hình 1: Nguồn năng lượng",
-	"model1_eq": "dO/dt = kO<br>O(t) = O<sub>0</sub>e<sup>kt</sup>",#-t<sub>0</sub>
-	"model1_desc": ("Mô hình tăng trưởng theo hàm mũ, mô tả mức tiêu thụ năng lượng theo thời gian.<br>"
+	"model1_eq": "dO/dt = kO<br>O(t) = O<sub>0</sub>e<sup>kt</sup>",
+	"model1_desc": "Mô hình tăng trưởng theo hàm mũ, mô tả mức tiêu thụ năng lượng theo thời gian.<br>"
 	"O(t): Mức tiêu thụ năng lượng tại thời điểm t.<br>"
 	"dO/dt: Tốc độ tăng trưởng mức tiêu thụ năng lượng.<br>"
 	"O<sub>0</sub>: Mức tiêu thụ năng lượng ban đầu tại thời điểm t<sub>0</sub>.<br>"
-	"k: Hằng số biểu thị tốc độ tăng trưởng.<br>"),
-	#"t<sub>0</sub>: Thời điểm ban đầu."),
+	"k: Hằng số biểu thị tốc độ tăng trưởng.<br>",
 	"model1_param1": "Mức tiêu thụ năng lượng ban đầu (O₀)",
 	"model1_param2": "Hằng số tốc độ tăng trưởng (k)",
 	"model1_param3": "Thời điểm ban đầu (t₀)",
 	"model1_param4": "Thời điểm kết thúc (t₁)",
-	# ================== MODEl 2 ==================
 	"model2_name": "Mô hình 2: Sự tăng trưởng tế bào",
 	"model2_eq": "dx/dt = cx<sup>2/3</sup><br>x(t) = (x<sub>0</sub><sup>1/3</sup> + ct/3)<sup>3</sup>",
-	"model2_desc": ("Mô hình mô phỏng sự tăng trưởng khối lượng của tế bào.<br>"
+	"model2_desc": "Mô hình mô phỏng sự tăng trưởng khối lượng của tế bào.<br>"
 	"x(t): Khối lượng của tế bào tại thời điểm t.<br>"
 	"c: Hằng số biểu thị tốc độ tăng trưởng của tế bào.<br>"
 	"dx/dt: Tốc độ thay đổi của khối lượng tế bào theo thời gian.<br>"
-	"x<sub>0</sub>: Khối lượng ban đầu của tế bào (tại t=0 nếu nghiệm là ct/3)."),
+	"x<sub>0</sub>: Khối lượng ban đầu của tế bào (tại t=0 nếu nghiệm là ct/3).",
 	"model2_param1": "Khối lượng ban đầu (x₀)",
 	"model2_param3": "Thời điểm ban đầu (t₀)",
 	"model2_param4": "Thời điểm kết thúc (t₁)",
 	"model2_calculated_c_label": "Hằng số tốc độ tăng trưởng (c):",
-	# ================== MODEL 3: Spread of epidemic ==================
 	"model3_name": "Mô hình 3: Sự lây lan dịch bệnh",
 	"model3_eq": "y'(t) = -r*y(t)*(n+1-y(t))<br>y(t)  = n(n+1)e<sup>-r(n+1)(t-t<sub>0</sub>)</sup>/(1+ne<sup>-r(n+1)(t-t<sub>0</sub>)</sup>)",
-	"model3_desc": ("Mô hình mô phỏng sự thay đổi về số lượng cá thể chưa bị nhiễm bệnh trong một cộng đồng theo thời gian.<br>" 
+	"model3_desc": "Mô hình mô phỏng sự thay đổi về số lượng cá thể chưa bị nhiễm bệnh trong một cộng đồng theo thời gian.<br>" 
 	"x(t): Số lượng cá thể chưa bị nhiễm tại thời điểm t.<br>"
 	"n: Số lượng cá thể dễ bị nhiễm ban đầu.<br>" 
 	"r: Hằng số dương đo lường tốc độ lây nhiễm.<br>"
 	"dx/dt: Tốc độ giảm của số người chưa nhiễm (tốc độ lây nhiễm).<br>" 
-	"t<sub>0</sub>: Thời điểm ban đầu."),
+	"t<sub>0</sub>: Thời điểm ban đầu.",
 	"model3_param2": "Số lượng cá thể dễ bị nhiễm ban đầu (n)",
 	"model3_param4": "Thời điểm ban đầu (t₀)",
 	"model3_param5": "Thời điểm kết thúc (t₁)",
 	"model3_calculated_r_label": "Hằng số tốc độ lây nhiễm (r):",
-	# ================== MODEL 4: National Economy ==================
 	"model4_name": "Mô hình 4: Nền kinh tế quốc gia",
 	"model4_eq": "Y''(t) + αY'(t) + βY(t) = mlG", 
-	"model4_desc": ("Mô hình mô phỏng sự thay đổi của nền kinh tế theo thời gian dựa trên các biến số của kinh tế vĩ mô.<br>"
+	"model4_desc": "Mô hình mô phỏng sự thay đổi của nền kinh tế theo thời gian dựa trên các biến số của kinh tế vĩ mô.<br>"
 	"Y(t): Thu nhập quốc dân.<br>"
 	"Y'(t): Tốc độ thay đổi thu nhập.<br>"
 	"α: Hệ số liên quan đến khuynh hướng tiêu dùng/đầu tư (α = m + ls - lma).<br>"
@@ -69,7 +62,7 @@
 	"l: Tham số liên quan đến cầu tiền.<br>"
 	"a: Tham số độ nhạy đầu tư theo lãi suất.<br>"
 	"s: Tham số độ nhạy cầu tiền theo lãi suất.<br>"
-	"G: Chi tiêu chính phủ (hằng số)."),
+	"G: Chi tiêu chính phủ (hằng số).",
 	"model4_param_alpha": "Hệ số α", 
 	"model4_param_beta": "Hệ số β", 
 	"model4_param_a": "Tham số a",
@@ -81,15 +74,14 @@
 	"model4_param_dY0": "Y'(t₀)",
 	"model4_param_t0": "Thời gian t₀",
 	"model4_param_t1": "Thời gian t₁",
-	# ================== MODEL 5: Pursuit Curve ==================
 	"model5_name": "Mô hình 5: Đường cong truy đuổi",
 	"model5_eq": "dx/dt = -v * x / √(x<sup>2</sup>+y<sup>2</sup>)<br>dy/dt = -v * y / √(x<sup>2</sup>+y<sup>2</sup>) - u",
-	"model5_desc": ("Mô hình tìm quỹ đạo của con thuyền di chuyển dưới tác động của dòng chảy.<br>"
+	"model5_desc": "Mô hình tìm quỹ đạo của con thuyền di chuyển dưới tác động của dòng chảy.<br>"
 	"(x(t), y(t)): Tọa độ của con thuyền tại thời điểm t.<br>"
 	"v: Vận tốc của con thuyền (tương đối so với nước).<br>"
 	"u: Vận tốc của dòng chảy (theo chiều âm trục y).<br>"
 	"x<sub>0</sub>, y<sub>0</sub>: Tọa độ ban đầu của con thuyền.<br>"
-	"t<sub>0</sub>, t<sub>1</sub>: Khoảng thời gian mô phỏng."),
+	"t<sub>0</sub>, t<sub>1</sub>: Khoảng thời gian mô phỏng.",
 	"model5_param_x0": "Tọa độ x ban đầu (x₀)",
 	"model5_param_y0": "Tọa độ y ban đầu (y₀)",
 	"model5_param_u": "Vận tốc dòng chảy (u)",
@@ -99,7 +91,6 @@
 	"model5_select_component": "Chọn thành phần để hiển thị:",
 	"model5_component_x": "Thành phần X",
 	"model5_component_y": "Thành phần Y",
-	# Screen 2
 	"screen2_back_button": "Quay lại chọn mô hình", 
 	"screen2_goto_screen3_button": "Xem mô phỏng động", 
 	"screen2_goto_screen3_tooltip": "Chuyển đến màn hình mô phỏng động (nếu có)",
@@ -171,14 +162,12 @@
 	"screen2_info_area_show_data_exact_x": "Tham chiếu", 
 	"screen2_info_area_show_data_exact_y": "Tham chiếu", 
 	"screen2_info_area_show_data_error_x": "Sai số",     
-	"screen2_info_area_show_data_error_y": "Sai số",     	
-	# Simulation Plot Window
+	"screen2_info_area_show_data_error_y": "Sai số",     
 	"sim_window_title": "Cửa sổ đồ thị mô phỏng động", 
 	"sim_window_plot_title": "Mô phỏng nghiệm theo thời gian", 
 	"sim_window_t_axis": "Thời gian (t)",
 	"sim_window_value_axis": "Giá trị nghiệm", 
 	"sim_window_no_data": "Không có dữ liệu hợp lệ để vẽ đồ thị động",
-	# Messages
 	"msg_error": "Lỗi",
 	"msg_warning": "Cảnh báo",
 	"msg_info": "Thông báo",
@@ -219,8 +208,6 @@
 	"msg_save_fail_text": "Không thể lưu hình ảnh do lỗi:\n{}",
 	"msg_saving_plot_error": "Lỗi khi lưu đồ thị '{}': {}",
 	"msg_skipping_save": "Bỏ qua việc lưu đồ thị '{}' (không có dữ liệu).",
-	
-	#Screen 3
 	"screen3_back_button": "Quay lại nhập tham số", 
 	"screen3_double_back_button": "Quay lại chọn mô hình", 
 	"screen3_dyn_only_title": "Mô phỏng động của mô hình",
