@@ -2116,7 +2116,41 @@ def AM4_system_M5_Sim2_CombinedLogic(f_combined_like, t_array_full_potential, in
         try: f_ip1_corrected = f_combined_like(t_ip1, y_ip1); f_values_history.append(f_ip1_corrected)
         except Exception as e: print(f"AM4_Sim2_Combined: Error f_ip1_corr t={t_ip1:.2f}: {e}"); break
     return np.array(time_points_list), np.array(state_history_list), caught_flag_main, time_of_catch_main
+# ==============================================
+#           ODE Function Definitions
+# ==============================================
+# Các hàm này sẽ được tham chiếu bởi MODELS_DATA để tránh lỗi serialization
 
+def get_model1_ode(k):
+    return lambda t, y: k * y
+
+def get_model1_exact(O0, k, t0):
+    return lambda t: O0 * np.exp(k * (np.asarray(t) - t0))
+
+def get_model2_ode(c):
+    return lambda t, y: c * (y**(2.0/3.0) + 1e-15)
+
+def get_model2_exact(x0, c, t0):
+    return lambda t: (x0**(1.0/3.0) + c * (np.asarray(t) - t0) / 3.0)**3
+
+def get_model3_ode(r, n_initial):
+    return lambda t, y: -r * y * (n_initial + 1.0 - y)
+
+def get_model3_exact(n_initial, r, t0):
+    if n_initial <= 0:
+        return lambda t: np.zeros_like(np.asarray(t))
+    return lambda t: (n_initial * (n_initial + 1.0) * np.exp(-r * (n_initial + 1.0) * (np.asarray(t) - t0))) / \
+                     (1.0 + n_initial * np.exp(-r * (n_initial + 1.0) * (np.asarray(t) - t0)))
+
+def get_model4_ode(alpha, beta, m, G, l):
+    return lambda t, u1, u2: np.array([u2, m * l * G - alpha * u2 - beta * u1])
+
+def get_model4_exact(alpha, beta, m, G, l, n, k, t0):
+    return lambda t_arr: _model4_exact_solution(alpha, beta, m, G, l, n, k, t0, t_arr)
+
+def get_model5_ode(u_param, v_param):
+    return lambda t, x, y: _model5_ode_system(t, x, y, u_param, v_param)
+	
 # ==============================================
 #           Models Data
 # ==============================================
@@ -2258,7 +2292,6 @@ class DiseaseSimulationABM:
         }
 		
 MODELS_DATA = {
-    #Model 1: Energy demand
     LANG_VI["model1_name"]: {
         "id": "model1",
         "equation_key": "model1_eq",
@@ -2266,10 +2299,9 @@ MODELS_DATA = {
         "param_keys_vi": [LANG_VI["model1_param1"], LANG_VI["model1_param2"], LANG_VI["model1_param3"], LANG_VI["model1_param4"]],
         "param_keys_en": [LANG_EN["model1_param1"], LANG_EN["model1_param2"], LANG_EN["model1_param3"], LANG_EN["model1_param4"]],
         "internal_param_keys": ["O₀", "k", "t₀", "t₁"],
-        "ode_func": lambda k: (lambda t, y: k * y),
-        "exact_func": lambda O0, k, t0: (lambda t: O0 * np.exp(k * (np.asarray(t) - t0))),
+        "ode_func": get_model1_ode,
+        "exact_func": get_model1_exact,
     },
-    #Model 2: Cell growth
     LANG_VI["model2_name"]: {
         "id": "model2",
         "equation_key": "model2_eq",
@@ -2277,10 +2309,9 @@ MODELS_DATA = {
         "param_keys_vi": [LANG_VI["model2_param1"], LANG_VI["model2_param3"], LANG_VI["model2_param4"]],
         "param_keys_en": [LANG_EN["model2_param1"], LANG_EN["model2_param3"], LANG_EN["model2_param4"]],
         "internal_param_keys": ["x₀", "t₀", "t₁"],
-        "ode_func": lambda c: (lambda t, y: c * (y**(2.0/3.0) + 1e-15)),
-        "exact_func": lambda x0, c, t0: (lambda t: (x0**(1.0/3.0) + c * (np.asarray(t) - t0) / 3.0)**3),
+        "ode_func": get_model2_ode,
+        "exact_func": get_model2_exact,
     },
-    #Model 3: Spread of epidemicepidemic
     LANG_VI["model3_name"]: {
         "id": "model3", 
         "can_run_abm_on_screen3": True,
@@ -2289,89 +2320,37 @@ MODELS_DATA = {
         "param_keys_vi": [LANG_VI["model3_param2"], LANG_VI["model3_param4"], LANG_VI["model3_param5"]],
         "param_keys_en": [LANG_EN["model3_param2"], LANG_EN["model3_param4"], LANG_EN["model3_param5"]],
         "internal_param_keys": ["n", "t₀", "t₁"], 
-        "ode_func": lambda r, n_initial: (lambda t, y: -r * y * (n_initial + 1.0 - y)),
-        "exact_func": lambda n_initial, r, t0: (
-            lambda t: (n_initial * (n_initial + 1.0) * np.exp(-r * (n_initial + 1.0) * (np.asarray(t) - t0))) / \
-                      (1.0 + n_initial * np.exp(-r * (n_initial + 1.0) * (np.asarray(t) - t0))) if n_initial > 0 else
-            (lambda t: np.zeros_like(np.asarray(t))) 
-        ),
+        "ode_func": get_model3_ode,
+        "exact_func": get_model3_exact,
         "abm_defaults": {
-            "initial_infected": 1,
-            "room_dimension": ABM_ROOM_DIMENSION_DEFAULT, 
-            "r_to_ptrans_factor": 5000,
-            "ptrans_min": ABM_PTRANS_MIN, 
-            "ptrans_max": ABM_PTRANS_MAX, 
-            "base_agent_speed": 0.04,
-            "speed_scaling_factor": 0.5,
-            "min_agent_speed": 0.02,
-            "max_agent_speed": 0.20,
-
-            "base_contact_radius": 0.5,
-            "radius_scaling_factor": 3.0,
-            "min_contact_radius": 0.3,
-            "max_contact_radius": 1.5,
-            "seconds_per_step": 0.1,
-
-            "max_steps": ABM_MAX_STEPS_DEFAULT, 
-            "interval_ms": ABM_INTERVAL_DEFAULT, 
+            "initial_infected": 1, "room_dimension": ABM_ROOM_DIMENSION_DEFAULT, 
+            "r_to_ptrans_factor": 5000, "ptrans_min": ABM_PTRANS_MIN, 
+            "ptrans_max": ABM_PTRANS_MAX, "base_agent_speed": 0.04,
+            "speed_scaling_factor": 0.5, "min_agent_speed": 0.02,
+            "max_agent_speed": 0.20, "base_contact_radius": 0.5,
+            "radius_scaling_factor": 3.0, "min_contact_radius": 0.3,
+            "max_contact_radius": 1.5, "seconds_per_step": 0.1,
+            "max_steps": ABM_MAX_STEPS_DEFAULT, "interval_ms": ABM_INTERVAL_DEFAULT, 
             "display_max_total": MAX_TOTAL_AGENTS_FOR_FULL_DISPLAY, 
             "display_sample_size": SAMPLE_SIZE_FOR_LARGE_POPULATION 
         }
     },
-    #Model 4: National economy
     LANG_VI["model4_name"]: {
-        "id": "model4",
-        "is_system": True,
-        "equation_key": "model4_eq",
-        "description_key": "model4_desc",
-        "param_keys_vi": [
-            LANG_VI["model4_param_m"], LANG_VI["model4_param_l"],
-            LANG_VI["model4_param_a"], LANG_VI["model4_param_s"], 
-            LANG_VI["model4_param_G"],
-            LANG_VI["model4_param_alpha"], LANG_VI["model4_param_beta"], 
-            LANG_VI["model4_param_dY0"], LANG_VI["model4_param_Y0"], 
-            LANG_VI["model4_param_t0"], LANG_VI["model4_param_t1"]
-        ],
-        "param_keys_en": [
-            LANG_EN["model4_param_m"], LANG_EN["model4_param_l"],
-            LANG_EN["model4_param_a"], LANG_EN["model4_param_s"], 
-            LANG_EN["model4_param_G"],
-            LANG_EN["model4_param_alpha"], LANG_EN["model4_param_beta"], 
-            LANG_EN["model4_param_dY0"], LANG_EN["model4_param_Y0"],
-            LANG_EN["model4_param_t0"], LANG_EN["model4_param_t1"]
-        ],
+        "id": "model4", "is_system": True,
+        "equation_key": "model4_eq", "description_key": "model4_desc",
         "internal_param_keys": ["m", "l", "a", "s", "G", "Y0", "dY0", "t₀", "t₁"], 
-        "ode_func": lambda alpha, beta, m, G, l: (
-            lambda t, u1, u2: np.array([u2, m * l * G - alpha * u2 - beta * u1])
-        ),
-        "exact_func": lambda alpha, beta, m, G, l, n, k, t0: (
-            lambda t_arr: _model4_exact_solution(alpha, beta, m, G, l, n, k, t0, t_arr)
-        ),
+        "ode_func": get_model4_ode,
+        "exact_func": get_model4_exact,
     },
-    #Model 5: Pursuit curve
     LANG_VI["model5_name"]: {
-        "id": "model5",
-        "is_system": True,                 
-        "uses_rk5_reference": True,      
-        "equation_key": "model5_eq",
-        "description_key": "model5_desc",
-        "param_keys_vi": [
-            LANG_VI["model5_param_x0"], LANG_VI["model5_param_y0"],
-            LANG_VI["model5_param_u"], LANG_VI["model5_param_v"] ,
-            LANG_VI["model5_param_t0"], LANG_VI["model5_param_t1"],
-        ],
-        "param_keys_en": [
-            LANG_EN["model5_param_x0"], LANG_EN["model5_param_y0"],
-             LANG_EN["model5_param_u"], LANG_EN["model5_param_v"],
-            LANG_EN["model5_param_t0"], LANG_EN["model5_param_t1"],
-        ],
+        "id": "model5", "is_system": True, "uses_rk5_reference": True,      
+        "equation_key": "model5_eq", "description_key": "model5_desc",
         "internal_param_keys": ["x0", "y0", "u", "v", "t₀", "t₁"], 
-        "ode_func": lambda u_param, v_param: (
-            lambda t, x, y: _model5_ode_system(t, x, y, u_param, v_param)
-        ),
+        "ode_func": get_model5_ode,
         "exact_func": None,
     },
 }
+
 #Solve model 4
 def _model4_exact_solution(alpha, beta, m, G, l, n, k, t0, t_arr):
     t_rel = np.asarray(t_arr) - t0 
@@ -2675,14 +2654,11 @@ def _predict_r_for_model3(t_start, t_end, n_initial):
     return calculated_r
 
 def _prepare_simulation_functions(model_data, input_params, selected_method_short):
-    """
-    Hàm này chuẩn bị mọi thứ cần thiết để chạy mô phỏng.
-    Nó thay thế cho logic bên trong _prepare_simulation_functions từ code gốc.
-    """
     try:
         ode_gen = model_data.get("ode_func")
         exact_gen = model_data.get("exact_func")
         model_id = model_data.get("id")
+
         if not callable(ode_gen):
             raise ValueError(tr("msg_model_no_ode").format(tr(f"{model_id}_name")))
         
@@ -2691,82 +2667,64 @@ def _prepare_simulation_functions(model_data, input_params, selected_method_shor
         y0 = None
 
         if model_id == "model4":
-            if 'Y0' not in input_params or 'dY0' not in input_params:
-                raise ValueError(tr("msg_missing_y0"))
+            if 'Y0' not in input_params or 'dY0' not in input_params: raise ValueError(tr("msg_missing_y0"))
             y0 = [input_params['Y0'], input_params['dY0']]
         elif model_id == "model5":
-            if 'x0' not in input_params or 'y0' not in input_params:
-                raise ValueError(tr("msg_missing_y0"))
+            if 'x0' not in input_params or 'y0' not in input_params: raise ValueError(tr("msg_missing_y0"))
             y0 = [input_params['x0'], input_params['y0']]
         else:
             y0_key_map = {'model1': 'O₀', 'model2': 'x₀', 'model3': 'n'}
             y0_key = y0_key_map.get(model_id)
-            if y0_key is None or y0_key not in input_params:
-                raise ValueError(tr("msg_missing_y0"))
+            if y0_key is None or y0_key not in input_params: raise ValueError(tr("msg_missing_y0"))
             y0 = input_params[y0_key]
         
         ode_func = None
         exact_callable = None
         
-        # Logic tính toán tham số đặc biệt cho từng model
         if model_id == "model1":
             k = input_params['k']
             ode_func = ode_gen(k)
-            exact_callable = exact_gen(y0, k, t_start) if callable(exact_gen) else None
+            if callable(exact_gen): exact_callable = exact_gen(y0, k, t_start)
+        
         elif model_id == "model2":
             number_of_double_times = 5.0 if selected_method_short == "Bashforth" else 2.0
             denominator_b = input_params['t₁']
-            if denominator_b <= 1e-9 or input_params['x₀'] < 0:
-                raise ValueError("t₁ phải > 0 và x₀ >= 0 cho Model 2")
+            if denominator_b <= 1e-9 or input_params['x₀'] < 0: raise ValueError("t₁ > 0 và x₀ >= 0")
             x0_cbrt_safe = (input_params['x₀'] + 1e-15)**(1.0/3.0)
             doubling_factor_N_cbrt = (2.0**number_of_double_times)**(1.0/3.0)
             lower_c = 3.0 * (doubling_factor_N_cbrt - 1.0) * x0_cbrt_safe / denominator_b
             doubling_factor_Nplus1_cbrt = (2.0**(number_of_double_times + 1.0))**(1.0/3.0)
             upper_c = 3.0 * (doubling_factor_Nplus1_cbrt - 1.0) * x0_cbrt_safe / denominator_b
             calculated_c = random.uniform(min(lower_c, upper_c), max(lower_c, upper_c))
-            
-            # Lưu lại để hiển thị trên UI
             st.session_state.last_calculated_c = calculated_c
-            
             ode_func = ode_gen(calculated_c)
-            if callable(exact_gen):
-                exact_callable = exact_gen(y0, calculated_c, t_start)
+            if callable(exact_gen): exact_callable = exact_gen(y0, calculated_c, t_start)
+            
         elif model_id == "model3":
             n_initial = y0
             calculated_r = _predict_r_for_model3(t_start, t_end, n_initial)
-            if calculated_r is None:
-                raise ValueError("Không thể tính toán tham số 'r' cho Model 3.")
-            
-            # Lưu lại để hiển thị
+            if calculated_r is None: raise ValueError("Không thể tính 'r'")
             st.session_state.last_calculated_r = calculated_r
-            
             ode_func = ode_gen(calculated_r, n_initial)
-            if callable(exact_gen):
-                exact_callable = exact_gen(n_initial, calculated_r, t_start)
+            if callable(exact_gen): exact_callable = exact_gen(n_initial, calculated_r, t_start)
+            
         elif model_id == "model4":
             m, l, a, s, G = input_params['m'], input_params['l'], input_params['a'], input_params['s'], input_params['G']
             Y0_val, dY0_val = y0[0], y0[1]
-            
             alpha_calculated = m + l * s - l * m * a
             beta_calculated = l * m * s
-            
-            # Lưu lại để hiển thị
             st.session_state.last_calculated_alpha = alpha_calculated
             st.session_state.last_calculated_beta = beta_calculated
-            
             ode_func = ode_gen(alpha_calculated, beta_calculated, m, G, l)
-            if callable(exact_gen):
-                exact_callable = exact_gen(alpha_calculated, beta_calculated, m, G, l, Y0_val, dY0_val, t_start)
+            if callable(exact_gen): exact_callable = exact_gen(alpha_calculated, beta_calculated, m, G, l, Y0_val, dY0_val, t_start)
+            
         elif model_id == "model5":
             u_param = input_params['u']
             v_param = input_params['v']
             ode_func = ode_gen(u_param, v_param)
-            exact_callable = None # Model 5 không có nghiệm giải tích
-        else:
-            raise NotImplementedError(f"Logic chuẩn bị cho model '{model_id}' chưa được triển khai.")
+            exact_callable = None
 
-        if not callable(ode_func):
-            raise RuntimeError(f"Lỗi nội bộ: Hàm ODE không được tạo cho model '{model_id}'.")
+        if not callable(ode_func): raise RuntimeError(f"Lỗi: Hàm ODE không được tạo cho model '{model_id}'.")
         
         return True, (ode_func, exact_callable, y0, t_start, t_end)
 
