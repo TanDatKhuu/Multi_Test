@@ -2556,14 +2556,7 @@ def show_simulation_page():
     st.write("") 
 
     # --- HEADER CỦA TRANG (SẮP XẾP LẠI) ---
-    header_cols = st.columns([1, 3]) # Điều chỉnh tỉ lệ
-    with header_cols[0]:
-        if st.button(f"ᐊ {tr('screen2_back_button')}"):
-            st.session_state.page = 'model_selection'
-            st.session_state.simulation_results = {}; st.session_state.validated_params = {}
-            st.rerun()
-    with header_cols[1]:
-        st.title(model_name_tr)
+    st.title(model_name_tr)
     st.divider()
 
     # --- BỐ CỤC CHÍNH ---
