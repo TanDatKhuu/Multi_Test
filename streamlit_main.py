@@ -2526,7 +2526,7 @@ def show_simulation_page():
         </style>
     """, unsafe_allow_html=True)
     
-    # --- THANH ĐIỀU HƯỚNG (BỎ VIỀN) ---
+    # --- THANH ĐIỀU HƯỚNG ---
     with st.container():
         nav_cols = st.columns([3, 2, 1, 1, 1.5]) 
         with nav_cols[0]:
@@ -2555,12 +2555,12 @@ def show_simulation_page():
                 st.rerun()
     st.write("") 
 
-    # --- HEADER CỦA TRANG (SẮP XẾP LẠI) ---
+    # --- HEADER CỦA TRANG ---
     st.title(model_name_tr)
     st.divider()
 
     # --- BỐ CỤC CHÍNH ---
-    col_controls, col_display = st.columns([1, 1.5]) # Tăng chiều rộng cho cột hiển thị
+    col_controls, col_display = st.columns([1, 1.5]) 
 
     with col_controls:
         # --- CÁC KHỐI ĐIỀU KHIỂN ---
@@ -2625,8 +2625,10 @@ def show_simulation_page():
                 for key in ['last_calculated_c', 'last_calculated_r', 'last_calculated_alpha', 'last_calculated_beta']:
                     if key in st.session_state: del st.session_state[key]
                 st.rerun()
-		st.write("") # Thụt lề đúng
-        if st.button(f"ᐊ {tr('screen2_back_button')}"): # Thụt lề đúng
+        
+        # Thụt lề đúng cho nút quay lại
+        st.write("") 
+        if st.button(f"ᐊ {tr('screen2_back_button')}"):
             st.session_state.page = 'model_selection'
             st.session_state.simulation_results = {}
             st.session_state.validated_params = {}
