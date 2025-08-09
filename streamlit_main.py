@@ -1889,102 +1889,106 @@ def main():
 
 # --- Thay thế hàm show_welcome_page cũ ---
 def show_welcome_page():
-    # --- THÊM HÌNH NỀN VÀ CSS TÙY CHỈNH ---
-    # Highlight: Thêm phần này để đặt ảnh nền
-    # Chuyển ảnh nền sang base64 để nhúng trực tiếp vào CSS
-    import base64
-    
-    @st.cache_data
-    def get_base64_of_bin_file(bin_file):
-        with open(bin_file, 'rb') as f:
-            data = f.read()
-        return base64.b64encode(data).decode()
-
-    bg_image_path = os.path.join(FIG_FOLDER, "back@2.png")
-    if os.path.exists(bg_image_path):
-        img_base64 = get_base64_of_bin_file(bg_image_path)
-        page_bg_img = f"""
+    # --- CSS TÙY CHỈNH CHO GIAO DIỆN MỚI ---
+    st.markdown("""
         <style>
-        [data-testid="stAppViewContainer"] > .main {{
-            background-image: linear-gradient(rgba(255, 255, 255, 0.7), rgba(220, 230, 255, 0.8)), url("data:image/png;base64,{img_base64}");
-            background-size: cover;
-            background-position: center center;
-            background-repeat: no-repeat;
-            background-attachment: local;
-        }}
-        [data-testid="stHeader"] {{
-            background: rgba(0,0,0,0);
-        }}
+        /* CSS cho toàn bộ trang */
+        .main {
+            background-color: #F0F2F6; /* Màu nền xám nhạt */
+        }
+        /* CSS cho tiêu đề chính */
+        .hero-title {
+            font-size: 3.5rem;
+            font-weight: 700;
+            color: #1E293B; /* Màu chữ tối */
+            text-align: center;
+            line-height: 1.2;
+            padding: 2rem 0;
+        }
+        /* CSS cho phần giới thiệu */
+        .about-section h2 {
+            font-size: 2.5rem;
+            font-weight: 600;
+            color: #334155;
+        }
+        .about-section p {
+            font-size: 1.1rem;
+            color: #475569;
+        }
         </style>
-        """
-        st.markdown(page_bg_img, unsafe_allow_html=True)
-    else:
-        st.warning("Không tìm thấy file ảnh nền 'back@2.png' trong thư mục 'fig'.")
-
+    """, unsafe_allow_html=True)
 
     # --- BỐ CỤC GIAO DIỆN MỚI ---
-    # Sử dụng container để nhóm các thành phần
+
+    # 1. Hero Section: Tiêu đề chính và nút bấm
     with st.container():
-        # Cột cho logo và tiêu đề trường
-        col_logo1, col_title, col_logo2 = st.columns([1, 4, 1])
-        with col_logo1:
-            logo_tdtu_path = os.path.join(FIG_FOLDER, "logotdtu1.png")
-            if os.path.exists(logo_tdtu_path):
-                st.image(logo_tdtu_path, width=150)
-        with col_title:
-            st.markdown(f"<h2 style='text-align: center; color: #000080; font-weight: bold;'>{tr('welcome_uni')}</h2>", unsafe_allow_html=True)
-            st.markdown(f"<h2 style='text-align: center; color: #000080; font-weight: bold;'>{tr('welcome_faculty')}</h2>", unsafe_allow_html=True)
-        with col_logo2:
-            logo_faculty_path = os.path.join(FIG_FOLDER, "logokhoa1@2.png")
-            if os.path.exists(logo_faculty_path):
-                st.image(logo_faculty_path, width=100)
-
-        st.write("") # Thêm khoảng trống
+        st.markdown(f"<div class='hero-title'>{tr('welcome_project_title').replace('\\n', '<br>')}</div>", unsafe_allow_html=True)
         
-        # Tiêu đề dự án
-        st.markdown(f"<h1 style='text-align: center; color: #990000; font-family: Times New Roman, serif;'>{tr('welcome_project_title').replace('\\n', '<br>')}</h1>", unsafe_allow_html=True)
-        
-        st.write("")
-        st.write("")
+        # Căn giữa nút bấm
+        _, col_btn, _ = st.columns([2, 1, 2])
+        with col_btn:
+            if st.button(f"**{tr('start_button')}**", use_container_width=True, type="primary"):
+                st.session_state.page = 'model_selection'
+                st.rerun()
 
-        # Cột cho thông tin tác giả và điều khiển
-        col_info1, col_info2, col_info3 = st.columns([1, 2, 1])
-        with col_info2:
-            # Dùng st.container() với border để tạo hiệu ứng groupbox
+    st.divider()
+
+    # 2. About Section: Giới thiệu và hình ảnh
+    with st.container():
+        col_text, col_img = st.columns([1.5, 1])
+        with col_text:
+            st.markdown(f"""
+                <div class='about-section'>
+                    <h2>{tr('welcome_uni')}</h2>
+                    <h3>{tr('welcome_faculty')}</h3>
+                    <p>
+                        Dự án này được thực hiện nhằm mục đích xây dựng một công cụ trực quan và tương tác
+                        để nghiên cứu và tìm hiểu về ứng dụng của các phương pháp số đa bước, 
+                        cụ thể là Adams-Bashforth và Adams-Moulton, trong việc giải các phương trình vi phân
+                        thông thường (ODEs) mô hình hóa các hiện tượng thực tế.
+                    </p>
+                </div>
+            """, unsafe_allow_html=True)
+        with col_img:
+            # Bạn có thể thay thế ảnh này bằng một ảnh phù hợp hơn với dự án
+            about_image_path = os.path.join(FIG_FOLDER, "logotdtu1.png")
+            if os.path.exists(about_image_path):
+                st.image(about_image_path)
+
+    st.divider()
+
+    # 3. Credits Section: Tác giả và Giảng viên
+    with st.container():
+        col_authors, col_advisors = st.columns(2)
+        with col_authors:
             with st.container(border=True):
                 st.markdown(f"<h4 style='text-align: center;'>{tr('welcome_authors_title')}</h4>", unsafe_allow_html=True)
                 st.markdown(f"<p style='text-align: center;'>{tr('welcome_authors_names')}</p>", unsafe_allow_html=True)
-                
-                st.markdown("---")
-                
+        with col_advisors:
+            with st.container(border=True):
                 st.markdown(f"<h4 style='text-align: center;'>{tr('welcome_advisors_title')}</h4>", unsafe_allow_html=True)
                 st.markdown(f"<p style='text-align: center;'>{tr('welcome_advisor1')}</p>", unsafe_allow_html=True)
                 st.markdown(f"<p style='text-align: center;'>{tr('welcome_advisor2')}</p>", unsafe_allow_html=True)
-        
-        st.write("")
-        
-        # Bộ chọn ngôn ngữ và nút bắt đầu
-        col_ctrl1, col_ctrl2, col_ctrl3 = st.columns([1.5, 2, 1.5])
-        with col_ctrl2:
+
+    st.divider()
+
+    # 4. Language Selector
+    with st.container():
+        _, col_lang, _ = st.columns([2, 1, 2])
+        with col_lang:
             lang_options_map = {"Tiếng Việt": "vi", "English": "en"}
             def on_lang_change():
                 selected_lang_code = lang_options_map[st.session_state.lang_selector_welcome]
                 st.session_state.lang = selected_lang_code
-            
+
             st.radio(
-                "Chọn ngôn ngữ / Select Language:",
+                "**Chọn ngôn ngữ / Select Language:**",
                 options=lang_options_map.keys(),
                 horizontal=True,
                 index=0 if st.session_state.lang == 'vi' else 1,
                 key='lang_selector_welcome',
                 on_change=on_lang_change
             )
-            
-            st.write("") # Thêm khoảng cách
-
-            if st.button(tr('start_button'), use_container_width=True, type="primary"):
-                st.session_state.page = 'model_selection'
-                st.rerun()
 
 # --- Thay thế hàm show_model_selection_page cũ ---
 def show_model_selection_page():
