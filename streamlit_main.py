@@ -1910,28 +1910,24 @@ def show_welcome_page():
         .welcome-credits h3 { font-size: 1.2rem; font-weight: bold; color: #1E3A8A; }
         .welcome-credits p { font-size: 1rem; color: #334155; margin-bottom: 0; }
         
-        /* CSS cho thanh điều hướng (navigation bar) */
         div[data-testid="stHorizontalBlock"] {
+            border-bottom: 2px solid #D1D5DB;
             padding-bottom: 1rem;
             margin-bottom: 2rem;
-            border-bottom: 2px solid #D1D5DB; /* Giữ lại đường kẻ để phân tách header */
         }
         </style>
     """, unsafe_allow_html=True)
 
-    # --- BỐ CỤC GIAO DIỆN MỚI ---
     with st.container():
         st.markdown('<div class="welcome-container">', unsafe_allow_html=True)
         
-        # --- THANH ĐIỀU HƯỚNG (NAVIGATION BAR) ---
         if 'welcome_subpage' not in st.session_state:
             st.session_state.welcome_subpage = "home"
 
-        # Highlight: Thay đổi tỉ lệ cột để thêm không gian cho bộ chọn ngôn ngữ
-        nav_cols = st.columns([3, 3, 1, 1, 2]) 
+        # Tỷ lệ cột mới để selectbox trông đẹp hơn
+        nav_cols = st.columns([3, 2, 1, 1, 1.5]) 
         
         with nav_cols[0]:
-            # Hiển thị icon và tên ứng dụng
             icon_path_nav = os.path.join(FIG_FOLDER, "icon-app.png")
             if os.path.exists(icon_path_nav):
                 import base64
@@ -1948,37 +1944,36 @@ def show_welcome_page():
                 )
             else:
                 st.markdown("<h3 style='color: #1E3A8A; margin-top: 5px;'>MultiStepSim</h3>", unsafe_allow_html=True)
-
-        # Cột trống để đẩy các nút sang phải
-        # nav_cols[1] là cột trống
-
+        
         with nav_cols[2]:
             if st.button("Trang chủ", use_container_width=True):
-                st.session_state.welcome_subpage = "home"
-                st.rerun() 
+                st.session_state.welcome_subpage = "home"; st.rerun()
         with nav_cols[3]:
             if st.button("Liên hệ", use_container_width=True):
-                st.session_state.welcome_subpage = "contact"
-                st.rerun()
+                st.session_state.welcome_subpage = "contact"; st.rerun()
 
-        # Highlight: Di chuyển bộ chọn ngôn ngữ vào cột cuối cùng của thanh điều hướng
+        # Highlight: Thay thế st.radio bằng st.selectbox
         with nav_cols[4]:
-            lang_options_map = {"VI": "vi", "EN": "en"} # Dùng tên ngắn gọn
-            def on_lang_change():
-                selected_lang_code = lang_options_map[st.session_state.lang_selector_nav]
-                st.session_state.lang = selected_lang_code
+            lang_options_display = (tr('lang_vi'), tr('lang_en'))
+            lang_options_codes = ('vi', 'en')
             
-            st.radio(
-                "Language", # Label ngắn
-                options=lang_options_map.keys(), horizontal=True,
-                index=0 if st.session_state.lang == 'vi' else 1,
-                key='lang_selector_nav', on_change=on_lang_change,
-                label_visibility="collapsed" # Ẩn label "Language" đi
+            current_lang_index = lang_options_codes.index(st.session_state.lang)
+
+            def on_lang_change():
+                selected_display = st.session_state.lang_selector_nav
+                selected_index = lang_options_display.index(selected_display)
+                st.session_state.lang = lang_options_codes[selected_index]
+            
+            st.selectbox(
+                label="Language",
+                options=lang_options_display,
+                index=current_lang_index,
+                key='lang_selector_nav',
+                on_change=on_lang_change,
+                label_visibility="collapsed"
             )
 
-        # --- HIỂN THỊ NỘI DUNG TƯƠNG ỨNG VỚI TAB ĐÃ CHỌN ---
         if st.session_state.welcome_subpage == "home":
-            # ... (Phần nội dung trang chủ giữ nguyên, nhưng xóa bộ chọn ngôn ngữ và nút Bắt đầu ở dưới) ...
             col1, col2, col3 = st.columns([1, 4, 1], vertical_alignment="center") 
             with col1:
                 logo_tdtu_path = os.path.join(FIG_FOLDER, "logotdtu1.png")
@@ -2002,7 +1997,6 @@ def show_welcome_page():
                 else: st.warning("Không tìm thấy file 'multistepsim.png' trong thư mục 'fig'.")
             
             st.divider()
-
             col6, col7 = st.columns(2)
             with col6:
                 st.markdown(f"<div class='welcome-credits'><h3>Sinh viên thực hiện</h3><p>{tr('welcome_authors_names')}</p></div>", unsafe_allow_html=True)
@@ -2010,8 +2004,7 @@ def show_welcome_page():
                 st.markdown(f"<div class='welcome-credits'><h3>Giảng viên hướng dẫn</h3><p>{tr('welcome_advisor1')}<br>{tr('welcome_advisor2')}</p></div>", unsafe_allow_html=True)
             
             st.write("") 
-
-            # Highlight: Chỉ giữ lại nút Bắt đầu ở đây
+            
             _, col_start_btn, _ = st.columns([2, 1, 2])
             with col_start_btn:
                 if st.button(f"**{tr('start_button')}**", use_container_width=True, type="primary"):
@@ -2028,7 +2021,6 @@ def show_welcome_page():
                 st.error("Không tìm thấy file contact.txt.")
 
         st.markdown('</div>', unsafe_allow_html=True)
-
 # --- Thay thế hàm show_model_selection_page cũ ---
 def show_model_selection_page():
     st.title(tr('screen1_title'))
