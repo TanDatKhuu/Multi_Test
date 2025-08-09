@@ -1923,7 +1923,13 @@ def show_welcome_page():
         .welcome-text { color: #475569; font-size: 1rem; }
         .welcome-credits h3 { font-size: 1.2rem; font-weight: bold; color: #1E3A8A; }
         .welcome-credits p { font-size: 1rem; color: #334155; margin-bottom: 0; }
-        </style>
+        /* CSS cho thanh điều hướng (navigation bar) */
+        div[data-testid="stHorizontalBlock"] {
+            border-bottom: 2px solid #D1D5DB;
+            padding-bottom: 1rem;
+            margin-bottom: 2rem;
+        }
+		</style>
     """, unsafe_allow_html=True)
 
     # --- BỐ CỤC GIAO DIỆN MỚI ---
@@ -1931,84 +1937,89 @@ def show_welcome_page():
     with st.container():
         st.markdown('<div class="welcome-container">', unsafe_allow_html=True)
         
-        # --- HÀNG 1: HEADER (LOGO, TÊN TRƯỜNG, LOGO KHOA) ---
-        # Highlight: Thêm vertical_alignment='center'
-        col1, col2, col3 = st.columns([1, 4, 1], vertical_alignment="center") 
-        with col1:
-            logo_tdtu_path = os.path.join(FIG_FOLDER, "logotdtu1.png")
-            if os.path.exists(logo_tdtu_path):
-                st.image(logo_tdtu_path)
-        with col2:
-            st.markdown(f"""
-            <div class='header-col'>
-                <h2>{tr('welcome_uni')}</h2>
-                <h2>{tr('welcome_faculty')}</h2>
-            </div>
-            """, unsafe_allow_html=True)
-        with col3:
-            logo_faculty_path = os.path.join(FIG_FOLDER, "logokhoa1@2.png")
-            if os.path.exists(logo_faculty_path):
-                st.image(logo_faculty_path, width=100)
-            else:
-                st.write("[Faculty Logo Error]")
+        if 'welcome_subpage' not in st.session_state:
+            st.session_state.welcome_subpage = "home"
 
-        st.write("") 
+        nav_cols = st.columns([1, 4, 1, 1])
+        with nav_cols[0]:
+            st.markdown("<h3 style='color: #1E3A8A; margin-top: 5px;'>MultiStepSim</h3>", unsafe_allow_html=True)
+        with nav_cols[2]:
+            if st.button("Trang chủ", use_container_width=True):
+                st.session_state.welcome_subpage = "home"
+        with nav_cols[3]:
+            if st.button("Liên hệ", use_container_width=True):
+                st.session_state.welcome_subpage = "contact"
 
-        # --- HÀNG 2: NỘI DUNG CHÍNH ---
-        col4, col5 = st.columns([1.5, 1], vertical_alignment="center")
-        with col4:
-            st.markdown(f"<div class='project-title'>{tr('welcome_project_title').replace('\\n', '<br>')}</div>", unsafe_allow_html=True)
-            st.markdown("""
-            <p class='welcome-text'>
-            Dự án này được thực hiện nhằm mục đích xây dựng một công cụ trực quan và tương tác để nghiên cứu và tìm hiểu về ứng dụng của các phương pháp số đa bước, cụ thể là Adams-Bashforth và Adams-Moulton, trong việc giải các phương trình vi phân thông thường (ODEs) mô hình hóa các hiện tượng thực tế.
-            </p>
-            """, unsafe_allow_html=True)
-        with col5:
-            main_image_path = os.path.join(FIG_FOLDER, "multi.png") 
-            if os.path.exists(main_image_path):
-                st.image(main_image_path)
-            else:
-                st.warning("Không tìm thấy file 'multi.png' trong thư mục 'fig'.")
-        
-        st.divider()
-
-        # --- HÀNG 3: THÔNG TIN TÁC GIẢ VÀ GIẢNG VIÊN ---
-        col6, col7 = st.columns(2)
-        with col6:
-            st.markdown(f"""
-            <div class='welcome-credits'>
-                <h3>Sinh viên thực hiện</h3>
-                <p>{tr('welcome_authors_names')}</p>
-            </div>
-            """, unsafe_allow_html=True)
-        with col7:
-            st.markdown(f"""
-            <div class='welcome-credits'>
-                <h3>Giảng viên hướng dẫn</h3>
-                <p>{tr('welcome_advisor1')}<br>{tr('welcome_advisor2')}</p>
-            </div>
-            """, unsafe_allow_html=True)
-        
-        st.write("") 
-
-        # --- HÀNG 4: BỘ CHỌN NGÔN NGỮ VÀ NÚT BẮT ĐẦU ---
-        col8, col9 = st.columns([2,1])
-        with col8:
-            lang_options_map = {"Tiếng Việt": "vi", "English": "en"}
-            def on_lang_change():
-                selected_lang_code = lang_options_map[st.session_state.lang_selector_welcome]
-                st.session_state.lang = selected_lang_code
+        # --- HIỂN THỊ NỘI DUNG TƯƠNG ỨNG VỚI TAB ĐÃ CHỌN ---
+        # Highlight: Thêm logic if/elif để hiển thị nội dung
+        if st.session_state.welcome_subpage == "home":
+            # --- HÀNG 1: HEADER (LOGO VÀ TÊN TRƯỜNG) ---
+            col1, col2, col3 = st.columns([1, 4, 1], vertical_alignment="center") 
+            with col1:
+                logo_tdtu_path = os.path.join(FIG_FOLDER, "logotdtu1.png")
+                if os.path.exists(logo_tdtu_path):
+                    st.image(logo_tdtu_path)
+            with col2:
+                st.markdown(f"<div class='header-col'><h2>{tr('welcome_uni')}</h2><h2>{tr('welcome_faculty')}</h2></div>", unsafe_allow_html=True)
+            with col3:
+                logo_faculty_path = os.path.join(FIG_FOLDER, "logokhoa1@2.png")
+                if os.path.exists(logo_faculty_path):
+                    st.image(logo_faculty_path, width=100)
+                else:
+                    st.write("[Faculty Logo Error]")
             
-            st.radio(
-                "**Chọn ngôn ngữ / Select Language:**",
-                options=lang_options_map.keys(), horizontal=True,
-                index=0 if st.session_state.lang == 'vi' else 1,
-                key='lang_selector_welcome', on_change=on_lang_change
-            )
-        with col9:
-            if st.button(f"**{tr('start_button')}**", use_container_width=True, type="primary"):
-                st.session_state.page = 'model_selection'
-                st.rerun()
+            st.write("") 
+
+            # --- HÀNG 2: NỘI DUNG CHÍNH ---
+            col4, col5 = st.columns([1.5, 1], vertical_alignment="center")
+            with col4:
+                st.markdown(f"<div class='project-title'>{tr('welcome_project_title').replace('\\n', '<br>')}</div>", unsafe_allow_html=True)
+                st.markdown("<p class='welcome-text'>Dự án này được thực hiện nhằm mục đích xây dựng một công cụ trực quan và tương tác để nghiên cứu và tìm hiểu về ứng dụng của các phương pháp số đa bước, cụ thể là Adams-Bashforth và Adams-Moulton, trong việc giải các phương trình vi phân thông thường (ODEs) mô hình hóa các hiện tượng thực tế.</p>", unsafe_allow_html=True)
+            with col5:
+                main_image_path = os.path.join(FIG_FOLDER, "multistepsim.png") 
+                if os.path.exists(main_image_path):
+                    st.image(main_image_path)
+                else:
+                    st.warning("Không tìm thấy file 'multistepsim.png' trong thư mục 'fig'.")
+            
+            st.divider()
+
+            # --- HÀNG 3: THÔNG TIN TÁC GIẢ VÀ GIẢNG VIÊN ---
+            col6, col7 = st.columns(2)
+            with col6:
+                st.markdown(f"<div class='welcome-credits'><h3>Sinh viên thực hiện</h3><p>{tr('welcome_authors_names')}</p></div>", unsafe_allow_html=True)
+            with col7:
+                st.markdown(f"<div class='welcome-credits'><h3>Giảng viên hướng dẫn</h3><p>{tr('welcome_advisor1')}<br>{tr('welcome_advisor2')}</p></div>", unsafe_allow_html=True)
+            
+            st.write("") 
+
+            # --- HÀNG 4: BỘ CHỌN NGÔN NGỮ VÀ NÚT BẮT ĐẦU ---
+            col8, col9 = st.columns([2,1])
+            with col8:
+                lang_options_map = {"Tiếng Việt": "vi", "English": "en"}
+                def on_lang_change():
+                    selected_lang_code = lang_options_map[st.session_state.lang_selector_welcome]
+                    st.session_state.lang = selected_lang_code
+                
+                st.radio(
+                    "**Chọn ngôn ngữ / Select Language:**",
+                    options=lang_options_map.keys(), horizontal=True,
+                    index=0 if st.session_state.lang == 'vi' else 1,
+                    key='lang_selector_welcome', on_change=on_lang_change
+                )
+            with col9:
+                if st.button(f"**{tr('start_button')}**", use_container_width=True, type="primary"):
+                    st.session_state.page = 'model_selection'
+                    st.rerun()
+
+        elif st.session_state.welcome_subpage == "contact":
+            contact_file_path = os.path.join(base_path, "contact.txt")
+            if os.path.exists(contact_file_path):
+                with open(contact_file_path, "r", encoding="utf-8") as f:
+                    contact_content = f.read()
+                st.markdown(contact_content, unsafe_allow_html=True)
+            else:
+                st.error("Không tìm thấy file contact.txt.")
 
         st.markdown('</div>', unsafe_allow_html=True)
 
