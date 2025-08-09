@@ -2526,9 +2526,8 @@ def show_simulation_page():
         </style>
     """, unsafe_allow_html=True)
     
-    # --- THANH ĐIỀU HƯỚNG ---
-    # Highlight: Thêm thanh điều hướng vào đầu trang
-    with st.container(border=True):
+    # --- THANH ĐIỀU HƯỚNG (BỎ VIỀN) ---
+    with st.container():
         nav_cols = st.columns([3, 2, 1, 1, 1.5]) 
         with nav_cols[0]:
             icon_path_nav = os.path.join(FIG_FOLDER, "icon-app.png")
@@ -2554,21 +2553,21 @@ def show_simulation_page():
             if st.session_state.lang != lang_options_codes[selected_index]:
                 st.session_state.lang = lang_options_codes[selected_index]
                 st.rerun()
-    st.write("") # Khoảng trống
+    st.write("") 
 
-    # --- HEADER CỦA TRANG ---
-    col_h1, col_h2 = st.columns([1, 4])
-    with col_h1:
-        if st.button(f"ᐊ {tr('screen1_title')}"):
+    # --- HEADER CỦA TRANG (SẮP XẾP LẠI) ---
+    header_cols = st.columns([1, 3]) # Điều chỉnh tỉ lệ
+    with header_cols[0]:
+        if st.button(f"ᐊ {tr('screen2_back_button')}"):
             st.session_state.page = 'model_selection'
             st.session_state.simulation_results = {}; st.session_state.validated_params = {}
             st.rerun()
-    with col_h2:
+    with header_cols[1]:
         st.title(model_name_tr)
     st.divider()
 
     # --- BỐ CỤC CHÍNH ---
-    col_controls, col_display = st.columns([1, 2])
+    col_controls, col_display = st.columns([1, 1.5]) # Tăng chiều rộng cho cột hiển thị
 
     with col_controls:
         # --- CÁC KHỐI ĐIỀU KHIỂN ---
@@ -2593,7 +2592,6 @@ def show_simulation_page():
         with st.container(border=True):
             st.subheader(tr('screen2_params_group'))
             param_inputs = {}
-            # ... (Phần code nhập liệu tham số giữ nguyên) ...
             param_labels_key = f"param_keys_{st.session_state.lang}"
             all_param_labels = model_data.get(param_labels_key, model_data.get("param_keys_vi", []))
             internal_keys = model_data.get("internal_param_keys", [])
@@ -2614,14 +2612,12 @@ def show_simulation_page():
                 for i, key in enumerate(internal_keys):
                     label = all_param_labels[i]
                     param_inputs[key] = st.number_input(label, value=default_values.get(key, 1.0), format="%.4f", key=f"param_{model_id}_{key}")
-
             if 'last_calculated_c' in st.session_state and model_id == 'model2': st.text_input(tr('model2_calculated_c_label'), value=f"{st.session_state.last_calculated_c:.6g}", disabled=True)
             if 'last_calculated_r' in st.session_state and model_id == 'model3': st.text_input(tr('model3_calculated_r_label'), value=f"{st.session_state.last_calculated_r:.8g}", disabled=True)
             if 'last_calculated_alpha' in st.session_state and model_id == 'model4':
                 col_alpha, col_beta = st.columns(2)
                 col_alpha.text_input(tr('model4_param_alpha'), value=f"{st.session_state.last_calculated_alpha:.6g}", disabled=True)
                 col_beta.text_input(tr('model4_param_beta'), value=f"{st.session_state.last_calculated_beta:.6g}", disabled=True)
-
             selected_component = 'x'
             if model_id == "model5":
                 comp_options = {tr('model5_component_x'): 'x', tr('model5_component_y'): 'y'}
@@ -2631,31 +2627,22 @@ def show_simulation_page():
         with st.container(border=True):
             st.subheader(tr('screen2_actions_group'))
             run_simulation = st.button(tr('screen2_init_button'), use_container_width=True, type="primary")
-            
-            col_btn1, col_btn2 = st.columns(2)
-            if col_btn1.button(tr('screen2_refresh_button'), use_container_width=True):
-                st.session_state.simulation_results = {}
-                st.session_state.validated_params = {}
+            if st.button(tr('screen2_refresh_button'), use_container_width=True):
+                st.session_state.simulation_results = {}; st.session_state.validated_params = {}
                 for key in ['last_calculated_c', 'last_calculated_r', 'last_calculated_alpha', 'last_calculated_beta']:
                     if key in st.session_state: del st.session_state[key]
                 st.rerun()
-            
-            # Nút lưu sẽ được xử lý ở cột hiển thị
     
-    # --- Xử lý logic khi nhấn nút ---
     if run_simulation:
-        # ... (Toàn bộ logic của 'if run_simulation' giữ nguyên) ...
         with st.spinner(tr('screen2_info_area_running')):
             is_valid = True
             if not selected_steps_int:
                 st.toast(tr('msg_select_step'), icon='⚠️'); is_valid = False
             if 't₀' in param_inputs and 't₁' in param_inputs and param_inputs['t₁'] <= param_inputs['t₀']:
                 st.toast(tr('msg_t_end_error'), icon='⚠️'); is_valid = False
-            
             if is_valid:
                 for key in ['last_calculated_c', 'last_calculated_r', 'last_calculated_alpha', 'last_calculated_beta']:
                     if key in st.session_state: del st.session_state[key]
-                
                 prep_ok, prep_data = _prepare_simulation_functions(model_data, param_inputs, selected_method_short)
                 if prep_ok:
                     ode_func, exact_callable, y0, t_start, t_end = prep_data
@@ -2663,15 +2650,8 @@ def show_simulation_page():
                     for steps in selected_steps_int:
                         res = _perform_single_simulation(model_data, ode_func, exact_callable, y0, t_start, t_end, selected_method_short, steps, h_float, selected_component)
                         if res: results_dict[steps] = res
-                    
                     st.session_state.simulation_results = results_dict
-                    st.session_state.validated_params = {
-                        'params': param_inputs,
-                        'method_short': selected_method_short,
-                        'method_steps': selected_steps_int[0] if selected_steps_int else None,
-                        'h_target': h_float,
-                        'model_id': model_id
-                    }
+                    st.session_state.validated_params = {'params': param_inputs, 'method_short': selected_method_short, 'method_steps': selected_steps_int[0] if selected_steps_int else None, 'h_target': h_float, 'model_id': model_id}
                     st.rerun()
 
     with col_display:
@@ -2680,9 +2660,7 @@ def show_simulation_page():
             st.info(tr('screen2_info_area_init'))
         else:
             with st.container(border=True):
-                # ... (Toàn bộ logic vẽ đồ thị và hiển thị dữ liệu giữ nguyên) ...
-                n_steps = len(results)
-                colors = plt.cm.jet(np.linspace(0, 1, max(1, n_steps)))
+                n_steps = len(results); colors = plt.cm.jet(np.linspace(0, 1, max(1, n_steps)))
                 @st.cache_data
                 def generate_plots(results_data, lang, model_id, selected_method_short):
                     figs = {}
@@ -2698,7 +2676,6 @@ def show_simulation_page():
                     ax_sol.set_title(tr('screen2_plot_solution_title')); ax_sol.set_xlabel(tr('screen2_plot_t_axis')); ax_sol.set_ylabel(tr('screen2_plot_value_axis'))
                     ax_sol.grid(True, linestyle=':'); ax_sol.legend()
                     figs['solution'] = fig_sol
-                    
                     fig_err_ord, (ax_err, ax_ord) = plt.subplots(1, 2, figsize=(12, 4))
                     color_idx = 0
                     for step, res in sorted(results_data.items()):
@@ -2719,32 +2696,19 @@ def show_simulation_page():
                     fig_err_ord.tight_layout()
                     figs['error_order'] = fig_err_ord
                     return figs
-                
                 generated_figures = generate_plots(tuple(sorted(results.items())), st.session_state.lang, model_id, selected_method_short)
                 st.pyplot(generated_figures['solution'])
                 st.pyplot(generated_figures['error_order'])
 
-            # --- HIỂN THỊ DỮ LIỆU SỐ VÀ LƯU ẢNH ---
             st.write("")
             with st.container(border=True):
-                # Nút xem dữ liệu và lưu ảnh đặt cạnh nhau
-                data_cols = st.columns(2)
-                with data_cols[0]:
-                    show_data = st.toggle(tr('screen2_show_data_button'))
-                with data_cols[1]:
-                    zip_buffer = io.BytesIO()
-                    with zipfile.ZipFile(zip_buffer, 'w') as zf:
-                        buf_sol = io.BytesIO(); generated_figures['solution'].savefig(buf_sol, format="png", dpi=300); zf.writestr("solution_plot.png", buf_sol.getvalue())
-                        buf_err = io.BytesIO(); generated_figures['error_order'].savefig(buf_err, format="png", dpi=300); zf.writestr("error_and_order_plots.png", buf_err.getvalue())
-                    st.download_button(label=tr('screen2_save_button'), data=zip_buffer.getvalue(), file_name=f"simulation_plots_{model_id}.zip", mime="application/zip", use_container_width=True)
-                
+                show_data = st.toggle(tr('screen2_show_data_button'))
                 if show_data:
                     st.divider()
                     for step, res in sorted(results.items()):
                         method_label = f"Adam-{selected_method_short} {step} {tr('screen2_info_area_show_data_textCont1')}"
                         slope_str = f"{res.get('order_slope', 'N/A'):.4f}" if isinstance(res.get('order_slope'), float) else "N/A"
-                        st.markdown(f"#### {method_label}")
-                        st.markdown(f"**{tr('screen2_info_area_show_data_order')}** {slope_str}")
+                        st.markdown(f"#### {method_label}"); st.markdown(f"**{tr('screen2_info_area_show_data_order')}** {slope_str}")
                         t = res.get('t_plot'); approx = res.get('approx_sol_plot'); exact = res.get('exact_sol_plot')
                         if t is not None and approx is not None and len(t) > 0:
                             df_data = {'t': t, tr('screen2_info_area_show_data_approx'): approx}
@@ -2753,8 +2717,7 @@ def show_simulation_page():
                                 df_data[tr('screen2_info_area_show_data_error')] = np.abs(approx - exact)
                             df = pd.DataFrame(df_data)
                             st.dataframe(df.head(15).style.format("{:.6f}"), use_container_width=True)
-                        else:
-                            st.write(tr("screen2_info_area_no_points"))
+                        else: st.write(tr("screen2_info_area_no_points"))
                         st.markdown("---")
             
 # ==============================================
