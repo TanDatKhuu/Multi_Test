@@ -2663,55 +2663,66 @@ def show_simulation_page():
             with st.container(border=True):
                 # Highlight: Sửa lại toàn bộ hàm generate_plots để trả về 3 Figure
                 @st.cache_data
-                def generate_plots(results_data, lang, model_id, selected_method_short):
-                    figs = {}
-                    n_steps = len(results_data)
-                    colors = plt.cm.jet(np.linspace(0, 1, max(1, n_steps)))
-                    
-                    # Đồ thị nghiệm
-                    fig_sol = Figure(); ax_sol = fig_sol.subplots()
-                    exact_plotted = False; color_idx = 0
-                    for step, res in sorted(results_data.items()):
-                        method_label = f"{selected_method_short[:2].upper()}-{step}"
-                        if not exact_plotted and res.get('exact_sol_plot') is not None and res.get('t_plot') is not None:
-                            ax_sol.plot(res['t_plot'], res['exact_sol_plot'], color='black', ls='--', label=tr('screen2_plot_exact_label'))
-                            exact_plotted = True
-                        if res.get('t_plot') is not None and res.get('approx_sol_plot') is not None:
-                            ax_sol.plot(res['t_plot'], res['approx_sol_plot'], color=colors[color_idx], label=method_label)
-                        color_idx += 1
-                    ax_sol.set_xlabel(tr('screen2_plot_t_axis')); ax_sol.set_ylabel(tr('screen2_plot_value_axis'))
-                    ax_sol.grid(True, linestyle=':'); ax_sol.legend()
-                    figs['solution'] = fig_sol
-                    
-                    # Đồ thị sai số
-                    fig_err = Figure(); ax_err = fig_err.subplots()
-                    color_idx = 0
-                    for step, res in sorted(results_data.items()):
-                        method_label = f"{selected_method_short[:2].upper()}-{step}"
-                        if res.get('n_values_convergence') is not None and len(res['n_values_convergence']) > 0:
-                            ax_err.plot(res['n_values_convergence'], res['errors_convergence'], marker='.', color=colors[color_idx], label=method_label)
-                        color_idx += 1
-                    ax_err.set_xlabel(tr('screen2_plot_n_axis')); ax_err.set_ylabel(tr('screen2_plot_error_axis')); ax_err.set_yscale('log')
-                    ax_err.grid(True, which='both', linestyle=':'); ax_err.legend()
-                    figs['error'] = fig_err
-
-                    # Đồ thị bậc hội tụ
-                    fig_ord = Figure(); ax_ord = fig_ord.subplots()
-                    color_idx = 0
-                    for step, res in sorted(results_data.items()):
-                        method_label = f"{selected_method_short[:2].upper()}-{step}"
-                        if res.get('log_h_convergence') is not None and len(res['log_h_convergence']) >= 2:
-                            slope = res.get('order_slope', 0)
-                            fit_label = tr('screen2_plot_order_fit_label_suffix').format(slope)
-                            log_h, log_err = res['log_h_convergence'], res['log_error_convergence']
-                            ax_ord.plot(log_h, log_err, 'o', color=colors[color_idx], label=f"{method_label}{tr('screen2_plot_order_data_label_suffix')}")
-                            ax_ord.plot(log_h, np.polyval(np.polyfit(log_h, log_err, 1), log_h), '-', color=colors[color_idx], label=fit_label)
-                        color_idx += 1
-                    ax_ord.set_xlabel(tr('screen2_plot_log_h_axis')); ax_ord.set_ylabel(tr('screen2_plot_log_error_axis'))
-                    ax_ord.grid(True, linestyle=':'); ax_ord.legend()
-                    figs['order'] = fig_ord
-
-                    return figs
+				def generate_plots(results_data, lang, model_id, selected_method_short):
+				    figs = {}
+				    n_steps = len(results_data)
+				    colors = plt.cm.jet(np.linspace(0, 1, max(1, n_steps)))
+				    
+				    # Highlight: Đặt kích thước chung cho các đồ thị
+				    plot_figsize = (6, 3.5) # Chiều rộng 6 inches, cao 3.5 inches
+				
+				    # Đồ thị nghiệm
+				    fig_sol = Figure(figsize=plot_figsize)
+				    ax_sol = fig_sol.subplots()
+				    exact_plotted = False
+				    color_idx = 0
+				    for step, res in sorted(results_data.items()):
+				        method_label = f"{selected_method_short[:2].upper()}-{step}"
+				        # Highlight: Sửa logic kiểm tra để luôn vẽ nghiệm xấp xỉ
+				        if res.get('t_plot') is not None and res.get('approx_sol_plot') is not None:
+				            if not exact_plotted and res.get('exact_sol_plot') is not None:
+				                ax_sol.plot(res['t_plot'], res['exact_sol_plot'], color='black', ls='--', label=tr('screen2_plot_exact_label'))
+				                exact_plotted = True
+				            ax_sol.plot(res['t_plot'], res['approx_sol_plot'], color=colors[color_idx], label=method_label)
+				        color_idx += 1
+				    ax_sol.set_xlabel(tr('screen2_plot_t_axis')); ax_sol.set_ylabel(tr('screen2_plot_value_axis'))
+				    ax_sol.grid(True, linestyle=':'); ax_sol.legend()
+				    fig_sol.tight_layout() # Thêm tight_layout để tránh chữ bị cắt
+				    figs['solution'] = fig_sol
+				    
+				    # Đồ thị sai số
+				    fig_err = Figure(figsize=plot_figsize)
+				    ax_err = fig_err.subplots()
+				    color_idx = 0
+				    for step, res in sorted(results_data.items()):
+				        method_label = f"{selected_method_short[:2].upper()}-{step}"
+				        if res.get('n_values_convergence') is not None and len(res['n_values_convergence']) > 0:
+				            ax_err.plot(res['n_values_convergence'], res['errors_convergence'], marker='.', color=colors[color_idx], label=method_label)
+				        color_idx += 1
+				    ax_err.set_xlabel(tr('screen2_plot_n_axis')); ax_err.set_ylabel(tr('screen2_plot_error_axis')); ax_err.set_yscale('log')
+				    ax_err.grid(True, which='both', linestyle=':'); ax_err.legend()
+				    fig_err.tight_layout()
+				    figs['error'] = fig_err
+				
+				    # Đồ thị bậc hội tụ
+				    fig_ord = Figure(figsize=plot_figsize)
+				    ax_ord = fig_ord.subplots()
+				    color_idx = 0
+				    for step, res in sorted(results_data.items()):
+				        method_label = f"{selected_method_short[:2].upper()}-{step}"
+				        if res.get('log_h_convergence') is not None and len(res['log_h_convergence']) >= 2:
+				            slope = res.get('order_slope', 0)
+				            fit_label = tr('screen2_plot_order_fit_label_suffix').format(slope)
+				            log_h, log_err = res['log_h_convergence'], res['log_error_convergence']
+				            ax_ord.plot(log_h, log_err, 'o', color=colors[color_idx], label=f"{method_label}{tr('screen2_plot_order_data_label_suffix')}")
+				            ax_ord.plot(log_h, np.polyval(np.polyfit(log_h, log_err, 1), log_h), '-', color=colors[color_idx], label=fit_label)
+				        color_idx += 1
+				    ax_ord.set_xlabel(tr('screen2_plot_log_h_axis')); ax_ord.set_ylabel(tr('screen2_plot_log_error_axis'))
+				    ax_ord.grid(True, linestyle=':'); ax_ord.legend()
+				    fig_ord.tight_layout()
+				    figs['order'] = fig_ord
+				
+				    return figs
                 
                 # Gọi hàm tạo plot
                 generated_figures = generate_plots(results, st.session_state.lang, model_id, selected_method_short)
