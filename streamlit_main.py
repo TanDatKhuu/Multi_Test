@@ -2628,7 +2628,7 @@ def show_simulation_page():
         
         # Thụt lề đúng cho nút quay lại
         st.write("") 
-        if st.button(f"{tr('screen2_back_button')}",type="secondary"):
+        if st.button(f"{tr('screen2_back_button')}",type="primary"):
             st.session_state.page = 'model_selection'
             st.session_state.simulation_results = {}
             st.session_state.validated_params = {}
