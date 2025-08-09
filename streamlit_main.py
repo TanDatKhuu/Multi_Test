@@ -1971,8 +1971,7 @@ def show_welcome_page():
                 on_change=on_lang_change_nav, # Sửa tên hàm callback
                 label_visibility="collapsed"
             )
-
-			st.divider()
+			
         if st.session_state.welcome_subpage == "home":
             col1, col2, col3 = st.columns([1, 4, 1], vertical_alignment="center") 
             with col1:
