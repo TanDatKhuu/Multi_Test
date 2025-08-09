@@ -1900,13 +1900,6 @@ def show_welcome_page():
         div[data-testid="stAppViewBlockContainer"] {
             padding-top: 2rem; 
         }
-        /* CSS cho container chính (khung trắng) */
-        .welcome-container {
-            background-color: white;
-            padding: 2rem 3rem;
-            border-radius: 10px;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
-        }
         /* CSS để căn giữa văn bản theo chiều dọc trong cột header */
         .header-col {
             display: flex;
