@@ -1871,7 +1871,7 @@ def main():
 
     # Bước 2: Cấu hình trang
     # Sử dụng tên file icon chính xác của bạn
-    icon_path = os.path.join(FIG_FOLDER, "icon-app.png") 
+    icon_path = os.path.join(FIG_FOLDER, "icon-app.ico") 
     
     page_icon_to_use = icon_path 
 
