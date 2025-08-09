@@ -1896,10 +1896,6 @@ def show_welcome_page():
         .main {
             background-color: #E6ECF4; /* Màu nền xám xanh nhạt */
         }
-        /* Loại bỏ khoảng trống trên cùng của trang */
-        div[data-testid="stAppViewBlockContainer"] {
-            padding-top: 2rem; 
-        }
         /* CSS để căn giữa văn bản theo chiều dọc trong cột header */
         .header-col {
             display: flex;
@@ -1913,6 +1909,7 @@ def show_welcome_page():
             color: #1E3A8A;
             line-height: 1.4;
             margin: 0;
+			text-align: center;
         }
         .project-title {
             font-size: 2.2rem;
@@ -1964,11 +1961,11 @@ def show_welcome_page():
             </p>
             """, unsafe_allow_html=True)
         with col5:
-            main_image_path = os.path.join(FIG_FOLDER, "multistepsim.png") 
+            main_image_path = os.path.join(FIG_FOLDER, "multi.png") 
             if os.path.exists(main_image_path):
                 st.image(main_image_path)
             else:
-                st.warning("Không tìm thấy file 'multistepsim.png' trong thư mục 'fig'.")
+                st.warning("Không tìm thấy file 'multi.png' trong thư mục 'fig'.")
         
         st.divider()
 
