@@ -2050,16 +2050,24 @@ def show_model_selection_page():
         
         # --- THANH ĐIỀU HƯỚNG ---
         nav_cols = st.columns([3, 2, 1, 1, 1.5]) 
-        with nav_cols[0]:
+		with nav_cols[0]:
             icon_path_nav = os.path.join(FIG_FOLDER, "icon app.png")
             if os.path.exists(icon_path_nav):
                 import base64
                 with open(icon_path_nav, "rb") as img_file:
                     img_base64 = base64.b64encode(img_file.read()).decode()
-                st.markdown(f"""<div style="display: flex; align-items- center; height: 100%;"><img src="data:image/png;base64,{img_base64}" width="30"><h3 style='color: #1E3A8A; margin-left: 10px; margin-bottom: 0;'>MultiStepSim</h3></div>""", unsafe_allow_html=True)
+                st.markdown(
+                    f"""
+                    <div style="display: flex; align-items: center; height: 100%;">
+                        <img src="data:image/png;base64,{img_base64}" width="30">
+                        <h3 style='color: #1E3A8A; margin-left: 10px; margin-bottom: 0;'>MultiStepSim</h3>
+                    </div>
+                    """,
+                    unsafe_allow_html=True
+                )
             else:
                 st.markdown("<h3 style='color: #1E3A8A; margin-top: 5px;'>MultiStepSim</h3>", unsafe_allow_html=True)
-        
+				
         with nav_cols[2]:
             if st.button(tr("nav_home"), use_container_width=True): 
                 st.session_state.page = "welcome"; st.rerun()
