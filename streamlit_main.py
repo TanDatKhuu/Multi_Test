@@ -1851,7 +1851,7 @@ def initialize_session_state():
     if 'anim_frame' not in st.session_state:
         st.session_state.anim_frame = 0
     if 'm5_scenario' not in st.session_state:
-         st.session_state.m5_scenario = 1
+        st.session_state.m5_scenario = 1
 		
 
 # Hàm tiện ích để dịch văn bản
