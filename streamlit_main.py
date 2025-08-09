@@ -1942,11 +1942,13 @@ def show_welcome_page():
                 st.markdown("<h3 style='color: #1E3A8A; margin-top: 5px;'>MultiStepSim</h3>", unsafe_allow_html=True)
         
         with nav_cols[2]:
-            if st.button("Trang chủ", use_container_width=True):
-                st.session_state.welcome_subpage = "home"; st.rerun()
+            if st.button(tr("nav_home"), use_container_width=True):
+                st.session_state.welcome_subpage = "home"
+                st.rerun()
         with nav_cols[3]:
-            if st.button("Liên hệ", use_container_width=True):
-                st.session_state.welcome_subpage = "contact"; st.rerun()
+            if st.button(tr("nav_contact"), use_container_width=True):
+                st.session_state.welcome_subpage = "contact"
+                st.rerun()
 
         # Highlight: Thay thế st.radio bằng st.selectbox
        	with nav_cols[4]:
