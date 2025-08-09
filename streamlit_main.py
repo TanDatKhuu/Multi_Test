@@ -2458,13 +2458,7 @@ def main():
 
     # Bước 2: Cấu hình trang. Bây giờ hàm tr() đã có thể truy cập session_state an toàn
     st.set_page_config(layout="wide", page_title=tr("app_title"))	
-  	st.markdown("""
-  	        <style>
-  	            [data-testid="stSidebar"] {
-  	                display: none
-  	            }
-  	        </style> """, unsafe_allow_html=True)
-
+  	
     # Bước 3: Chạy logic điều hướng trang như bình thường
     if st.session_state.page == 'welcome':
         show_welcome_page()
