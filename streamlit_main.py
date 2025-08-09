@@ -1829,6 +1829,7 @@ def _model5_ode_system(t, x, y, u, v):
 
 # Khởi tạo st.session_state để lưu trạng thái
 def initialize_session_state():
+    # Khởi tạo các biến trạng thái cơ bản nếu chúng chưa tồn tại
     if 'page' not in st.session_state:
         st.session_state.page = 'welcome'
     if 'lang' not in st.session_state:
@@ -1839,19 +1840,22 @@ def initialize_session_state():
     if 'translations' not in st.session_state or st.session_state.get('lang_loaded') != st.session_state.lang:
         st.session_state.translations = load_language_file(st.session_state.lang)
         st.session_state.lang_loaded = st.session_state.lang
-		
+    
+    # Khởi tạo các biến trạng thái cho các trang sau (CỰC KỲ QUAN TRỌNG)
     if 'selected_model_key' not in st.session_state:
         st.session_state.selected_model_key = None
     if 'simulation_results' not in st.session_state:
         st.session_state.simulation_results = {}
     if 'validated_params' not in st.session_state:
         st.session_state.validated_params = {}
-	if 'anim_running' not in st.session_state:
+        
+    # Khởi tạo các biến trạng thái cho trang animation (Screen 3)
+    if 'anim_running' not in st.session_state:
         st.session_state.anim_running = False
     if 'anim_frame' not in st.session_state:
         st.session_state.anim_frame = 0
     if 'm5_scenario' not in st.session_state:
-        st.session_state.m5_scenario = 1
+         st.session_state.m5_scenario = 1
 		
 
 # Hàm tiện ích để dịch văn bản
