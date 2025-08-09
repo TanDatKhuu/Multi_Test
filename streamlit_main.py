@@ -2040,95 +2040,91 @@ def show_model_selection_page():
         <style>
         .main { background-color: #E6ECF4; }
         div[data-testid="stAppViewBlockContainer"] { padding-top: 2rem; }
-        .stSelectbox div[data-baseweb="select"] > div { font-size: 1.2rem; font-weight: bold; }
+        
+        /* Highlight: Xóa class .stSelectbox ... gây in đậm */
+
+        /* CSS cho thanh điều hướng */
+        .nav-brand h3 { margin: 0; }
+        .nav-brand { display: flex; align-items: center; }
         </style>
     """, unsafe_allow_html=True)
     
-    with st.container(border=True): # Sử dụng border của container chính
-        # --- THANH ĐIỀU HƯỚNG ---
-        # Sửa lỗi thụt lề ở đây
-        nav_cols = st.columns([3, 2, 1, 1, 1.5]) 
-        
-        with nav_cols[0]:
-            # Đổi tên file icon để không có khoảng trắng
-            icon_path_nav = os.path.join(FIG_FOLDER, "icon-app.png") 
-            if os.path.exists(icon_path_nav):
-                import base64
-                with open(icon_path_nav, "rb") as img_file:
-                    img_base64 = base64.b64encode(img_file.read()).decode()
-                st.markdown(
-                    f"""
-                    <div style="display: flex; align-items: center; height: 100%;">
-                        <img src="data:image/png;base64,{img_base64}" width="30">
-                        <h3 style='color: #1E3A8A; margin-left: 10px; margin-bottom: 0;'>MultiStepSim</h3>
-                    </div>
-                    """,
-                    unsafe_allow_html=True
-                )
-            else:
-                st.markdown("<h3 style='color: #1E3A8A; margin-top: 5px;'>MultiStepSim</h3>", unsafe_allow_html=True)
-                
-        with nav_cols[2]:
-            if st.button(tr("nav_home"), use_container_width=True): 
-                st.session_state.page = "welcome"; st.rerun()
-        with nav_cols[3]:
-            if st.button(tr("nav_contact"), use_container_width=True): 
-                st.session_state.welcome_subpage = "contact"; st.session_state.page = "welcome"; st.rerun()
-        with nav_cols[4]:
-            lang_options_display = (tr('lang_vi'), tr('lang_en'))
-            lang_options_codes = ('vi', 'en')
-            current_lang_index = lang_options_codes.index(st.session_state.lang)
-            selected_display = st.selectbox("Language", lang_options_display, index=current_lang_index, key='lang_selector_page2', label_visibility="collapsed")
-            selected_index = lang_options_display.index(selected_display)
-            if st.session_state.lang != lang_options_codes[selected_index]:
-                st.session_state.lang = lang_options_codes[selected_index]
-                st.rerun()
-        
-        st.divider()
+    # Highlight: Xóa container bao ngoài, chỉ giữ lại thanh điều hướng và nội dung
+    
+    # --- THANH ĐIỀU HƯỚNG ---
+    # (Layout này sẽ nằm trực tiếp trên trang, không bị bọc trong container nào nữa)
+    nav_cols = st.columns([3, 2, 1, 1, 1.5]) 
+    with nav_cols[0]:
+        icon_path_nav = os.path.join(FIG_FOLDER, "icon app.png")
+        if os.path.exists(icon_path_nav):
+            import base64
+            with open(icon_path_nav, "rb") as img_file:
+                img_base64 = base64.b64encode(img_file.read()).decode()
+            st.markdown(f"""<div class="nav-brand"><img src="data:image/png;base64,{img_base64}" width="30" style="margin-right: 10px;"><h3 style='color: #1E3A8A;'>MultiStepSim</h3></div>""", unsafe_allow_html=True)
+        else:
+            st.markdown("<h3 style='color: #1E3A8A; margin-top: 5px;'>MultiStepSim</h3>", unsafe_allow_html=True)
+    
+    with nav_cols[2]:
+        if st.button(tr("nav_home"), use_container_width=True): 
+            st.session_state.page = "welcome"; st.rerun()
+    with nav_cols[3]:
+        if st.button(tr("nav_contact"), use_container_width=True): 
+            st.session_state.welcome_subpage = "contact"; st.session_state.page = "welcome"; st.rerun()
+    with nav_cols[4]:
+        lang_options_display = (tr('lang_vi'), tr('lang_en'))
+        lang_options_codes = ('vi', 'en')
+        current_lang_index = lang_options_codes.index(st.session_state.lang)
+        selected_display = st.selectbox("Language", lang_options_display, index=current_lang_index, key='lang_selector_page2', label_visibility="collapsed")
+        selected_index = lang_options_display.index(selected_display)
+        if st.session_state.lang != lang_options_codes[selected_index]:
+            st.session_state.lang = lang_options_codes[selected_index]
+            st.rerun()
+    
+    st.divider()
 
-        # --- NỘI DUNG CHÍNH CỦA TRANG ---
-        st.title(tr('screen1_title'))
+    # --- NỘI DUNG CHÍNH CỦA TRANG ---
+    st.title(tr('screen1_title'))
+    
+    model_display_names = [tr(f"{data['id']}_name") for data in MODELS_DATA.values()]
+    model_vi_keys = list(MODELS_DATA.keys())
+    current_selection_index = model_vi_keys.index(st.session_state.selected_model_key) if st.session_state.selected_model_key in model_vi_keys else 0
+    selected_model_display_name = st.selectbox(label=" ", options=model_display_names, index=current_selection_index)
+    selected_model_index = model_display_names.index(selected_model_display_name)
+    selected_key = model_vi_keys[selected_model_index]
+    st.session_state.selected_model_key = selected_key
+    model_data = MODELS_DATA[selected_key]
+    st.write("") 
+    
+    with st.container(border=True):
+        st.subheader(tr('screen1_model_info_group_title'))
+        st.markdown(f"**{tr('screen1_equation_label')}**")
+        eq_text = tr(model_data['equation_key'])
+        latex_eq = html_to_latex(eq_text)
+        st.latex(latex_eq)
+        st.markdown(f"**{tr('screen1_description_label')}**")
+        st.markdown(tr(model_data['description_key']), unsafe_allow_html=True)
         
-        model_display_names = [tr(f"{data['id']}_name") for data in MODELS_DATA.values()]
-        model_vi_keys = list(MODELS_DATA.keys())
-        current_selection_index = model_vi_keys.index(st.session_state.selected_model_key) if st.session_state.selected_model_key in model_vi_keys else 0
-        selected_model_display_name = st.selectbox(label=" ", options=model_display_names, index=current_selection_index)
-        selected_model_index = model_display_names.index(selected_model_display_name)
-        selected_key = model_vi_keys[selected_model_index]
-        st.session_state.selected_model_key = selected_key
-        model_data = MODELS_DATA[selected_key]
-        st.write("") 
-        
-        with st.container(border=True):
-            st.subheader(tr('screen1_model_info_group_title'))
-            st.markdown(f"**{tr('screen1_equation_label')}**")
-            eq_text = tr(model_data['equation_key'])
-            latex_eq = html_to_latex(eq_text)
-            st.latex(latex_eq)
-            st.markdown(f"**{tr('screen1_description_label')}**")
-            st.markdown(tr(model_data['description_key']), unsafe_allow_html=True)
-            
-        st.write("") 
+    st.write("") 
 
-        with st.container(border=True):
-            st.subheader(tr('screen1_model_application_group_title'))
-            model_id = model_data.get("id")
-            lang_suffix = "Vie" if st.session_state.lang == 'vi' else "Eng"
-            image_filename = f"model_{model_id[5:]}_{lang_suffix}.png"
-            image_path = os.path.join(FIG_FOLDER, image_filename)
-            if os.path.exists(image_path):
-                st.image(image_path)
-            else:
-                st.warning(f"Không tìm thấy ảnh: {image_filename}")
-        
-        st.write("")
-        st.write("")
-        
-        _, col_continue_btn, _ = st.columns([2, 1, 2])
-        with col_continue_btn:
-            if st.button(tr('screen1_continue_button'), type="primary", use_container_width=True):
-                st.session_state.page = 'simulation'
-                st.rerun()
+    with st.container(border=True):
+        st.subheader(tr('screen1_model_application_group_title'))
+        model_id = model_data.get("id")
+        lang_suffix = "Vie" if st.session_state.lang == 'vi' else "Eng"
+        image_filename = f"model_{model_id[5:]}_{lang_suffix}.png"
+        image_path = os.path.join(FIG_FOLDER, image_filename)
+        if os.path.exists(image_path):
+            st.image(image_path)
+        else:
+            st.warning(f"Không tìm thấy ảnh: {image_filename}")
+    
+    st.write("")
+    st.write("")
+    
+    _, col_continue_btn, _ = st.columns([2, 1, 2])
+    with col_continue_btn:
+        if st.button(tr('screen1_continue_button'), type="primary", use_container_width=True):
+            st.session_state.page = 'simulation'
+            st.rerun()
         
 
 # ==============================================
