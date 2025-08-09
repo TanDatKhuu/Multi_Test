@@ -1971,7 +1971,8 @@ def show_welcome_page():
                 on_change=on_lang_change_nav, # Sửa tên hàm callback
                 label_visibility="collapsed"
             )
-
+		st.divider()
+			
         if st.session_state.welcome_subpage == "home":
             col1, col2, col3 = st.columns([1, 4, 1], vertical_alignment="center") 
             with col1:
@@ -1995,7 +1996,7 @@ def show_welcome_page():
                 if os.path.exists(main_image_path): st.image(main_image_path)
                 else: st.warning("Không tìm thấy file 'multi.png' trong thư mục 'fig'.")
             
-            st.divider()
+            st.write("")
             col6, col7 = st.columns(2)
             with col6:
                 st.markdown(f"<div class='welcome-credits'><h3>{tr('welcome_authors_title')}</h3><p>{tr('welcome_authors_names')}</p></div>", unsafe_allow_html=True)
