@@ -1903,7 +1903,7 @@ def show_welcome_page():
         <style>
         .main { background-color: #E6ECF4; }
         div[data-testid="stAppViewBlockContainer"] { padding-top: 2rem; }
-        .header-col h2 { font-size: 1.5rem; font-weight: bold; color: #1E3A8A; line-height: 1.4; margin: 0; text-align: center; }
+        .header-col h2 { font-size: 2.5rem; font-weight: bold; color: #1E3A8A; line-height: 1.4; margin: 0; text-align: center; }
         .project-title { font-size: 3rem; font-weight: bold; color: #1E3A8A; line-height: 1.3; }
         .welcome-text { color: #475569; font-size: 1rem; }
         .welcome-credits h3 { font-size: 1.2rem; font-weight: bold; color: #1E3A8A; }
@@ -1911,7 +1911,7 @@ def show_welcome_page():
         
         div[data-testid="stHorizontalBlock"] {
             padding-bottom: 1rem;
-            margin-bottom: 2rem;
+            margin-bottom: 1rem;
         }
         </style>
     """, unsafe_allow_html=True)
