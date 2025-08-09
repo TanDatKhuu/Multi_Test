@@ -1999,7 +1999,7 @@ def show_welcome_page():
             with col6:
                 st.markdown(f"<div class='welcome-credits'><h3>Sinh viên thực hiện</h3><p>{tr('welcome_authors_names')}</p></div>", unsafe_allow_html=True)
             with col7:
-                st.markdown(f"<div class='welcome-credits'><h3>Giảng viên hướng dẫn</h3><p>{tr('welcome_advisor1')} & {tr('welcome_advisor2')}</p></div>", unsafe_allow_html=True)
+                st.markdown(f"<div class='welcome-credits'><h3>Giảng viên hướng dẫn</h3><p>{tr('welcome_advisor1')}  &  {tr('welcome_advisor2')}</p></div>", unsafe_allow_html=True)
             
             st.write("") 
             
