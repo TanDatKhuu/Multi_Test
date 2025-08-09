@@ -1892,63 +1892,27 @@ def show_welcome_page():
     # --- CSS TÙY CHỈNH CHO GIAO DIỆN MỚI ---
     st.markdown("""
         <style>
-        /* CSS cho toàn bộ trang */
-        .main {
-            background-color: #E6ECF4; /* Màu nền xám xanh nhạt */
-        }
-        /* CSS cho container chính (khung trắng) */
-        .welcome-container {
-            background-color: white;
-            padding: 2rem;
-            border-radius: 10px;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
-        }
-        /* CSS cho tiêu đề */
-        .welcome-title {
-            font-size: 1.75rem;
-            font-weight: bold;
-            color: #1E3A8A; /* Màu xanh đậm */
-        }
-        .welcome-subtitle {
-            font-size: 1.25rem;
-            color: #334155;
-            margin-bottom: 2rem;
-        }
-        .welcome-text {
-            color: #475569;
-            font-size: 1rem;
-        }
-        .welcome-credits h3 {
-            font-size: 1.2rem;
-            font-weight: bold;
-            color: #1E3A8A;
-        }
-        .welcome-credits p {
-            font-size: 1rem;
-            color: #334155;
-            margin-bottom: 0;
-        }
+        .main { background-color: #E6ECF4; }
+        .welcome-container { background-color: white; padding: 2rem; border-radius: 10px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
+        .welcome-title { font-size: 1.75rem; font-weight: bold; color: #1E3A8A; }
+        .welcome-subtitle { font-size: 1.25rem; color: #334155; margin-bottom: 2rem; }
+        .welcome-text { color: #475569; font-size: 1rem; }
+        .welcome-credits h3 { font-size: 1.2rem; font-weight: bold; color: #1E3A8A; }
+        .welcome-credits p { font-size: 1rem; color: #334155; margin-bottom: 0; }
         </style>
     """, unsafe_allow_html=True)
 
-    # --- BỐ CỤC GIAO DIỆN MỚI ---
-    
-    # Tạo một container lớn để chứa toàn bộ nội dung trong khung trắng
     with st.container():
-        # Áp dụng class CSS cho container
         st.markdown('<div class="welcome-container">', unsafe_allow_html=True)
-        
-        # --- HÀNG 1: HEADER (LOGO VÀ TÊN TRƯỜNG) ---
         col1, col2 = st.columns([1, 4])
         with col1:
             logo_tdtu_path = os.path.join(FIG_FOLDER, "logotdtu1.png")
             if os.path.exists(logo_tdtu_path):
-                st.image(logo_tdtu_path, use_column_width=True)
+                st.image(logo_tdtu_path) # Bỏ tham số use_column_width
         with col2:
             st.markdown(f"<p class='welcome-title' style='margin-bottom:0;'>{tr('welcome_uni')}</p>", unsafe_allow_html=True)
             st.markdown(f"<p class='welcome-subtitle'>{tr('welcome_faculty')}</p>", unsafe_allow_html=True)
 
-        # --- HÀNG 2: NỘI DUNG CHÍNH (TIÊU ĐỀ DỰ ÁN VÀ HÌNH MINH HỌA) ---
         col3, col4 = st.columns([1.5, 1])
         with col3:
             st.markdown(f"<h1 style='color: #1E3A8A;'>{tr('welcome_project_title').splitlines()[0]}</h1>", unsafe_allow_html=True)
@@ -1958,18 +1922,15 @@ def show_welcome_page():
             Dự án này được thực hiện nhằm mục đích xây dựng một công cụ trực quan và tương tác để nghiên cứu và tìm hiểu về ứng dụng của các phương pháp số đa bước, cụ thể là Adams-Bashforth và Adams-Moulton, trong việc giải các phương trình vi phân thông thường (ODEs) mô hình hóa các hiện tượng thực tế.
             </p>
             """, unsafe_allow_html=True)
-
         with col4:
-            # Highlight: Thay đổi tên file ảnh
-            main_image_path = os.path.join(FIG_FOLDER, "multi.png") 
+            main_image_path = os.path.join(FIG_FOLDER, "multistepsim.png") 
             if os.path.exists(main_image_path):
-                st.image(main_image_path, use_column_width=True)
+                st.image(main_image_path) # Bỏ tham số use_column_width
             else:
-                st.warning("Không tìm thấy file 'multi' trong thư mục 'fig'.")
+                st.warning("Không tìm thấy file 'multistepsim.png' trong thư mục 'fig'.")
         
         st.divider()
 
-        # --- HÀNG 3: THÔNG TIN TÁC GIẢ VÀ GIẢNG VIÊN ---
         col5, col6 = st.columns(2)
         with col5:
             st.markdown(f"""
@@ -1985,10 +1946,8 @@ def show_welcome_page():
                 <p>{tr('welcome_advisor1')}<br>{tr('welcome_advisor2')}</p>
             </div>
             """, unsafe_allow_html=True)
-        
-        st.write("") # Khoảng trống
+        st.write("") 
 
-        # --- HÀNG 4: BỘ CHỌN NGÔN NGỮ VÀ NÚT BẮT ĐẦU ---
         col7, col8 = st.columns([2,1])
         with col7:
             lang_options_map = {"Tiếng Việt": "vi", "English": "en"}
@@ -2007,65 +1966,44 @@ def show_welcome_page():
                 st.session_state.page = 'model_selection'
                 st.rerun()
 
-        # Đóng thẻ div của container chính
         st.markdown('</div>', unsafe_allow_html=True)
 
 # --- Thay thế hàm show_model_selection_page cũ ---
 def show_model_selection_page():
     st.title(tr('screen1_title'))
-    
-    # Nút quay lại
-    if st.button(f"ᐊ {tr('welcome_project_title').splitlines()[0]}"):
+    if st.button(f"ᐊ {tr('start_button')}"): # Sửa lại nút back cho gọn
         st.session_state.page = 'welcome'
         st.rerun()
 
-    # Model selector
     model_display_names = [tr(f"{data['id']}_name") for data in MODELS_DATA.values()]
-    # Dùng key tiếng Việt làm key duy nhất để tra cứu
     model_vi_keys = list(MODELS_DATA.keys())
-    
-    # Tìm index của model đang được chọn (nếu có)
-    current_selection_index = 0
-    if st.session_state.selected_model_key in model_vi_keys:
-        current_selection_index = model_vi_keys.index(st.session_state.selected_model_key)
-
-    selected_model_display_name = st.selectbox(
-        label=" ", # Ẩn label
-        options=model_display_names,
-        index=current_selection_index
-    )
-
-    # Tìm lại key tiếng Việt từ tên hiển thị đã được dịch
+    current_selection_index = model_vi_keys.index(st.session_state.selected_model_key) if st.session_state.selected_model_key in model_vi_keys else 0
+    selected_model_display_name = st.selectbox(label=" ", options=model_display_names, index=current_selection_index)
     selected_model_index = model_display_names.index(selected_model_display_name)
     selected_key = model_vi_keys[selected_model_index]
     st.session_state.selected_model_key = selected_key
-    
     model_data = MODELS_DATA[selected_key]
     
     col1, col2 = st.columns(2)
-
     with col1:
-        st.subheader(tr('screen1_model_info_group_title'))
-        st.markdown(f"**{tr('screen1_equation_label')}**")
-        st.markdown(tr(model_data['equation_key']), unsafe_allow_html=True)
-        
-        st.markdown(f"**{tr('screen1_description_label')}**")
-        st.markdown(tr(model_data['description_key']), unsafe_allow_html=True)
-
+        with st.container(border=True):
+            st.markdown(f"**{tr('screen1_equation_label')}**")
+            st.markdown(tr(model_data['equation_key']), unsafe_allow_html=True)
+            st.markdown(f"**{tr('screen1_description_label')}**")
+            st.markdown(tr(model_data['description_key']), unsafe_allow_html=True)
     with col2:
-        st.subheader(tr('screen1_model_application_group_title'))
-        model_id = model_data.get("id")
-        lang_suffix = "Vie" if st.session_state.lang == 'vi' else "Eng"
-        image_filename = f"model_{model_id[5:]}_{lang_suffix}.png"
-        image_path = os.path.join(FIG_FOLDER, image_filename)
-        
-        if os.path.exists(image_path):
-            st.image(image_path, use_column_width=True)
-        else:
-            st.warning(f"Không tìm thấy ảnh: {image_filename}")
+        with st.container(border=True):
+            st.subheader(tr('screen1_model_application_group_title'))
+            model_id = model_data.get("id")
+            lang_suffix = "Vie" if st.session_state.lang == 'vi' else "Eng"
+            image_filename = f"model_{model_id[5:]}_{lang_suffix}.png"
+            image_path = os.path.join(FIG_FOLDER, image_filename)
+            if os.path.exists(image_path):
+                st.image(image_path) # Bỏ tham số use_column_width
+            else:
+                st.warning(f"Không tìm thấy ảnh: {image_filename}")
             
     st.write("---")
-    
     if st.button(tr('screen1_continue_button'), type="primary"):
         st.session_state.page = 'simulation'
         st.rerun()
