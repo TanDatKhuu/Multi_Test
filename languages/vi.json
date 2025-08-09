@@ -8,6 +8,7 @@
     "welcome_advisors_title": "Giảng viên hướng dẫn",
     "welcome_advisor1": "PGS. TS. Trần Minh Phương",
     "welcome_advisor2": "TS. Nguyễn Hữu Cần",
+    "main_desc": "Dự án này được thực hiện nhằm mục đích xây dựng một công cụ trực quan và tương tác để nghiên cứu và tìm hiểu về ứng dụng của các phương pháp số đa bước, cụ thể là Adams-Bashforth và Adams-Moulton, trong việc giải các phương trình vi phân thông thường (ODEs) mô hình hóa các hiện tượng thực tế.",
     "lang_vi": "Tiếng Việt",
     "lang_en": "English",
     "start_button": "Bắt đầu",
