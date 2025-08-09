@@ -1896,6 +1896,9 @@ def show_welcome_page():
         .main {
             background-color: #E6ECF4; /* Màu nền xám xanh nhạt */
         }
+		div[data-testid="stAppViewBlockContainer"] {
+            padding-top: 2rem; 
+		}
         /* CSS để căn giữa văn bản theo chiều dọc trong cột header */
         .header-col {
             display: flex;
