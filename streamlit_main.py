@@ -1961,11 +1961,11 @@ def show_welcome_page():
 
         with col4:
             # Highlight: Thay đổi tên file ảnh
-            main_image_path = os.path.join(FIG_FOLDER, "multistepsim.png") 
+            main_image_path = os.path.join(FIG_FOLDER, "multi") 
             if os.path.exists(main_image_path):
                 st.image(main_image_path, use_column_width=True)
             else:
-                st.warning("Không tìm thấy file 'multi.png' trong thư mục 'fig'.")
+                st.warning("Không tìm thấy file 'multi' trong thư mục 'fig'.")
         
         st.divider()
 
