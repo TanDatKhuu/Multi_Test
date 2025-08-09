@@ -1889,15 +1889,36 @@ def main():
 
 # --- Thay thế hàm show_welcome_page cũ ---
 def show_welcome_page():
-    # Sử dụng markdown và st.columns để tạo layout
-    st.markdown(f"<h2 style='text-align: center; color: #000080;'>{tr('welcome_uni')}</h2>", unsafe_allow_html=True)
-    st.markdown(f"<h2 style='text-align: center; color: #000080;'>{tr('welcome_faculty')}</h2>", unsafe_allow_html=True)
+    # Cấu trúc cột cho logo và tiêu đề
+    col_logo1, col_title, col_logo2 = st.columns([1, 4, 1])
+
+    with col_logo1:
+        logo_tdtu_path = os.path.join(FIG_FOLDER, "logotdtu1.png")
+        if os.path.exists(logo_tdtu_path):
+            st.image(logo_tdtu_path, width=150)
+        else:
+            st.write("[TDTU Logo Error]")
+
+    with col_title:
+        # Chỉ giữ lại phần hiển thị tiêu đề ở đây
+        st.markdown(f"<h2 style='text-align: center; color: #000080;'>{tr('welcome_uni')}</h2>", unsafe_allow_html=True)
+        st.markdown(f"<h2 style='text-align: center; color: #000080;'>{tr('welcome_faculty')}</h2>", unsafe_allow_html=True)
+
+    with col_logo2:
+        logo_faculty_path = os.path.join(FIG_FOLDER, "logokhoa1@2.png")
+        if os.path.exists(logo_faculty_path):
+            st.image(logo_faculty_path, width=100)
+        else:
+            st.write("[Faculty Logo Error]")
+
     st.markdown("---")
     
+    # Hiển thị tiêu đề dự án
     st.markdown(f"<h1 style='text-align: center; color: #990000;'>{tr('welcome_project_title').replace('\\n', '<br>')}</h1>", unsafe_allow_html=True)
     st.write("") # Thêm khoảng trống
 
-    col1, col2, col3 = st.columns([1,2,1])
+    # Hiển thị thông tin tác giả và giảng viên
+    col1, col2, col3 = st.columns([1, 2, 1])
     with col2:
         st.markdown(f"**{tr('welcome_authors_title')}**")
         st.markdown(tr('welcome_authors_names'))
@@ -1906,50 +1927,28 @@ def show_welcome_page():
         st.markdown(tr('welcome_advisor2'))
         st.write("")
     
-        # Language selector
+        # Bộ chọn ngôn ngữ
         lang_options_map = {"Tiếng Việt": "vi", "English": "en"}
-    
-    # Hàm callback khi radio thay đổi
-    def on_lang_change():
-        selected_lang_code = lang_options_map[st.session_state.lang_selector_welcome]
-        st.session_state.lang = selected_lang_code
+        
+        def on_lang_change():
+            selected_lang_code = lang_options_map[st.session_state.lang_selector_welcome]
+            st.session_state.lang = selected_lang_code
 
-    selected_lang_display = st.radio(
-        "Chọn ngôn ngữ / Select Language:",
-        options=lang_options_map.keys(),
-        horizontal=True,
-        index=0 if st.session_state.lang == 'vi' else 1,
-        key='lang_selector_welcome',
-        on_change=on_lang_change # Sử dụng callback
-    )
+        st.radio(
+            "Chọn ngôn ngữ / Select Language:",
+            options=lang_options_map.keys(),
+            horizontal=True,
+            index=0 if st.session_state.lang == 'vi' else 1,
+            key='lang_selector_welcome',
+            on_change=on_lang_change
+        )
 
     st.write("")
-    col_logo1, col_title, col_logo2 = st.columns([1, 4, 1])
-
-    with col_logo1:
-        # Highlight: Cập nhật đường dẫn và hiển thị logo TDTU
-        logo_tdtu_path = os.path.join(FIG_FOLDER, "logotdtu1.png")
-        if os.path.exists(logo_tdtu_path):
-            st.image(logo_tdtu_path, width=150)
-        else:
-            st.write("[TDTU Logo Error]")
-
-    with col_title:
-        st.markdown(f"<h2 style='text-align: center; color: #000080;'>{tr('welcome_uni')}</h2>", unsafe_allow_html=True)
-        st.markdown(f"<h2 style='text-align: center; color: #000080;'>{tr('welcome_faculty')}</h2>", unsafe_allow_html=True)
-
-    with col_logo2:
-        # Highlight: Cập nhật đường dẫn và hiển thị logo Khoa
-        logo_faculty_path = os.path.join(FIG_FOLDER, "logokhoa1@2.png")
-        if os.path.exists(logo_faculty_path):
-            st.image(logo_faculty_path, width=100)
-        else:
-            st.write("[Faculty Logo Error]")
-
+    
     # Nút bắt đầu
-    col1_btn, col2_btn, col3_btn = st.columns([2,1,2])
-    with col2_btn:
-        if st.button(tr('start_button'), use_container_width=True):
+    col1_btn, col_btn2, col3_btn = st.columns([2, 1, 2])
+    with col_btn2:
+        if st.button(tr('start_button'), use_container_width=True, type="primary"):
             st.session_state.page = 'model_selection'
             st.rerun()
 
