@@ -2530,7 +2530,7 @@ def show_simulation_page():
     with st.container():
         nav_cols = st.columns([3, 2, 1, 1, 1.5]) 
         with nav_cols[0]:
-            icon_path_nav = os.path.join(FIG_FOLDER, "icon-app.png")
+            icon_path_nav = os.path.join(FIG_FOLDER, "icon app.png")
             if os.path.exists(icon_path_nav):
                 import base64
                 with open(icon_path_nav, "rb") as img_file:
@@ -2628,7 +2628,7 @@ def show_simulation_page():
         
         # Thụt lề đúng cho nút quay lại
         st.write("") 
-        if st.button(f"ᐊ {tr('screen2_back_button')}"):
+        if st.button(f"{tr('screen2_back_button')},type="secondary""):
             st.session_state.page = 'model_selection'
             st.session_state.simulation_results = {}
             st.session_state.validated_params = {}
