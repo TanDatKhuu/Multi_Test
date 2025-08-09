@@ -2508,62 +2508,41 @@ def _perform_single_simulation(model_data, ode_func, exact_sol_func, y0, t_start
 def show_simulation_page():
     if not st.session_state.selected_model_key:
         st.warning("Vui lòng chọn một mô hình từ trang trước.")
-        if st.button("Quay lại trang chọn mô hình"):
-            st.session_state.page = 'model_selection'
-            st.rerun()
+        if st.button("Quay lại trang chọn mô hình"): st.session_state.page = 'model_selection'; st.rerun()
         return
 
     model_data = MODELS_DATA[st.session_state.selected_model_key]
-    model_id = model_data.get("id", "")
-    model_name_tr = tr(f"{model_id}_name")
+    model_id = model_data.get("id", ""); model_name_tr = tr(f"{model_id}_name")
 
-    # --- CSS TÙY CHỈNH ---
-    st.markdown("""
-        <style>
-        .main { background-color: #F0F2F6; }
-        div[data-testid="stAppViewBlockContainer"] { padding-top: 2rem; }
-        .stButton button { width: 100%; }
-        </style>
-    """, unsafe_allow_html=True)
+    st.markdown("""<style>.main { background-color: #F0F2F6; } div[data-testid="stAppViewBlockContainer"] { padding-top: 2rem; } .stButton button { width: 100%; }</style>""", unsafe_allow_html=True)
     
-    # --- THANH ĐIỀU HƯỚNG ---
     with st.container():
         nav_cols = st.columns([3, 2, 1, 1, 1.5]) 
         with nav_cols[0]:
-            icon_path_nav = os.path.join(FIG_FOLDER, "icon app.png")
+            icon_path_nav = os.path.join(FIG_FOLDER, "icon-app.png")
             if os.path.exists(icon_path_nav):
                 import base64
-                with open(icon_path_nav, "rb") as img_file:
-                    img_base64 = base64.b64encode(img_file.read()).decode()
+                with open(icon_path_nav, "rb") as img_file: img_base64 = base64.b64encode(img_file.read()).decode()
                 st.markdown(f"""<div style="display: flex; align-items: center; height: 100%;"><img src="data:image/png;base64,{img_base64}" width="30"><h3 style='color: #1E3A8A; margin-left: 10px; margin-bottom: 0;'>MultiStepSim</h3></div>""", unsafe_allow_html=True)
             else:
                 st.markdown("<h3 style='color: #1E3A8A; margin-top: 5px;'>MultiStepSim</h3>", unsafe_allow_html=True)
         with nav_cols[2]:
-            if st.button(tr("nav_home"), use_container_width=True): 
-                st.session_state.page = "welcome"; st.rerun()
+            if st.button(tr("nav_home"), use_container_width=True): st.session_state.page = "welcome"; st.rerun()
         with nav_cols[3]:
-            if st.button(tr("nav_contact"), use_container_width=True): 
-                st.session_state.welcome_subpage = "contact"; st.session_state.page = "welcome"; st.rerun()
+            if st.button(tr("nav_contact"), use_container_width=True): st.session_state.welcome_subpage = "contact"; st.session_state.page = "welcome"; st.rerun()
         with nav_cols[4]:
-            lang_options_display = (tr('lang_vi'), tr('lang_en'))
-            lang_options_codes = ('vi', 'en')
+            lang_options_display = (tr('lang_vi'), tr('lang_en')); lang_options_codes = ('vi', 'en')
             current_lang_index = lang_options_codes.index(st.session_state.lang)
             selected_display = st.selectbox("Language", lang_options_display, index=current_lang_index, key='lang_selector_page3', label_visibility="collapsed")
             selected_index = lang_options_display.index(selected_display)
-            if st.session_state.lang != lang_options_codes[selected_index]:
-                st.session_state.lang = lang_options_codes[selected_index]
-                st.rerun()
+            if st.session_state.lang != lang_options_codes[selected_index]: st.session_state.lang = lang_options_codes[selected_index]; st.rerun()
     st.write("") 
 
-    # --- HEADER CỦA TRANG ---
-    st.title(model_name_tr)
-    st.divider()
+    st.title(model_name_tr); st.divider()
 
-    # --- BỐ CỤC CHÍNH ---
     col_controls, col_display = st.columns([1, 1.5]) 
 
     with col_controls:
-        # --- CÁC KHỐI ĐIỀU KHIỂN ---
         with st.container(border=True):
             st.subheader(tr('screen2_method_group'))
             method_options = {tr('screen2_method_ab'): "Bashforth", tr('screen2_method_am'): "Moulton"}
@@ -2626,21 +2605,18 @@ def show_simulation_page():
                     if key in st.session_state: del st.session_state[key]
                 st.rerun()
         
-        # Thụt lề đúng cho nút quay lại
         st.write("") 
-        if st.button(f"{tr('screen2_back_button')}",type="primary"):
+        if st.button(f"ᐊ {tr('screen2_back_button')}", type="secondary"):
             st.session_state.page = 'model_selection'
             st.session_state.simulation_results = {}
             st.session_state.validated_params = {}
             st.rerun()
-			
+    
     if run_simulation:
         with st.spinner(tr('screen2_info_area_running')):
             is_valid = True
-            if not selected_steps_int:
-                st.toast(tr('msg_select_step'), icon='⚠️'); is_valid = False
-            if 't₀' in param_inputs and 't₁' in param_inputs and param_inputs['t₁'] <= param_inputs['t₀']:
-                st.toast(tr('msg_t_end_error'), icon='⚠️'); is_valid = False
+            if not selected_steps_int: st.toast(tr('msg_select_step'), icon='⚠️'); is_valid = False
+            if 't₀' in param_inputs and 't₁' in param_inputs and param_inputs['t₁'] <= param_inputs['t₀']: st.toast(tr('msg_t_end_error'), icon='⚠️'); is_valid = False
             if is_valid:
                 for key in ['last_calculated_c', 'last_calculated_r', 'last_calculated_alpha', 'last_calculated_beta']:
                     if key in st.session_state: del st.session_state[key]
@@ -2661,73 +2637,75 @@ def show_simulation_page():
             st.info(tr('screen2_info_area_init'))
         else:
             with st.container(border=True):
-                # Highlight: Sửa lại toàn bộ hàm generate_plots để trả về 3 Figure
+                # Hàm generate_plots được định dạng lại hoàn toàn
                 @st.cache_data
-				def generate_plots(results_data, lang, model_id, selected_method_short):
-				    figs = {}
-				    n_steps = len(results_data)
-				    colors = plt.cm.jet(np.linspace(0, 1, max(1, n_steps)))
-				    
-				    # Highlight: Đặt kích thước chung cho các đồ thị
-				    plot_figsize = (6, 3.5) # Chiều rộng 6 inches, cao 3.5 inches
-				
-				    # Đồ thị nghiệm
-				    fig_sol = Figure(figsize=plot_figsize)
-				    ax_sol = fig_sol.subplots()
-				    exact_plotted = False
-				    color_idx = 0
-				    for step, res in sorted(results_data.items()):
-				        method_label = f"{selected_method_short[:2].upper()}-{step}"
-				        # Highlight: Sửa logic kiểm tra để luôn vẽ nghiệm xấp xỉ
-				        if res.get('t_plot') is not None and res.get('approx_sol_plot') is not None:
-				            if not exact_plotted and res.get('exact_sol_plot') is not None:
-				                ax_sol.plot(res['t_plot'], res['exact_sol_plot'], color='black', ls='--', label=tr('screen2_plot_exact_label'))
-				                exact_plotted = True
-				            ax_sol.plot(res['t_plot'], res['approx_sol_plot'], color=colors[color_idx], label=method_label)
-				        color_idx += 1
-				    ax_sol.set_xlabel(tr('screen2_plot_t_axis')); ax_sol.set_ylabel(tr('screen2_plot_value_axis'))
-				    ax_sol.grid(True, linestyle=':'); ax_sol.legend()
-				    fig_sol.tight_layout() # Thêm tight_layout để tránh chữ bị cắt
-				    figs['solution'] = fig_sol
-				    
-				    # Đồ thị sai số
-				    fig_err = Figure(figsize=plot_figsize)
-				    ax_err = fig_err.subplots()
-				    color_idx = 0
-				    for step, res in sorted(results_data.items()):
-				        method_label = f"{selected_method_short[:2].upper()}-{step}"
-				        if res.get('n_values_convergence') is not None and len(res['n_values_convergence']) > 0:
-				            ax_err.plot(res['n_values_convergence'], res['errors_convergence'], marker='.', color=colors[color_idx], label=method_label)
-				        color_idx += 1
-				    ax_err.set_xlabel(tr('screen2_plot_n_axis')); ax_err.set_ylabel(tr('screen2_plot_error_axis')); ax_err.set_yscale('log')
-				    ax_err.grid(True, which='both', linestyle=':'); ax_err.legend()
-				    fig_err.tight_layout()
-				    figs['error'] = fig_err
-				
-				    # Đồ thị bậc hội tụ
-				    fig_ord = Figure(figsize=plot_figsize)
-				    ax_ord = fig_ord.subplots()
-				    color_idx = 0
-				    for step, res in sorted(results_data.items()):
-				        method_label = f"{selected_method_short[:2].upper()}-{step}"
-				        if res.get('log_h_convergence') is not None and len(res['log_h_convergence']) >= 2:
-				            slope = res.get('order_slope', 0)
-				            fit_label = tr('screen2_plot_order_fit_label_suffix').format(slope)
-				            log_h, log_err = res['log_h_convergence'], res['log_error_convergence']
-				            ax_ord.plot(log_h, log_err, 'o', color=colors[color_idx], label=f"{method_label}{tr('screen2_plot_order_data_label_suffix')}")
-				            ax_ord.plot(log_h, np.polyval(np.polyfit(log_h, log_err, 1), log_h), '-', color=colors[color_idx], label=fit_label)
-				        color_idx += 1
-				    ax_ord.set_xlabel(tr('screen2_plot_log_h_axis')); ax_ord.set_ylabel(tr('screen2_plot_log_error_axis'))
-				    ax_ord.grid(True, linestyle=':'); ax_ord.legend()
-				    fig_ord.tight_layout()
-				    figs['order'] = fig_ord
-				
-				    return figs
+                def generate_plots(results_data, lang, model_id, selected_method_short):
+                    figs = {}
+                    n_steps = len(results_data)
+                    colors = plt.cm.jet(np.linspace(0, 1, max(1, n_steps)))
+                    plot_figsize = (6, 3.5)
+
+                    # Đồ thị nghiệm
+                    fig_sol = Figure(figsize=plot_figsize)
+                    ax_sol = fig_sol.subplots()
+                    exact_plotted = False
+                    color_idx = 0
+                    for step, res in sorted(results_data.items()):
+                        method_label = f"{selected_method_short[:2].upper()}-{step}"
+                        if res.get('t_plot') is not None and res.get('approx_sol_plot') is not None:
+                            if not exact_plotted and res.get('exact_sol_plot') is not None:
+                                ax_sol.plot(res['t_plot'], res['exact_sol_plot'], color='black', ls='--', label=tr('screen2_plot_exact_label'))
+                                exact_plotted = True
+                            ax_sol.plot(res['t_plot'], res['approx_sol_plot'], color=colors[color_idx], label=method_label)
+                        color_idx += 1
+                    ax_sol.set_xlabel(tr('screen2_plot_t_axis'))
+                    ax_sol.set_ylabel(tr('screen2_plot_value_axis'))
+                    ax_sol.grid(True, linestyle=':')
+                    ax_sol.legend()
+                    fig_sol.tight_layout()
+                    figs['solution'] = fig_sol
+                    
+                    # Đồ thị sai số
+                    fig_err = Figure(figsize=plot_figsize)
+                    ax_err = fig_err.subplots()
+                    color_idx = 0
+                    for step, res in sorted(results_data.items()):
+                        method_label = f"{selected_method_short[:2].upper()}-{step}"
+                        if res.get('n_values_convergence') is not None and len(res['n_values_convergence']) > 0:
+                            ax_err.plot(res['n_values_convergence'], res['errors_convergence'], marker='.', color=colors[color_idx], label=method_label)
+                        color_idx += 1
+                    ax_err.set_xlabel(tr('screen2_plot_n_axis'))
+                    ax_err.set_ylabel(tr('screen2_plot_error_axis'))
+                    ax_err.set_yscale('log')
+                    ax_err.grid(True, which='both', linestyle=':')
+                    ax_err.legend()
+                    fig_err.tight_layout()
+                    figs['error'] = fig_err
+
+                    # Đồ thị bậc hội tụ
+                    fig_ord = Figure(figsize=plot_figsize)
+                    ax_ord = fig_ord.subplots()
+                    color_idx = 0
+                    for step, res in sorted(results_data.items()):
+                        method_label = f"{selected_method_short[:2].upper()}-{step}"
+                        if res.get('log_h_convergence') is not None and len(res['log_h_convergence']) >= 2:
+                            slope = res.get('order_slope', 0)
+                            fit_label = tr('screen2_plot_order_fit_label_suffix').format(slope)
+                            log_h, log_err = res['log_h_convergence'], res['log_error_convergence']
+                            ax_ord.plot(log_h, log_err, 'o', color=colors[color_idx], label=f"{method_label}{tr('screen2_plot_order_data_label_suffix')}")
+                            ax_ord.plot(log_h, np.polyval(np.polyfit(log_h, log_err, 1), log_h), '-', color=colors[color_idx], label=fit_label)
+                        color_idx += 1
+                    ax_ord.set_xlabel(tr('screen2_plot_log_h_axis'))
+                    ax_ord.set_ylabel(tr('screen2_plot_log_error_axis'))
+                    ax_ord.grid(True, linestyle=':')
+                    ax_ord.legend()
+                    fig_ord.tight_layout()
+                    figs['order'] = fig_ord
+
+                    return figs
                 
-                # Gọi hàm tạo plot
                 generated_figures = generate_plots(results, st.session_state.lang, model_id, selected_method_short)
                 
-                # Highlight: Hiển thị từng đồ thị theo thứ tự
                 st.subheader(tr('screen2_plot_solution_title'))
                 st.pyplot(generated_figures['solution'])
 
