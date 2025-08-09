@@ -1869,7 +1869,7 @@ def main():
     # Bước 1: Khởi tạo session_state trước tiên để đảm bảo nó tồn tại
     initialize_session_state()
 
-	icon_path = os.path.join(FIG_FOLDER, "icon.app (circle).png")
+	icon_path = os.path.join(FIG_FOLDER, "icon_app (circle).png")
     if os.path.exists(icon_path):
         st.set_page_config(
             layout="wide", 
@@ -1956,7 +1956,7 @@ def show_welcome_page():
 
         nav_cols = st.columns([2, 3, 1, 1])
         with nav_cols[0]:
-            icon_path_nav = os.path.join(FIG_FOLDER, "icon-app.png")
+            icon_path_nav = os.path.join(FIG_FOLDER, "icon_app (circle).png")
             if os.path.exists(icon_path_nav):
                 # Đọc ảnh và chuyển sang base64 để nhúng vào HTML
                 import base64
