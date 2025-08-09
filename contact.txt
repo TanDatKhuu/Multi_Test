@@ -1,20 +1,31 @@
-### Thông Tin Liên Hệ
+### Thông Tin Ứng Dụng
 
+**Tên ứng dụng:** MultiStepSim
+**Ngày khởi tạo:** 09/08/2025
+**Phiên bản:** 1.0.0
+
+### Thông Tin Liên Hệ
 **Khoa Toán - Thống Kê, Trường Đại học Tôn Đức Thắng**
 
 - **Địa chỉ:** 19 Nguyễn Hữu Thọ, Phường Tân Phong, Quận 7, TP. Hồ Chí Minh
-- **Website:** [https://math.tdtu.edu.vn/](https://math.tdtu.edu.vn/)
-- **Email:** khoatoan-thongke@tdtu.edu.vn
+- **Website:** [https://fms.tdtu.edu.vn/](https://fms.tdtu.edu.vn/)
 
 ---
 
-**Nhóm sinh viên thực hiện:**
+**Nhóm tác giả thực hiện:**
 
-- **Khưu Tấn Đạt:** [Email](mailto:sinhvien1@email.com) | [GitHub](https://github.com/TanDatKhuu)
-- **Huỳnh Nhựt Trường:** [Email](mailto:sinhvien2@email.com)
-- **Đào Nhật Gia Ân:** [Email](mailto:sinhvien3@email.com)
+- **Tác giả 1:** Khưu Tấn Đạt
+- **Tác giả 2:** Huỳnh Nhựt Trường
+- **Tác giả 3:** Đào Nhật Gia Ân
 
-**Giảng viên hướng dẫn:**
+--
 
-- **PGS. TS. Trần Minh Phương**
-- **TS. Nguyễn Hữu Cần**
+**Giảng viên hướng dẫn (GVHD):**
+
+- **Giảng viên hướng dẫn 1:** PGS. TS. Trần Minh Phương
+- **Thông tin:** https://fms.tdtu.edu.vn/nhan-su/tien-si-tran-minh-phuong
+- **Giảng viên hướng dẫn 2:** TS. Nguyễn Hữu Cần
+- **Thông tin:** https://fms.tdtu.edu.vn/nhan-su/thac-si-nguyen-huu-can
+
+**Email hỗ trợ:** [tandatkhuu2k3@gmail.com](tandatkhuu2k3@gmail.com)
+**Mọi góp ý vui lòng liên hệ qua email để được phản hồi
