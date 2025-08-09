@@ -1871,9 +1871,9 @@ def main():
 
     # Bước 2: Cấu hình trang
     # Sử dụng tên file icon chính xác của bạn
-    icon_path = os.path.join(FIG_FOLDER, "icon-app (circle).png") 
+    icon_path = os.path.join(FIG_FOLDER, "icon-app.png") 
     
-    page_icon_to_use = icon_path if os.path.exists(icon_path) else "🧪"
+    page_icon_to_use = icon_path 
 
     st.set_page_config(
         layout="wide", 
@@ -1951,7 +1951,7 @@ def show_welcome_page():
 
         nav_cols = st.columns([2, 3, 1, 1])
         with nav_cols[0]:
-            icon_path_nav = os.path.join(FIG_FOLDER, "icon_app (circle).png")
+            icon_path_nav = os.path.join(FIG_FOLDER, "icon_app.png")
             if os.path.exists(icon_path_nav):
                 # Đọc ảnh và chuyển sang base64 để nhúng vào HTML
                 import base64
