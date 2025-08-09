@@ -2030,7 +2030,6 @@ def show_model_selection_page():
         <style>
         .main { background-color: #E6ECF4; }
         div[data-testid="stAppViewBlockContainer"] { padding-top: 2rem; }
-        .page-container { background-color: white; padding: 2rem 3rem; border-radius: 10px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
         .nav-button { margin: auto 0; }
         .stSelectbox div[data-baseweb="select"] > div { font-size: 1.2rem; font-weight: bold; }
         </style>
@@ -2043,7 +2042,7 @@ def show_model_selection_page():
         # (Tái sử dụng logic từ trang welcome)
         nav_cols = st.columns([3, 3, 1, 1, 1.5]) 
         with nav_cols[0]:
-            icon_path_nav = os.path.join(FIG_FOLDER, "icon-app.png")
+            icon_path_nav = os.path.join(FIG_FOLDER, "icon app.png")
             if os.path.exists(icon_path_nav):
                 import base64
                 with open(icon_path_nav, "rb") as img_file:
