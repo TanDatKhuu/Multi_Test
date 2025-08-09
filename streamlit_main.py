@@ -1866,27 +1866,22 @@ def tr(key):
 
 # Hàm chính để điều hướng giữa các trang
 def main():
-    # Bước 1: Khởi tạo session_state trước tiên để đảm bảo nó tồn tại
+    # Bước 1: Khởi tạo session_state
     initialize_session_state()
 
-	icon_path = os.path.join(FIG_FOLDER, "icon_app (circle).png")
-    if os.path.exists(icon_path):
-        st.set_page_config(
-            layout="wide", 
-            page_title=tr("app_title"),
-            page_icon=icon_path # Đặt icon cho tab trình duyệt
-        )
-    else:
-        # Cấu hình mặc định nếu không tìm thấy icon
-        st.set_page_config(
-            layout="wide", 
-            page_title=tr("app_title")
-        )
-		
-    # Bước 2: Cấu hình trang. Bây giờ hàm tr() đã có thể truy cập session_state an toàn
-    st.set_page_config(layout="wide", page_title=tr("app_title"))	
-  	
-    # Bước 3: Chạy logic điều hướng trang như bình thường
+    # Bước 2: Cấu hình trang
+    # Sử dụng tên file icon chính xác của bạn
+    icon_path = os.path.join(FIG_FOLDER, "icon-app (circle).png") 
+    
+    page_icon_to_use = icon_path if os.path.exists(icon_path) else "🧪"
+
+    st.set_page_config(
+        layout="wide", 
+        page_title=tr("app_title"),
+        page_icon=page_icon_to_use
+    )
+
+    # Bước 3: Chạy logic điều hướng trang
     if st.session_state.page == 'welcome':
         show_welcome_page()
     elif st.session_state.page == 'model_selection':
