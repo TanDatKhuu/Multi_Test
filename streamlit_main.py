@@ -2661,22 +2661,30 @@ def show_simulation_page():
             st.info(tr('screen2_info_area_init'))
         else:
             with st.container(border=True):
-                n_steps = len(results); colors = plt.cm.jet(np.linspace(0, 1, max(1, n_steps)))
+                # --- TẠO CÁC ĐỒ THỊ TRONG BỘ NHỚ ---
+                # Highlight: Sửa lại toàn bộ hàm generate_plots
                 @st.cache_data
                 def generate_plots(results_data, lang, model_id, selected_method_short):
                     figs = {}
+                    n_steps = len(results_data)
+                    colors = plt.cm.jet(np.linspace(0, 1, max(1, n_steps)))
+                    
+                    # Đồ thị nghiệm
                     fig_sol = Figure(); ax_sol = fig_sol.subplots()
                     exact_plotted = False; color_idx = 0
                     for step, res in sorted(results_data.items()):
                         method_label = f"{selected_method_short[:2].upper()}-{step}"
-                        if not exact_plotted and res.get('exact_sol_plot') is not None:
+                        if not exact_plotted and res.get('exact_sol_plot') is not None and res.get('t_plot') is not None:
                             ax_sol.plot(res['t_plot'], res['exact_sol_plot'], color='black', ls='--', label=tr('screen2_plot_exact_label'))
                             exact_plotted = True
-                        ax_sol.plot(res['t_plot'], res['approx_sol_plot'], color=colors[color_idx], label=method_label)
+                        if res.get('t_plot') is not None and res.get('approx_sol_plot') is not None:
+                            ax_sol.plot(res['t_plot'], res['approx_sol_plot'], color=colors[color_idx], label=method_label)
                         color_idx += 1
                     ax_sol.set_title(tr('screen2_plot_solution_title')); ax_sol.set_xlabel(tr('screen2_plot_t_axis')); ax_sol.set_ylabel(tr('screen2_plot_value_axis'))
                     ax_sol.grid(True, linestyle=':'); ax_sol.legend()
                     figs['solution'] = fig_sol
+                    
+                    # Đồ thị sai số và bậc hội tụ
                     fig_err_ord, (ax_err, ax_ord) = plt.subplots(1, 2, figsize=(12, 4))
                     color_idx = 0
                     for step, res in sorted(results_data.items()):
@@ -2697,7 +2705,9 @@ def show_simulation_page():
                     fig_err_ord.tight_layout()
                     figs['error_order'] = fig_err_ord
                     return figs
-                generated_figures = generate_plots(tuple(sorted(results.items())), st.session_state.lang, model_id, selected_method_short)
+                
+                # Highlight: Sửa lại cách gọi hàm
+                generated_figures = generate_plots(results, st.session_state.lang, model_id, selected_method_short)
                 st.pyplot(generated_figures['solution'])
                 st.pyplot(generated_figures['error_order'])
 
