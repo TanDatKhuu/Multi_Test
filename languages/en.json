@@ -1,6 +1,5 @@
 {
 	"app_title": "Multi-step methods simulation application - FMS TDTU", 
-	# Welcome Screen
 	"welcome_uni": "TON DUC THANG UNIVERSITY",
 	"welcome_faculty": "FACULTY OF MATHEMATICS - STATISTICS",
 	"welcome_project_title": "Multi-step methods and applications\n in simulating some real-life models", 
@@ -12,27 +11,23 @@
 	"lang_vi": "Tiếng Việt", 
 	"lang_en": "English",
 	"start_button": "Start",
-	# Screen 1
 	"screen1_title": "Select a real-life model", 
 	"screen1_model_info_group_title": "Model information", 
 	"screen1_model_application_group_title": "Model application", 
 	"screen1_equation_label": "Differential equation / Analytical solution:", 
 	"screen1_description_label": "Description and parameters:", 
 	"screen1_continue_button": "Continue with this model", 
-	# ================== MODEL 1: Energy Demand ==================
 	"model1_name": "Model 1: Energy demand", 
-	"model1_eq": "dO/dt = kO<br>O(t) = O<sub>0</sub>e<sup>kt</sup>",#-t<sub>0</sub>
+	"model1_eq": "dO/dt = kO<br>O(t) = O<sub>0</sub>e<sup>kt</sup>",
 	"model1_desc": ("Exponential growth model describing energy consumption over time.<br>"
 	"O(t): Energy consumption level at time t.<br>"
 	"dO/dt: Rate of growth of energy consumption.<br>"
 	"O<sub>0</sub>: Initial energy consumption level at time t<sub>0</sub>.<br>"
 	"k: Constant representing the growth rate.<br>"),
-	#"t<sub>0</sub>: Initial time."),
 	"model1_param1": "Initial energy consumption (O₀)",
 	"model1_param2": "Growth rate constant (k)",
 	"model1_param3": "Initial time (t₀)",
 	"model1_param4": "End time (t₁)",
-	# ================== MODEl 2 ==================
 	"model2_name": "Model 2: Cell growth", 
 	"model2_eq": "dx/dt = cx<sup>2/3</sup><br>x(t) = (x<sub>0</sub><sup>1/3</sup> + ct/3)<sup>3</sup>",
 	"model2_desc": ("Model simulating the growth of cell mass.<br>"
@@ -44,7 +39,6 @@
 	"model2_param3": "Initial time (t₀)",
 	"model2_param4": "End time (t₁)",
 	"model2_calculated_c_label": "Growth rate constant (c):",
-	# ================== MODEL 3: Spread of epidemic ==================
 	"model3_name": "Model 3: Spread of epidemic", 
 	"model3_eq": "y'(t) = -r*y(t)*(n+1-y(t))<br>y(t)  = n(n+1)e<sup>-r(n+1)(t-t<sub>0</sub>)</sup>/(1+ne<sup>-r(n+1)(t-t<sub>0</sub>)</sup>)",
 	"model3_desc": ("Model simulating the change in the number of uninfected individuals in a community over time.<br>"
@@ -57,7 +51,6 @@
 	"model3_param4": "Initial time (t₀)",
 	"model3_param5": "End time (t₁)",
 	"model3_calculated_r_label": "Infection rate constant (r):",
-	# ================== MODEL 4: National Economy ==================
 	"model4_name": "Model 4: National economy", 
 	"model4_eq": "Y''(t) + αY'(t) + βY(t) = mlG",
 	"model4_desc": ("The model simulates economic changes over time based on macroeconomic variables.<br>"
@@ -81,7 +74,6 @@
 	"model4_param_dY0": "Y'(t₀)",
 	"model4_param_t0": "Time t₀",
 	"model4_param_t1": "Time t₁",
-	# ================== MODEL 5: Pursuit Curve ==================
 	"model5_name": "Model 5: Pursuit curve", 
 	"model5_eq": "dx/dt = -v * x / √(x<sup>2</sup>+y<sup>2</sup>)<br>dy/dt = -v * y / √(x<sup>2</sup>+y<sup>2</sup>) - u",
 	"model5_desc": ("Model to find the trajectory of a boat moving under the influence of a current.<br>"
@@ -99,8 +91,6 @@
 	"model5_select_component": "Select component to display:",
 	"model5_component_x": "X-Component",
 	"model5_component_y": "Y-Component",
-	
-	# Screen 2
 	"screen2_back_button": "Back to model selection", 
 	"screen2_goto_screen3_button": "View dynamic simulation", 
 	"screen2_goto_screen3_tooltip": "Switch to the dynamic simulation screen (if available)",
@@ -173,15 +163,11 @@
 	"screen2_info_area_show_data_exact_y": "Reference",
 	"screen2_info_area_show_data_error_x": "Error",
 	"screen2_info_area_show_data_error_y": "Error",
-	
-	# Simulation Plot Window
 	"sim_window_title": "Dynamic simulation plot window", 
 	"sim_window_plot_title": "Solution simulation over time", 
 	"sim_window_t_axis": "Time (t)",
 	"sim_window_value_axis": "Solution Value",
 	"sim_window_no_data": "No valid data to plot dynamically",
-	
-	# Messages
 	"msg_error": "Error",
 	"msg_warning": "Warning",
 	"msg_info": "Information",
@@ -222,8 +208,6 @@
 	"msg_save_fail_text": "Could not save images due to an error:\n{}",
 	"msg_saving_plot_error": "Error saving plot '{}': {}",
 	"msg_skipping_save": "Skipping save for plot '{}' (no data).",
-	
-	#Screen 3
 	"screen3_back_button": "Back to parameters", 
 	"screen3_double_back_button": "Back to model selection", 
 	"screen3_dyn_only_title": "Dynamic model simulation", 
