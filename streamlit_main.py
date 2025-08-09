@@ -2050,6 +2050,7 @@ def show_model_selection_page():
         
         # --- THANH ĐIỀU HƯỚNG ---
         nav_cols = st.columns([3, 2, 1, 1, 1.5]) 
+		
 		with nav_cols[0]:
             icon_path_nav = os.path.join(FIG_FOLDER, "icon app.png")
             if os.path.exists(icon_path_nav):
@@ -2066,7 +2067,8 @@ def show_model_selection_page():
                     unsafe_allow_html=True
                 )
             else:
-                st.markdown("<h3 style='color: #1E3A8A; margin-top: 5px;'>MultiStepSim</h3>", unsafe_allow_html=True)		
+                st.markdown("<h3 style='color: #1E3A8A; margin-top: 5px;'>MultiStepSim</h3>", unsafe_allow_html=True)
+				
         with nav_cols[2]:
             if st.button(tr("nav_home"), use_container_width=True): 
                 st.session_state.page = "welcome"; st.rerun()
