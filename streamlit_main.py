@@ -1923,11 +1923,11 @@ def show_welcome_page():
             </p>
             """, unsafe_allow_html=True)
         with col4:
-            main_image_path = os.path.join(FIG_FOLDER, "multistepsim.png") 
+            main_image_path = os.path.join(FIG_FOLDER, "multi.png") 
             if os.path.exists(main_image_path):
                 st.image(main_image_path) # Bỏ tham số use_column_width
             else:
-                st.warning("Không tìm thấy file 'multistepsim.png' trong thư mục 'fig'.")
+                st.warning("Không tìm thấy file 'multi.png' trong thư mục 'fig'.")
         
         st.divider()
 
