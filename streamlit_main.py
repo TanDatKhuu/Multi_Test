@@ -2025,28 +2025,81 @@ def show_welcome_page():
         st.markdown('</div>', unsafe_allow_html=True)
 # --- Thay thế hàm show_model_selection_page cũ ---
 def show_model_selection_page():
-    st.title(tr('screen1_title'))
-    if st.button(f"ᐊ {tr('start_button')}"): # Sửa lại nút back cho gọn
-        st.session_state.page = 'welcome'
-        st.rerun()
-
-    model_display_names = [tr(f"{data['id']}_name") for data in MODELS_DATA.values()]
-    model_vi_keys = list(MODELS_DATA.keys())
-    current_selection_index = model_vi_keys.index(st.session_state.selected_model_key) if st.session_state.selected_model_key in model_vi_keys else 0
-    selected_model_display_name = st.selectbox(label=" ", options=model_display_names, index=current_selection_index)
-    selected_model_index = model_display_names.index(selected_model_display_name)
-    selected_key = model_vi_keys[selected_model_index]
-    st.session_state.selected_model_key = selected_key
-    model_data = MODELS_DATA[selected_key]
+    # --- CSS TÙY CHỈNH (CÓ THỂ DÙNG CHUNG VỚI CSS CỦA WELCOME PAGE) ---
+    st.markdown("""
+        <style>
+        .main { background-color: #E6ECF4; }
+        div[data-testid="stAppViewBlockContainer"] { padding-top: 2rem; }
+        .page-container { background-color: white; padding: 2rem 3rem; border-radius: 10px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
+        .nav-button { margin: auto 0; }
+        .stSelectbox div[data-baseweb="select"] > div { font-size: 1.2rem; font-weight: bold; }
+        </style>
+    """, unsafe_allow_html=True)
     
-    col1, col2 = st.columns(2)
-    with col1:
+    with st.container():
+        st.markdown('<div class="page-container">', unsafe_allow_html=True)
+        
+        # --- THANH ĐIỀU HƯỚNG ---
+        # (Tái sử dụng logic từ trang welcome)
+        nav_cols = st.columns([3, 3, 1, 1, 1.5]) 
+        with nav_cols[0]:
+            icon_path_nav = os.path.join(FIG_FOLDER, "icon-app.png")
+            if os.path.exists(icon_path_nav):
+                import base64
+                with open(icon_path_nav, "rb") as img_file:
+                    img_base64 = base64.b64encode(img_file.read()).decode()
+                st.markdown(f"""<div style="display: flex; align-items: center; height: 100%;"><img src="data:image/png;base64,{img_base64}" width="30"><h3 style='color: #1E3A8A; margin-left: 10px; margin-bottom: 0;'>MultiStepSim</h3></div>""", unsafe_allow_html=True)
+            else:
+                st.markdown("<h3 style='color: #1E3A8A; margin-top: 5px;'>MultiStepSim</h3>", unsafe_allow_html=True)
+        
+        with nav_cols[2]:
+            if st.button(tr("nav_home"), use_container_width=True): 
+                st.session_state.page = "welcome"; st.rerun()
+        with nav_cols[3]:
+            if st.button(tr("nav_contact"), use_container_width=True): 
+                st.session_state.welcome_subpage = "contact"; st.session_state.page = "welcome"; st.rerun()
+        with nav_cols[4]:
+            lang_options_display = (tr('lang_vi'), tr('lang_en'))
+            lang_options_codes = ('vi', 'en')
+            current_lang_index = lang_options_codes.index(st.session_state.lang)
+            def on_lang_change_nav():
+                selected_display = st.session_state.lang_selector_nav_model
+                selected_index = lang_options_display.index(selected_display)
+                st.session_state.lang = lang_options_codes[selected_index]
+            st.selectbox("Language", lang_options_display, index=current_lang_index, key='lang_selector_nav_model', on_change=on_lang_change_nav, label_visibility="collapsed")
+        
+        st.divider()
+
+        # --- NỘI DUNG CHÍNH CỦA TRANG ---
+        st.title(tr('screen1_title'))
+        
+        # Bộ chọn mô hình
+        model_display_names = [tr(f"{data['id']}_name") for data in MODELS_DATA.values()]
+        model_vi_keys = list(MODELS_DATA.keys())
+        current_selection_index = model_vi_keys.index(st.session_state.selected_model_key) if st.session_state.selected_model_key in model_vi_keys else 0
+        selected_model_display_name = st.selectbox(label=" ", options=model_display_names, index=current_selection_index)
+        selected_model_index = model_display_names.index(selected_model_display_name)
+        selected_key = model_vi_keys[selected_model_index]
+        st.session_state.selected_model_key = selected_key
+        model_data = MODELS_DATA[selected_key]
+        
+        st.write("") # Thêm khoảng trống
+
+        # --- KHỐI THÔNG TIN MÔ HÌNH ---
         with st.container(border=True):
+            st.subheader(tr('screen1_model_info_group_title'))
             st.markdown(f"**{tr('screen1_equation_label')}**")
-            st.markdown(tr(model_data['equation_key']), unsafe_allow_html=True)
+            # Highlight: Thay thế thẻ <br> bằng \n và dùng st.latex để hiển thị đẹp hơn
+            eq_text = tr(model_data['equation_key']).replace('<br>', '\n').replace('<sub>', '_{').replace('</sub>', '}')
+            for line in eq_text.split('\n'):
+                st.latex(line)
+
             st.markdown(f"**{tr('screen1_description_label')}**")
             st.markdown(tr(model_data['description_key']), unsafe_allow_html=True)
-    with col2:
+            
+        st.write("") # Thêm khoảng trống
+
+        # --- KHỐI ỨNG DỤNG CỦA MÔ HÌNH ---
         with st.container(border=True):
             st.subheader(tr('screen1_model_application_group_title'))
             model_id = model_data.get("id")
@@ -2054,14 +2107,21 @@ def show_model_selection_page():
             image_filename = f"model_{model_id[5:]}_{lang_suffix}.png"
             image_path = os.path.join(FIG_FOLDER, image_filename)
             if os.path.exists(image_path):
-                st.image(image_path) # Bỏ tham số use_column_width
+                st.image(image_path)
             else:
                 st.warning(f"Không tìm thấy ảnh: {image_filename}")
-            
-    st.write("---")
-    if st.button(tr('screen1_continue_button'), type="primary"):
-        st.session_state.page = 'simulation'
-        st.rerun()
+        
+        st.write("") # Thêm khoảng trống
+        st.write("")
+        
+        # --- NÚT TIẾP TỤC ---
+        _, col_continue_btn, _ = st.columns([2, 1, 2])
+        with col_continue_btn:
+            if st.button(tr('screen1_continue_button'), type="primary", use_container_width=True):
+                st.session_state.page = 'simulation'
+                st.rerun()
+
+        st.markdown('</div>', unsafe_allow_html=True)
         
 
 # ==============================================
