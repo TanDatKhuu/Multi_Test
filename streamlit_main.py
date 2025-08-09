@@ -2625,12 +2625,12 @@ def show_simulation_page():
                 for key in ['last_calculated_c', 'last_calculated_r', 'last_calculated_alpha', 'last_calculated_beta']:
                     if key in st.session_state: del st.session_state[key]
                 st.rerun()
-	    st.write("") # Thêm một khoảng trống
-	    if st.button(f"ᐊ {tr('screen2_back_button')}"):
-	        st.session_state.page = 'model_selection'
-	        st.session_state.simulation_results = {}
-	        st.session_state.validated_params = {}
-	        st.rerun()
+		st.write("") # Thụt lề đúng
+        if st.button(f"ᐊ {tr('screen2_back_button')}"): # Thụt lề đúng
+            st.session_state.page = 'model_selection'
+            st.session_state.simulation_results = {}
+            st.session_state.validated_params = {}
+            st.rerun()
 			
     if run_simulation:
         with st.spinner(tr('screen2_info_area_running')):
