@@ -1,4 +1,5 @@
-"app_title": "Multi-step methods simulation application - FMS TDTU", 
+{
+	"app_title": "Multi-step methods simulation application - FMS TDTU", 
 	# Welcome Screen
 	"welcome_uni": "TON DUC THANG UNIVERSITY",
 	"welcome_faculty": "FACULTY OF MATHEMATICS - STATISTICS",
@@ -294,3 +295,4 @@
 	"screen3_legend_m5s2_path_destroyer": "Destroyer trajectory", 
 	"screen3_legend_m5s2_catch_point": "Catch point",
 	"screen3_m5_time_when_caught_label": "Time to catch submarine:",
+}
