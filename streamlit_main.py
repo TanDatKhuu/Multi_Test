@@ -2040,19 +2040,18 @@ def show_model_selection_page():
         <style>
         .main { background-color: #E6ECF4; }
         div[data-testid="stAppViewBlockContainer"] { padding-top: 2rem; }
-        .nav-button { margin: auto 0; }
-        .stSelectbox div[data-baseweb="select"] > div { font-size: 1rem; } /* Chỉnh lại font cho selectbox */
+        .stSelectbox div[data-baseweb="select"] > div { font-size: 1.2rem; font-weight: bold; }
         </style>
     """, unsafe_allow_html=True)
     
-    with st.container():
-        st.markdown('<div class="page-container">', unsafe_allow_html=True)
-        
+    with st.container(border=True): # Sử dụng border của container chính
         # --- THANH ĐIỀU HƯỚNG ---
+        # Sửa lỗi thụt lề ở đây
         nav_cols = st.columns([3, 2, 1, 1, 1.5]) 
-		
-		with nav_cols[0]:
-            icon_path_nav = os.path.join(FIG_FOLDER, "icon app.png")
+        
+        with nav_cols[0]:
+            # Đổi tên file icon để không có khoảng trắng
+            icon_path_nav = os.path.join(FIG_FOLDER, "icon-app.png") 
             if os.path.exists(icon_path_nav):
                 import base64
                 with open(icon_path_nav, "rb") as img_file:
@@ -2068,7 +2067,7 @@ def show_model_selection_page():
                 )
             else:
                 st.markdown("<h3 style='color: #1E3A8A; margin-top: 5px;'>MultiStepSim</h3>", unsafe_allow_html=True)
-				
+                
         with nav_cols[2]:
             if st.button(tr("nav_home"), use_container_width=True): 
                 st.session_state.page = "welcome"; st.rerun()
@@ -2130,8 +2129,6 @@ def show_model_selection_page():
             if st.button(tr('screen1_continue_button'), type="primary", use_container_width=True):
                 st.session_state.page = 'simulation'
                 st.rerun()
-
-        st.markdown('</div>', unsafe_allow_html=True)
         
 
 # ==============================================
