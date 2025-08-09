@@ -36,7 +36,7 @@
     "model2_calculated_c_label": "Hằng số tốc độ tăng trưởng (c):",
     "model3_name": "Mô hình 3: Sự lây lan dịch bệnh",
     "model3_eq": "y'(t) = -r*y(t)*(n+1-y(t))<br>y(t)  = n(n+1)e<sup>-r(n+1)(t-t<sub>0</sub>)</sup>/(1+ne<sup>-r(n+1)(t-t<sub>0</sub>)</sup>)",
-    "model3_desc": "Mô hình mô phỏng sự thay đổi về số lượng cá thể chưa bị nhiễm bệnh trong một cộng đồng theo thời gian.<br>x(t): Số lượng cá thể chưa bị nhiễm tại thời điểm t.<br>n: Số lượng cá thể dễ bị nhiễm ban đầu.<br>r: Hằng số dương đo lường tốc độ lây nhiễm.<br>dx/dt: Tốc độ giảm của số người chưa nhiễm (tốc độ lây nhiễm).<br>t<sub>0</sub>: Thời điểm ban đầu.",
+    "model3_desc": "Mô hình mô phỏng sự thay đổi về số lượng cá thể chưa bị nhiễm bệnh trong một cộng đồng theo thời gian.<br>y(t): Số lượng cá thể chưa bị nhiễm tại thời điểm t.<br>n: Số lượng cá thể dễ bị nhiễm ban đầu.<br>r: Hằng số dương đo lường tốc độ lây nhiễm.<br>dy/dt (hoặc y'(t)): Tốc độ giảm của số người chưa nhiễm (tốc độ lây nhiễm).<br>t<sub>0</sub>: Thời điểm ban đầu.",
     "model3_param2": "Số lượng cá thể dễ bị nhiễm ban đầu (n)",
     "model3_param4": "Thời điểm ban đầu (t₀)",
     "model3_param5": "Thời điểm kết thúc (t₁)",
