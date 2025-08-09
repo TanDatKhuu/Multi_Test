@@ -12,6 +12,8 @@
 	"lang_vi": "Tiếng Việt", 
 	"lang_en": "English",
 	"start_button": "Start",
+	"nav_home": "Home",
+    "nav_contact": "Contact",
 	"screen1_title": "Select a real-life model", 
 	"screen1_model_info_group_title": "Model information", 
 	"screen1_model_application_group_title": "Model application", 
