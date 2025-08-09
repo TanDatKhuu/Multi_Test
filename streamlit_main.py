@@ -2004,13 +2004,12 @@ def show_welcome_page():
                 st.markdown(f"<div class='project-title'>{tr('welcome_project_title').replace('\\n', '<br>')}</div>", unsafe_allow_html=True)
                 st.markdown("<p class='welcome-text'>Dự án này được thực hiện nhằm mục đích xây dựng một công cụ trực quan và tương tác để nghiên cứu và tìm hiểu về ứng dụng của các phương pháp số đa bước, cụ thể là Adams-Bashforth và Adams-Moulton, trong việc giải các phương trình vi phân thông thường (ODEs) mô hình hóa các hiện tượng thực tế.</p>", unsafe_allow_html=True)
             with col5:
-                main_image_path = os.path.join(FIG_FOLDER, "multistepsim.png") 
+                main_image_path = os.path.join(FIG_FOLDER, "multi.png") 
                 if os.path.exists(main_image_path):
                     st.image(main_image_path)
                 else:
-                    st.warning("Không tìm thấy file 'multistepsim.png' trong thư mục 'fig'.")
+                    st.warning("Không tìm thấy file 'multi.png' trong thư mục 'fig'.")
             
-            st.divider()
 
             # --- HÀNG 3: THÔNG TIN TÁC GIẢ VÀ GIẢNG VIÊN ---
             col6, col7 = st.columns(2)
