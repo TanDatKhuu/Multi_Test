@@ -1961,7 +1961,7 @@ def show_welcome_page():
 
         with col4:
             # Highlight: Thay đổi tên file ảnh
-            main_image_path = os.path.join(FIG_FOLDER, "multi") 
+            main_image_path = os.path.join(FIG_FOLDER, "multi.png") 
             if os.path.exists(main_image_path):
                 st.image(main_image_path, use_column_width=True)
             else:
