@@ -1839,9 +1839,7 @@ def initialize_session_state():
     
     # Tải file ngôn ngữ dựa trên st.session_state.lang
     # Logic này đảm bảo chỉ tải lại file khi ngôn ngữ thay đổi
-    if 'translations' not in st.session_state or st.session_state.get('lang_loaded') != st.session_state.lang:
-        st.session_state.translations = load_language_file(st.session_state.lang)
-        st.session_state.lang_loaded = st.session_state.lang
+    st.session_state.translations = load_language_file(st.session_state.lang)
     
     # Khởi tạo các biến trạng thái cho các trang sau (CỰC KỲ QUAN TRỌNG)
     if 'selected_model_key' not in st.session_state:
@@ -1951,13 +1949,14 @@ def show_welcome_page():
                 st.session_state.welcome_subpage = "contact"; st.rerun()
 
         # Highlight: Thay thế st.radio bằng st.selectbox
-        with nav_cols[4]:
+       	with nav_cols[4]:
             lang_options_display = (tr('lang_vi'), tr('lang_en'))
             lang_options_codes = ('vi', 'en')
             
             current_lang_index = lang_options_codes.index(st.session_state.lang)
 
-            def on_lang_change():
+            # Highlight: Đơn giản hóa hàm callback
+            def on_lang_change_nav():
                 selected_display = st.session_state.lang_selector_nav
                 selected_index = lang_options_display.index(selected_display)
                 st.session_state.lang = lang_options_codes[selected_index]
@@ -1967,7 +1966,7 @@ def show_welcome_page():
                 options=lang_options_display,
                 index=current_lang_index,
                 key='lang_selector_nav',
-                on_change=on_lang_change,
+                on_change=on_lang_change_nav, # Sửa tên hàm callback
                 label_visibility="collapsed"
             )
 
@@ -2000,7 +1999,21 @@ def show_welcome_page():
                 st.markdown(f"<div class='welcome-credits'><h3>Sinh viên thực hiện</h3><p>{tr('welcome_authors_names')}</p></div>", unsafe_allow_html=True)
             with col7:
                 st.markdown(f"<div class='welcome-credits'><h3>Giảng viên hướng dẫn</h3><p>{tr('welcome_advisor1')}  &  {tr('welcome_advisor2')}</p></div>", unsafe_allow_html=True)
+            with col8:
+            lang_options_map = {"Tiếng Việt": "vi", "English": "en"}
             
+            # Highlight: Đơn giản hóa hàm callback
+            def on_lang_change():
+                selected_lang_code = lang_options_map[st.session_state.lang_selector_welcome]
+                st.session_state.lang = selected_lang_code
+                # Không cần tải lại file ở đây nữa, initialize_session_state sẽ làm
+            
+            st.radio(
+                "**Chọn ngôn ngữ / Select Language:**",
+                options=lang_options_map.keys(), horizontal=True,
+                index=0 if st.session_state.lang == 'vi' else 1,
+                key='lang_selector_welcome', on_change=on_lang_change
+            )
             st.write("") 
             
             _, col_start_btn, _ = st.columns([2, 1, 2])
