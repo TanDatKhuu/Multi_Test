@@ -1889,21 +1889,40 @@ def main():
 
 # --- Thay thế hàm show_welcome_page cũ ---
 def show_welcome_page():
-    # --- CSS TÙY CHỈNH CHO GIAO DIỆN MỚI ---
+    # --- CSS TÙY CHỈNH CHO GIAO DIỆN HOÀN THIỆN ---
     st.markdown("""
         <style>
-        .main { background-color: #E6ECF4; }
-        .welcome-container { background-color: white; padding: 2rem 3rem; border-radius: 10px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
+        /* CSS cho toàn bộ trang */
+        .main {
+            background-color: #E6ECF4; /* Màu nền xám xanh nhạt */
+        }
+        /* Loại bỏ khoảng trống trên cùng của trang */
+        div[data-testid="stAppViewBlockContainer"] {
+            padding-top: 2rem; 
+        }
+        /* CSS cho container chính (khung trắng) */
+        .welcome-container {
+            background-color: white;
+            padding: 2rem 3rem;
+            border-radius: 10px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        }
+        /* CSS để căn giữa văn bản theo chiều dọc trong cột header */
+        .header-col {
+            display: flex;
+            flex-direction: column;
+            justify-content: center; /* Căn giữa theo chiều dọc */
+            height: 100%;
+        }
         .header-col h2 {
-            font-size: 1.5rem; /* Giảm kích thước font cho vừa vặn */
+            font-size: 1.5rem;
             font-weight: bold;
             color: #1E3A8A;
             line-height: 1.4;
             margin: 0;
-            padding-top: 5px; /* Căn chỉnh chiều dọc */
         }
         .project-title {
-            font-size: 2.2rem; /* Tăng kích thước tiêu đề dự án */
+            font-size: 2.2rem;
             font-weight: bold;
             color: #1E3A8A;
             line-height: 1.3;
@@ -1915,11 +1934,13 @@ def show_welcome_page():
     """, unsafe_allow_html=True)
 
     # --- BỐ CỤC GIAO DIỆN MỚI ---
+    
     with st.container():
         st.markdown('<div class="welcome-container">', unsafe_allow_html=True)
         
         # --- HÀNG 1: HEADER (LOGO, TÊN TRƯỜNG, LOGO KHOA) ---
-        col1, col2, col3 = st.columns([1, 4, 1])
+        # Highlight: Thêm vertical_alignment='center'
+        col1, col2, col3 = st.columns([1, 4, 1], vertical_alignment="center") 
         with col1:
             logo_tdtu_path = os.path.join(FIG_FOLDER, "logotdtu1.png")
             if os.path.exists(logo_tdtu_path):
@@ -1932,19 +1953,17 @@ def show_welcome_page():
             </div>
             """, unsafe_allow_html=True)
         with col3:
-            # Highlight: Thêm lại logo Khoa
             logo_faculty_path = os.path.join(FIG_FOLDER, "logokhoa1@2.png")
             if os.path.exists(logo_faculty_path):
-                st.image(logo_faculty_path, width=100) # Giới hạn chiều rộng để cân đối
+                st.image(logo_faculty_path, width=100)
             else:
                 st.write("[Faculty Logo Error]")
 
-        st.write("") # Thêm khoảng trống
+        st.write("") 
 
         # --- HÀNG 2: NỘI DUNG CHÍNH ---
-        col4, col5 = st.columns([1.5, 1])
+        col4, col5 = st.columns([1.5, 1], vertical_alignment="center")
         with col4:
-            # Highlight: Dùng markdown để bọc và áp dụng style, tránh ngắt dòng
             st.markdown(f"<div class='project-title'>{tr('welcome_project_title').replace('\\n', '<br>')}</div>", unsafe_allow_html=True)
             st.markdown("""
             <p class='welcome-text'>
@@ -1952,11 +1971,11 @@ def show_welcome_page():
             </p>
             """, unsafe_allow_html=True)
         with col5:
-            main_image_path = os.path.join(FIG_FOLDER, "multi.png") 
+            main_image_path = os.path.join(FIG_FOLDER, "multistepsim.png") 
             if os.path.exists(main_image_path):
                 st.image(main_image_path)
             else:
-                st.warning("Không tìm thấy file 'multi.png' trong thư mục 'fig'.")
+                st.warning("Không tìm thấy file 'multistepsim.png' trong thư mục 'fig'.")
         
         st.divider()
 
