@@ -1984,7 +1984,7 @@ def show_welcome_page():
                 if os.path.exists(logo_faculty_path): st.image(logo_faculty_path, width=100)
                 else: st.write("[Faculty Logo Error]")
             
-            st.write("") 
+            st.divider() 
             
             col4, col5 = st.columns([1.5, 1], vertical_alignment="center")
             with col4:
