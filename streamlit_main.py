@@ -2066,8 +2066,7 @@ def show_model_selection_page():
                     unsafe_allow_html=True
                 )
             else:
-                st.markdown("<h3 style='color: #1E3A8A; margin-top: 5px;'>MultiStepSim</h3>", unsafe_allow_html=True)
-				
+                st.markdown("<h3 style='color: #1E3A8A; margin-top: 5px;'>MultiStepSim</h3>", unsafe_allow_html=True)		
         with nav_cols[2]:
             if st.button(tr("nav_home"), use_container_width=True): 
                 st.session_state.page = "welcome"; st.rerun()
