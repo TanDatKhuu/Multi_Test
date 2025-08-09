@@ -36,7 +36,7 @@
 	"model2_calculated_c_label": "Growth rate constant (c):",
 	"model3_name": "Model 3: Spread of epidemic", 
 	"model3_eq": "y'(t) = -r*y(t)*(n+1-y(t))<br>y(t)  = n(n+1)e<sup>-r(n+1)(t-t<sub>0</sub>)</sup>/(1+ne<sup>-r(n+1)(t-t<sub>0</sub>)</sup>)",
-	"model3_desc": "Model simulating the change in the number of uninfected individuals in a community over time.<br>x(t): Number of uninfected individuals at time t.<br>n: Initial number of susceptible individuals.<br>r: Positive constant measuring the rate of infection.<br>dx/dt: Rate of decrease of uninfected individuals (infection rate).<br>t<sub>0</sub>: Initial time.",
+	"model3_desc": "Model simulating the change in the number of uninfected individuals in a community over time.<br>y(t): Number of uninfected individuals at time t.<br>n: Initial number of susceptible individuals.<br>r: Positive constant measuring the rate of infection.<br>dy/dt (or y'(t)): Rate of decrease of uninfected individuals (infection rate).<br>t<sub>0</sub>: Initial time.",
 	"model3_param2": "Initial number of susceptible individuals (n)",
 	"model3_param4": "Initial time (t₀)",
 	"model3_param5": "End time (t₁)",
