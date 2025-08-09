@@ -1,4 +1,5 @@
-"app_title": "Ứng dụng mô phỏng phương pháp đa bước - FMS TDTU", 
+{
+	"app_title": "Ứng dụng mô phỏng phương pháp đa bước - FMS TDTU", 
 	# Welcome Screen
 	"welcome_uni": "TRƯỜNG ĐẠI HỌC TÔN ĐỨC THẮNG",
 	"welcome_faculty": "KHOA TOÁN - THỐNG KÊ", 
@@ -291,3 +292,4 @@
 	"screen3_legend_m5s2_path_destroyer": "Quỹ đạo tàu khu trục",
 	"screen3_legend_m5s2_catch_point": "Điểm bắt được",
 	"screen3_m5_time_when_caught_label": "Thời gian bắt được tàu ngầm:",
+}
