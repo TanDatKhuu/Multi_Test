@@ -1893,63 +1893,95 @@ def show_welcome_page():
     st.markdown("""
         <style>
         .main { background-color: #E6ECF4; }
-        .welcome-container { background-color: white; padding: 2rem; border-radius: 10px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
-        .welcome-title { font-size: 1.75rem; font-weight: bold; color: #1E3A8A; }
-        .welcome-subtitle { font-size: 1.25rem; color: #334155; margin-bottom: 2rem; }
+        .welcome-container { background-color: white; padding: 2rem 3rem; border-radius: 10px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
+        .header-col h2 {
+            font-size: 1.5rem; /* Giảm kích thước font cho vừa vặn */
+            font-weight: bold;
+            color: #1E3A8A;
+            line-height: 1.4;
+            margin: 0;
+            padding-top: 5px; /* Căn chỉnh chiều dọc */
+        }
+        .project-title {
+            font-size: 2.2rem; /* Tăng kích thước tiêu đề dự án */
+            font-weight: bold;
+            color: #1E3A8A;
+            line-height: 1.3;
+        }
         .welcome-text { color: #475569; font-size: 1rem; }
         .welcome-credits h3 { font-size: 1.2rem; font-weight: bold; color: #1E3A8A; }
         .welcome-credits p { font-size: 1rem; color: #334155; margin-bottom: 0; }
         </style>
     """, unsafe_allow_html=True)
 
+    # --- BỐ CỤC GIAO DIỆN MỚI ---
     with st.container():
         st.markdown('<div class="welcome-container">', unsafe_allow_html=True)
-        col1, col2 = st.columns([1, 4])
+        
+        # --- HÀNG 1: HEADER (LOGO, TÊN TRƯỜNG, LOGO KHOA) ---
+        col1, col2, col3 = st.columns([1, 4, 1])
         with col1:
             logo_tdtu_path = os.path.join(FIG_FOLDER, "logotdtu1.png")
             if os.path.exists(logo_tdtu_path):
-                st.image(logo_tdtu_path) # Bỏ tham số use_column_width
+                st.image(logo_tdtu_path)
         with col2:
-            st.markdown(f"<p class='welcome-title' style='margin-bottom:0;'>{tr('welcome_uni')}</p>", unsafe_allow_html=True)
-            st.markdown(f"<p class='welcome-subtitle'>{tr('welcome_faculty')}</p>", unsafe_allow_html=True)
-
-        col3, col4 = st.columns([1.5, 1])
+            st.markdown(f"""
+            <div class='header-col'>
+                <h2>{tr('welcome_uni')}</h2>
+                <h2>{tr('welcome_faculty')}</h2>
+            </div>
+            """, unsafe_allow_html=True)
         with col3:
-            st.markdown(f"<h1 style='color: #1E3A8A;'>{tr('welcome_project_title').splitlines()[0]}</h1>", unsafe_allow_html=True)
-            st.markdown(f"<h1 style='color: #1E3A8A; margin-top: -1rem;'>{tr('welcome_project_title').splitlines()[1]}</h1>", unsafe_allow_html=True)
+            # Highlight: Thêm lại logo Khoa
+            logo_faculty_path = os.path.join(FIG_FOLDER, "logokhoa1@2.png")
+            if os.path.exists(logo_faculty_path):
+                st.image(logo_faculty_path, width=100) # Giới hạn chiều rộng để cân đối
+            else:
+                st.write("[Faculty Logo Error]")
+
+        st.write("") # Thêm khoảng trống
+
+        # --- HÀNG 2: NỘI DUNG CHÍNH ---
+        col4, col5 = st.columns([1.5, 1])
+        with col4:
+            # Highlight: Dùng markdown để bọc và áp dụng style, tránh ngắt dòng
+            st.markdown(f"<div class='project-title'>{tr('welcome_project_title').replace('\\n', '<br>')}</div>", unsafe_allow_html=True)
             st.markdown("""
             <p class='welcome-text'>
             Dự án này được thực hiện nhằm mục đích xây dựng một công cụ trực quan và tương tác để nghiên cứu và tìm hiểu về ứng dụng của các phương pháp số đa bước, cụ thể là Adams-Bashforth và Adams-Moulton, trong việc giải các phương trình vi phân thông thường (ODEs) mô hình hóa các hiện tượng thực tế.
             </p>
             """, unsafe_allow_html=True)
-        with col4:
+        with col5:
             main_image_path = os.path.join(FIG_FOLDER, "multi.png") 
             if os.path.exists(main_image_path):
-                st.image(main_image_path) # Bỏ tham số use_column_width
+                st.image(main_image_path)
             else:
                 st.warning("Không tìm thấy file 'multi.png' trong thư mục 'fig'.")
         
         st.divider()
 
-        col5, col6 = st.columns(2)
-        with col5:
+        # --- HÀNG 3: THÔNG TIN TÁC GIẢ VÀ GIẢNG VIÊN ---
+        col6, col7 = st.columns(2)
+        with col6:
             st.markdown(f"""
             <div class='welcome-credits'>
                 <h3>Sinh viên thực hiện</h3>
                 <p>{tr('welcome_authors_names')}</p>
             </div>
             """, unsafe_allow_html=True)
-        with col6:
+        with col7:
             st.markdown(f"""
             <div class='welcome-credits'>
                 <h3>Giảng viên hướng dẫn</h3>
                 <p>{tr('welcome_advisor1')}<br>{tr('welcome_advisor2')}</p>
             </div>
             """, unsafe_allow_html=True)
+        
         st.write("") 
 
-        col7, col8 = st.columns([2,1])
-        with col7:
+        # --- HÀNG 4: BỘ CHỌN NGÔN NGỮ VÀ NÚT BẮT ĐẦU ---
+        col8, col9 = st.columns([2,1])
+        with col8:
             lang_options_map = {"Tiếng Việt": "vi", "English": "en"}
             def on_lang_change():
                 selected_lang_code = lang_options_map[st.session_state.lang_selector_welcome]
@@ -1961,7 +1993,7 @@ def show_welcome_page():
                 index=0 if st.session_state.lang == 'vi' else 1,
                 key='lang_selector_welcome', on_change=on_lang_change
             )
-        with col8:
+        with col9:
             if st.button(f"**{tr('start_button')}**", use_container_width=True, type="primary"):
                 st.session_state.page = 'model_selection'
                 st.rerun()
