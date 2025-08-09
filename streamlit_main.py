@@ -1898,119 +1898,111 @@ def main():
 
 # --- Thay thế hàm show_welcome_page cũ ---
 def show_welcome_page():
-    # --- CSS TÙY CHỈNH CHO GIAO DIỆN HOÀN THIỆN ---
+    # --- CSS TÙY CHỈNH CHO GIAO DIỆN MỚI ---
     st.markdown("""
         <style>
-        /* CSS cho toàn bộ trang */
-        .main {
-            background-color: #E6ECF4; /* Màu nền xám xanh nhạt */
-        }
-		div[data-testid="stAppViewBlockContainer"] {
-            padding-top: 2rem; 
-		}
-        /* CSS để căn giữa văn bản theo chiều dọc trong cột header */
-        .header-col {
-            display: flex;
-            flex-direction: column;
-            justify-content: center; /* Căn giữa theo chiều dọc */
-            height: 100%;
-        }
-        .header-col h2 {
-            font-size: 1.5rem;
-            font-weight: bold;
-            color: #1E3A8A;
-            line-height: 1.4;
-            margin: 0;
-			text-align: center;
-        }
-        .project-title {
-            font-size: 2.2rem;
-            font-weight: bold;
-            color: #1E3A8A;
-            line-height: 1.3;
-        }
+        .main { background-color: #E6ECF4; }
+        div[data-testid="stAppViewBlockContainer"] { padding-top: 2rem; }
+        .welcome-container { background-color: white; padding: 2rem 3rem; border-radius: 10px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
+        .header-col h2 { font-size: 1.5rem; font-weight: bold; color: #1E3A8A; line-height: 1.4; margin: 0; text-align: center; }
+        .project-title { font-size: 2.2rem; font-weight: bold; color: #1E3A8A; line-height: 1.3; }
         .welcome-text { color: #475569; font-size: 1rem; }
         .welcome-credits h3 { font-size: 1.2rem; font-weight: bold; color: #1E3A8A; }
         .welcome-credits p { font-size: 1rem; color: #334155; margin-bottom: 0; }
+        
         /* CSS cho thanh điều hướng (navigation bar) */
         div[data-testid="stHorizontalBlock"] {
             padding-bottom: 1rem;
             margin-bottom: 2rem;
+            border-bottom: 2px solid #D1D5DB; /* Giữ lại đường kẻ để phân tách header */
         }
-		</style>
+        </style>
     """, unsafe_allow_html=True)
 
     # --- BỐ CỤC GIAO DIỆN MỚI ---
-    
     with st.container():
         st.markdown('<div class="welcome-container">', unsafe_allow_html=True)
         
+        # --- THANH ĐIỀU HƯỚNG (NAVIGATION BAR) ---
         if 'welcome_subpage' not in st.session_state:
             st.session_state.welcome_subpage = "home"
 
-        nav_cols = st.columns([2, 3, 1, 1])
+        # Highlight: Thay đổi tỉ lệ cột để thêm không gian cho bộ chọn ngôn ngữ
+        nav_cols = st.columns([3, 3, 1, 1, 2]) 
+        
         with nav_cols[0]:
-            icon_path_nav = os.path.join(FIG_FOLDER, "icon app.png")
+            # Hiển thị icon và tên ứng dụng
+            icon_path_nav = os.path.join(FIG_FOLDER, "icon-app.png")
             if os.path.exists(icon_path_nav):
-                # Đọc ảnh và chuyển sang base64 để nhúng vào HTML
                 import base64
                 with open(icon_path_nav, "rb") as img_file:
                     img_base64 = base64.b64encode(img_file.read()).decode()
-                
-                # Dùng HTML để đặt ảnh và chữ cạnh nhau
                 st.markdown(
                     f"""
-                    <div style="display: flex; align-items: center;">
+                    <div style="display: flex; align-items: center; height: 100%;">
                         <img src="data:image/png;base64,{img_base64}" width="30">
-                        <h3 style='color: #1E3A8A; margin-left: 10px; margin-top: 5px;'>MultiStepSim</h3>
+                        <h3 style='color: #1E3A8A; margin-left: 10px; margin-bottom: 0;'>MultiStepSim</h3>
                     </div>
                     """,
                     unsafe_allow_html=True
                 )
             else:
-                # Fallback nếu không có ảnh
                 st.markdown("<h3 style='color: #1E3A8A; margin-top: 5px;'>MultiStepSim</h3>", unsafe_allow_html=True)
+
+        # Cột trống để đẩy các nút sang phải
+        # nav_cols[1] là cột trống
+
         with nav_cols[2]:
             if st.button("Trang chủ", use_container_width=True):
                 st.session_state.welcome_subpage = "home"
+                st.rerun() 
         with nav_cols[3]:
             if st.button("Liên hệ", use_container_width=True):
                 st.session_state.welcome_subpage = "contact"
+                st.rerun()
+
+        # Highlight: Di chuyển bộ chọn ngôn ngữ vào cột cuối cùng của thanh điều hướng
+        with nav_cols[4]:
+            lang_options_map = {"VI": "vi", "EN": "en"} # Dùng tên ngắn gọn
+            def on_lang_change():
+                selected_lang_code = lang_options_map[st.session_state.lang_selector_nav]
+                st.session_state.lang = selected_lang_code
+            
+            st.radio(
+                "Language", # Label ngắn
+                options=lang_options_map.keys(), horizontal=True,
+                index=0 if st.session_state.lang == 'vi' else 1,
+                key='lang_selector_nav', on_change=on_lang_change,
+                label_visibility="collapsed" # Ẩn label "Language" đi
+            )
 
         # --- HIỂN THỊ NỘI DUNG TƯƠNG ỨNG VỚI TAB ĐÃ CHỌN ---
-        # Highlight: Thêm logic if/elif để hiển thị nội dung
         if st.session_state.welcome_subpage == "home":
-            # --- HÀNG 1: HEADER (LOGO VÀ TÊN TRƯỜNG) ---
+            # ... (Phần nội dung trang chủ giữ nguyên, nhưng xóa bộ chọn ngôn ngữ và nút Bắt đầu ở dưới) ...
             col1, col2, col3 = st.columns([1, 4, 1], vertical_alignment="center") 
             with col1:
                 logo_tdtu_path = os.path.join(FIG_FOLDER, "logotdtu1.png")
-                if os.path.exists(logo_tdtu_path):
-                    st.image(logo_tdtu_path)
+                if os.path.exists(logo_tdtu_path): st.image(logo_tdtu_path)
             with col2:
                 st.markdown(f"<div class='header-col'><h2>{tr('welcome_uni')}</h2><h2>{tr('welcome_faculty')}</h2></div>", unsafe_allow_html=True)
             with col3:
                 logo_faculty_path = os.path.join(FIG_FOLDER, "logokhoa1@2.png")
-                if os.path.exists(logo_faculty_path):
-                    st.image(logo_faculty_path, width=100)
-                else:
-                    st.write("[Faculty Logo Error]")
+                if os.path.exists(logo_faculty_path): st.image(logo_faculty_path, width=100)
+                else: st.write("[Faculty Logo Error]")
             
             st.write("") 
-
-            # --- HÀNG 2: NỘI DUNG CHÍNH ---
+            
             col4, col5 = st.columns([1.5, 1], vertical_alignment="center")
             with col4:
                 st.markdown(f"<div class='project-title'>{tr('welcome_project_title').replace('\\n', '<br>')}</div>", unsafe_allow_html=True)
                 st.markdown("<p class='welcome-text'>Dự án này được thực hiện nhằm mục đích xây dựng một công cụ trực quan và tương tác để nghiên cứu và tìm hiểu về ứng dụng của các phương pháp số đa bước, cụ thể là Adams-Bashforth và Adams-Moulton, trong việc giải các phương trình vi phân thông thường (ODEs) mô hình hóa các hiện tượng thực tế.</p>", unsafe_allow_html=True)
             with col5:
-                main_image_path = os.path.join(FIG_FOLDER, "multi.png") 
-                if os.path.exists(main_image_path):
-                    st.image(main_image_path)
-                else:
-                    st.warning("Không tìm thấy file 'multi.png' trong thư mục 'fig'.")
+                main_image_path = os.path.join(FIG_FOLDER, "multistepsim.png") 
+                if os.path.exists(main_image_path): st.image(main_image_path)
+                else: st.warning("Không tìm thấy file 'multistepsim.png' trong thư mục 'fig'.")
             
+            st.divider()
 
-            # --- HÀNG 3: THÔNG TIN TÁC GIẢ VÀ GIẢNG VIÊN ---
             col6, col7 = st.columns(2)
             with col6:
                 st.markdown(f"<div class='welcome-credits'><h3>Sinh viên thực hiện</h3><p>{tr('welcome_authors_names')}</p></div>", unsafe_allow_html=True)
@@ -2019,21 +2011,9 @@ def show_welcome_page():
             
             st.write("") 
 
-            # --- HÀNG 4: BỘ CHỌN NGÔN NGỮ VÀ NÚT BẮT ĐẦU ---
-            col8, col9 = st.columns([2,1])
-            with col8:
-                lang_options_map = {"Tiếng Việt": "vi", "English": "en"}
-                def on_lang_change():
-                    selected_lang_code = lang_options_map[st.session_state.lang_selector_welcome]
-                    st.session_state.lang = selected_lang_code
-                
-                st.radio(
-                    "**Chọn ngôn ngữ / Select Language:**",
-                    options=lang_options_map.keys(), horizontal=True,
-                    index=0 if st.session_state.lang == 'vi' else 1,
-                    key='lang_selector_welcome', on_change=on_lang_change
-                )
-            with col9:
+            # Highlight: Chỉ giữ lại nút Bắt đầu ở đây
+            _, col_start_btn, _ = st.columns([2, 1, 2])
+            with col_start_btn:
                 if st.button(f"**{tr('start_button')}**", use_container_width=True, type="primary"):
                     st.session_state.page = 'model_selection'
                     st.rerun()
