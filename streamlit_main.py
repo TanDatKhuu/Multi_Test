@@ -2708,8 +2708,14 @@ def show_simulation_page():
                 
                 # Highlight: Sửa lại cách gọi hàm
                 generated_figures = generate_plots(results, st.session_state.lang, model_id, selected_method_short)
+                st.subheader(tr('screen2_plot_solution_title'))
                 st.pyplot(generated_figures['solution'])
-                st.pyplot(generated_figures['error_order'])
+
+                st.subheader(tr('screen2_plot_error_title'))
+                st.pyplot(generated_figures['error']) # Đồ thị sai số
+
+                st.subheader(tr('screen2_plot_order_title'))
+                st.pyplot(generated_figures['order'])
 
             st.write("")
             with st.container(border=True):
