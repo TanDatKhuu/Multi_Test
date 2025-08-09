@@ -36,7 +36,9 @@ def load_language_file(lang_code):
         path_vi = os.path.join(base_path, "languages", "vi.json")
         with open(path_vi, 'r', encoding='utf-8') as f:
             return json.load(f)
-			
+LANG_VI = load_language_file('vi')
+LANG_EN = load_language_file('en')
+
 # --- 3. CÁC HÀM TÍNH TOÁN, SOLVERS, MODEL DATA (GIỮ NGUYÊN) ---
 # Dán toàn bộ các hàm từ `RK2` đến `_model5_ode_system` và cả dictionary `MODELS_DATA`
 # cũng như các class/hàm cho Model 3 (ABM) vào đây.
