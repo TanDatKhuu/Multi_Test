@@ -1934,7 +1934,6 @@ def show_welcome_page():
         .welcome-credits p { font-size: 1rem; color: #334155; margin-bottom: 0; }
         /* CSS cho thanh điều hướng (navigation bar) */
         div[data-testid="stHorizontalBlock"] {
-            border-bottom: 2px solid #D1D5DB;
             padding-bottom: 1rem;
             margin-bottom: 2rem;
         }
