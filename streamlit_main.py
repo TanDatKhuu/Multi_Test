@@ -1940,7 +1940,7 @@ def show_welcome_page():
         if 'welcome_subpage' not in st.session_state:
             st.session_state.welcome_subpage = "home"
 
-        nav_cols = st.columns([1, 4, 1, 1])
+        nav_cols = st.columns([2, 3, 1, 1])
         with nav_cols[0]:
             st.markdown("<h3 style='color: #1E3A8A; margin-top: 5px;'>MultiStepSim</h3>", unsafe_allow_html=True)
         with nav_cols[2]:
