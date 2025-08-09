@@ -2000,20 +2000,20 @@ def show_welcome_page():
             with col7:
                 st.markdown(f"<div class='welcome-credits'><h3>Giảng viên hướng dẫn</h3><p>{tr('welcome_advisor1')}  &  {tr('welcome_advisor2')}</p></div>", unsafe_allow_html=True)
             with col8:
-            lang_options_map = {"Tiếng Việt": "vi", "English": "en"}
-            
-            # Highlight: Đơn giản hóa hàm callback
-            def on_lang_change():
-                selected_lang_code = lang_options_map[st.session_state.lang_selector_welcome]
-                st.session_state.lang = selected_lang_code
-                # Không cần tải lại file ở đây nữa, initialize_session_state sẽ làm
-            
-            st.radio(
-                "**Chọn ngôn ngữ / Select Language:**",
-                options=lang_options_map.keys(), horizontal=True,
-                index=0 if st.session_state.lang == 'vi' else 1,
-                key='lang_selector_welcome', on_change=on_lang_change
-            )
+	            lang_options_map = {"Tiếng Việt": "vi", "English": "en"}
+	            
+	            # Highlight: Đơn giản hóa hàm callback
+	            def on_lang_change():
+	                selected_lang_code = lang_options_map[st.session_state.lang_selector_welcome]
+	                st.session_state.lang = selected_lang_code
+	                # Không cần tải lại file ở đây nữa, initialize_session_state sẽ làm
+	            
+	            st.radio(
+	                "**Chọn ngôn ngữ / Select Language:**",
+	                options=lang_options_map.keys(), horizontal=True,
+	                index=0 if st.session_state.lang == 'vi' else 1,
+	                key='lang_selector_welcome', on_change=on_lang_change
+	            )
             st.write("") 
             
             _, col_start_btn, _ = st.columns([2, 1, 2])
