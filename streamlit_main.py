@@ -2719,7 +2719,7 @@ def show_simulation_page():
                 if log_h is not None and len(log_h) >= 2:
                     slope = res.get('order_slope', 0)
                     fit_label_text = _tr('screen2_plot_order_fit_label_suffix').format(slope)
-					fit_label_mathtext = fit_label_text.replace("O(h<sup>", "$O(h^{").replace("</sup>)", "})$")
+                    fit_label_mathtext = fit_label_text.replace("O(h<sup>", "$O(h^{").replace("</sup>)", "})$")
                     ax_ord.plot(log_h, log_err, 'o', ms=3, color=colors[color_idx % len(colors)], label=f"{method_label} {_tr('screen2_plot_order_data_label_suffix')}")
                     if np.isfinite(slope):
                         fit_line = np.polyval(np.polyfit(log_h, log_err, 1), log_h)
