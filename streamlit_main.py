@@ -2738,68 +2738,42 @@ class Cell:
         self.last_division = -100
 		
 def show_dynamic_simulation_page():
+    def show_dynamic_simulation_page():
     # --- Phần kiểm tra dữ liệu và lấy thông tin model ---
     validated_params = st.session_state.get('validated_params', {})
     if not validated_params:
-        st.error(tr("msg_no_data_for_dynamic")) # Sử dụng key dịch mới
+        st.error(tr("msg_no_data_for_dynamic"))
         if st.button(tr('screen3_back_button')):
-            st.session_state.page = 'simulation'
-            st.rerun()
+            st.session_state.page = 'simulation'; st.rerun()
         return
 
     model_data = MODELS_DATA[st.session_state.selected_model_key]
     model_id = model_data.get("id", "")
     
     # --- Khởi tạo trạng thái cho trang này ---
-    # Dùng key riêng cho từng kịch bản để reset chính xác
     anim_key = f'anim_init_{model_id}_{st.session_state.get("m5_scenario", 1)}'
     if 'anim_running' not in st.session_state: st.session_state.anim_running = False
     if 'anim_frame' not in st.session_state: st.session_state.anim_frame = 0
     if anim_key not in st.session_state: st.session_state[anim_key] = True
+    
+    # Tạo và lưu Figure vào session_state để chống nhấp nháy
+    if 'anim_fig' not in st.session_state or st.session_state.get(anim_key, True):
+        st.session_state.anim_fig = Figure(figsize=(8, 8))
+        st.session_state.anim_ax = st.session_state.anim_fig.subplots()
 
     # ==============================================
     #           PHẦN GIAO DIỆN
     # ==============================================
-
+    render_navbar() # Gọi thanh điều hướng chung
+    
     st.markdown(f"""
-        <style>
-            .page-header {{
-                display: flex;
-                justify-content: space-between;
-                align-items: center;
-                width: 100%;
-            }}
-            .page-header h1 {{
-                font-size: 2.25rem; /* Tương đương st.title */
-                color: #0F172A; /* Màu chữ tối */
-                margin: 0;
-            }}
-            .header-button {{
-                display: inline-block;
-                padding: 0.5rem 1rem;
-                border: 1px solid #E2E8F0;
-                border-radius: 0.5rem;
-                background-color: white;
-                color: #334155;
-                text-decoration: none;
-                font-weight: 500;
-                transition: all 0.2s;
-            }}
-            .header-button:hover {{
-                background-color: #F8FAFC;
-                border-color: #CBD5E1;
-            }}
-        </style>
-
         <div class="page-header">
             <a href="?page=simulation" target="_self" class="header-button">ᐊ {tr('screen3_back_button')}</a>
             <h1>{tr('screen3_dyn_only_title')}</h1>
             <a href="?page=model_selection" target="_self" class="header-button">ᐊᐊ {tr('screen3_double_back_button')}</a>
         </div>
     """, unsafe_allow_html=True)
-    
     st.divider()
-
 
     col_controls, col_display = st.columns([1, 1.8])
 
@@ -2810,16 +2784,11 @@ def show_dynamic_simulation_page():
             
             c1, c2, c3 = st.columns(3)
             if c1.button('▶️ Play', use_container_width=True, type="primary"):
-                st.session_state.anim_running = True
-                st.session_state[anim_key] = False
-                st.rerun()
+                st.session_state.anim_running = True; st.session_state[anim_key] = False; st.rerun()
             if c2.button('⏸️ Pause', use_container_width=True):
-                st.session_state.anim_running = False
-                st.rerun()
+                st.session_state.anim_running = False; st.rerun()
             if c3.button('🔄 Reset', use_container_width=True):
-                st.session_state.anim_running = False
-                st.session_state.anim_frame = 0
-                st.session_state[anim_key] = True
+                st.session_state.anim_running = False; st.session_state.anim_frame = 0; st.session_state[anim_key] = True
                 if 'abm_instance' in st.session_state: del st.session_state['abm_instance']
                 if 'model2_cells' in st.session_state: del st.session_state['model2_cells']
                 if 'm5s2_results' in st.session_state: del st.session_state['m5s2_results']
@@ -2829,19 +2798,10 @@ def show_dynamic_simulation_page():
             with st.container(border=True):
                 if 'm5_scenario' not in st.session_state: st.session_state.m5_scenario = 1
                 scenario_options = {tr("screen3_sim1_name_m5"): 1, tr("screen3_sim2_name_m5"): 2}
-                
                 def on_scenario_change():
-                    st.session_state.anim_running = False
-                    st.session_state.anim_frame = 0
-                    st.session_state[f'anim_init_model5_{st.session_state.m5_scenario}'] = True
-
-                selected_scenario_disp = st.radio(
-                    tr("screen3_sim_list_group_title"),
-                    options=scenario_options.keys(),
-                    index=st.session_state.m5_scenario - 1,
-                    key="m5_scenario_selector",
-                    on_change=on_scenario_change
-                )
+                    st.session_state.anim_running = False; st.session_state.anim_frame = 0
+                    st.session_state['anim_init_model5_1'] = True; st.session_state['anim_init_model5_2'] = True
+                selected_scenario_disp = st.radio(tr("screen3_sim_list_group_title"), options=scenario_options.keys(), index=st.session_state.m5_scenario - 1, key="m5_scenario_selector", on_change=on_scenario_change)
                 st.session_state.m5_scenario = scenario_options[selected_scenario_disp]
 
         with st.container(border=True):
@@ -2849,14 +2809,14 @@ def show_dynamic_simulation_page():
             info_placeholder = st.empty()
 
     with col_display:
-        plot_title_key = ""
-        if model_id == 'model2': plot_title_key = "screen3_model2_anim_plot_title"
-        elif model_id == 'model3': plot_title_key = "screen3_abm_anim_plot_title"
-        elif model_id == 'model5':
-            plot_title_key = "screen3_model5_plot_title_sim1" if st.session_state.m5_scenario == 1 else "screen3_model5_plot_title_sim2"
-        
-        st.subheader(tr(plot_title_key))
-        plot_placeholder = st.empty()
+        with st.container(border=True):
+            plot_title_key = ""
+            if model_id == 'model2': plot_title_key = "screen3_model2_anim_plot_title"
+            elif model_id == 'model3': plot_title_key = "screen3_abm_anim_plot_title"
+            elif model_id == 'model5':
+                plot_title_key = "screen3_model5_plot_title_sim1" if st.session_state.m5_scenario == 1 else "screen3_model5_plot_title_sim2"
+            st.subheader(tr(plot_title_key))
+            plot_placeholder = st.empty()
 
     # ==============================================
     #           PHẦN LOGIC ANIMATION
@@ -2864,6 +2824,9 @@ def show_dynamic_simulation_page():
     results = st.session_state.get('simulation_results', {})
     highest_step_key = max(results.keys(), key=int) if results else None
     sim_data = results[highest_step_key] if highest_step_key is not None else {}
+    
+    fig = st.session_state.anim_fig
+    ax = st.session_state.anim_ax
     
     # --- Vòng lặp chính của Animation ---
     if st.session_state.anim_running:
