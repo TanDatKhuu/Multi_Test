@@ -5,6 +5,7 @@
 # --- 1. IMPORTS ---
 import streamlit as st
 import numpy as np
+import pandas as pd
 import matplotlib.pyplot as plt
 from matplotlib.figure import Figure
 from matplotlib.lines import Line2D
