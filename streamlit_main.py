@@ -50,6 +50,93 @@ def load_language_file(lang_code):
 LANG_VI = load_language_file('vi')
 LANG_EN = load_language_file('en')
 
+def tr(key):
+    return st.session_state.translations.get(key, key)
+	
+def render_navbar():
+    # Load ảnh logo và encode base64
+    icon_path_nav = os.path.join(FIG_FOLDER, "icon-app.png")
+    img_tag = ""
+    if os.path.exists(icon_path_nav):
+        with open(icon_path_nav, "rb") as img_file:
+            img_base64 = base64.b64encode(img_file.read()).decode()
+        img_tag = f'<img src="data:image/png;base64,{img_base64}" width="30">'
+
+    # Lấy ngôn ngữ hiện tại và ngôn ngữ còn lại
+    current_lang_code = st.session_state.lang
+    other_lang_code = 'en' if current_lang_code == 'vi' else 'vi'
+    current_lang_display = tr('lang_vi') if current_lang_code == 'vi' else tr('lang_en')
+    other_lang_display = tr('lang_vi') if other_lang_code == 'vi' else tr('lang_en')
+
+    st.markdown(f"""
+        <style>
+            /* Ẩn header mặc định của Streamlit */
+            header {{visibility: hidden;}}
+            .main {{margin-top: 5rem;}} /* Đẩy nội dung chính xuống */
+
+            .custom-nav {{
+                position: fixed;
+                top: 0;
+                left: 0;
+                right: 0;
+                height: 55px;
+                background-color: white;
+                display: flex;
+                align-items: center;
+                padding: 0 2rem;
+                box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+                z-index: 1000;
+                border-bottom: 1px solid #e6e6e6;
+            }}
+            .nav-brand {{ display: flex; align-items: center; gap: 10px; }}
+            .nav-brand h3 {{ color: #1E3A8A; font-weight: bold; margin: 0; }}
+            .nav-spacer {{ flex-grow: 1; }}
+            .nav-buttons {{ display: flex; align-items: center; gap: 8px; }}
+            .nav-button {{
+                padding: 8px 16px;
+                border-radius: 8px;
+                background-color: transparent;
+                color: #4A5568;
+                text-decoration: none;
+                font-weight: 500;
+                transition: background-color 0.2s;
+            }}
+            .nav-button:hover {{ background-color: #F7FAFC; }}
+            .language-dropdown {{ position: relative; display: inline-block; }}
+            .language-dropdown .dropbtn {{
+                padding: 8px 16px; border-radius: 8px; background-color: #F7FAFC;
+                border: 1px solid #E2E8F0; color: #2D3748; cursor: pointer;
+            }}
+            .language-dropdown-content {{
+                display: none; position: absolute; background-color: white;
+                min-width: 100px; box-shadow: 0px 8px 16px 0px rgba(0,0,0,0.2);
+                z-index: 1; border-radius: 8px;
+            }}
+            .language-dropdown-content a {{
+                color: black; padding: 12px 16px; text-decoration: none; display: block;
+            }}
+            .language-dropdown-content a:hover {{background-color: #f1f1f1;}}
+            .language-dropdown:hover .language-dropdown-content {{display: block;}}
+        </style>
+
+        <div class="custom-nav">
+            <div class="nav-brand">
+                {img_tag}
+                <h3>MultiStepSim</h3>
+            </div>
+            <div class="nav-spacer"></div>
+            <div class="nav-buttons">
+                <a href="?page=welcome&subpage=home" target="_self" class="nav-button">{tr("nav_home")}</a>
+                <a href="?page=welcome&subpage=contact" target="_self" class="nav-button">{tr("nav_contact")}</a>
+                <div class="language-dropdown">
+                    <button class="dropbtn">{current_lang_display} ▾</button>
+                    <div class="language-dropdown-content">
+                        <a href="?lang={other_lang_code}" target="_self">{other_lang_display}</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    """, unsafe_allow_html=True)
 # --- 3. CÁC HÀM TÍNH TOÁN, SOLVERS, MODEL DATA (GIỮ NGUYÊN) ---
 # Dán toàn bộ các hàm từ `RK2` đến `_model5_ode_system` và cả dictionary `MODELS_DATA`
 # cũng như các class/hàm cho Model 3 (ABM) vào đây.
@@ -1842,36 +1929,43 @@ def _model5_ode_system(t, x, y, u, v):
 
 # Khởi tạo st.session_state để lưu trạng thái
 def initialize_session_state():
-    # Khởi tạo các biến trạng thái cơ bản nếu chúng chưa tồn tại
-    if 'page' not in st.session_state:
-        st.session_state.page = 'welcome'
-    if 'lang' not in st.session_state:
-        st.session_state.lang = 'vi'
-    
-    # Tải file ngôn ngữ dựa trên st.session_state.lang
-    # Logic này đảm bảo chỉ tải lại file khi ngôn ngữ thay đổi
-    st.session_state.translations = load_language_file(st.session_state.lang)
-    
-    # Khởi tạo các biến trạng thái cho các trang sau (CỰC KỲ QUAN TRỌNG)
-    if 'selected_model_key' not in st.session_state:
-        st.session_state.selected_model_key = None
-    if 'simulation_results' not in st.session_state:
-        st.session_state.simulation_results = {}
-    if 'validated_params' not in st.session_state:
-        st.session_state.validated_params = {}
-        
-    # Khởi tạo các biến trạng thái cho trang animation (Screen 3)
-    if 'anim_running' not in st.session_state:
-        st.session_state.anim_running = False
-    if 'anim_frame' not in st.session_state:
-        st.session_state.anim_frame = 0
-    if 'm5_scenario' not in st.session_state:
-         st.session_state.m5_scenario = 1
-		
+    query_params = st.query_params
 
+    # 1. Xác định ngôn ngữ (ưu tiên query param)
+    query_lang = query_params.get("lang")
+    if query_lang and query_lang in ['vi', 'en']:
+        st.session_state.lang = query_lang
+    elif 'lang' not in st.session_state:
+        st.session_state.lang = 'vi'
+
+    # 2. Tải file ngôn ngữ
+    st.session_state.translations = load_language_file(st.session_state.lang)
+
+    # 3. Xác định trang (ưu tiên query param)
+    query_page = query_params.get("page")
+    if query_page and query_page in ['welcome', 'model_selection', 'simulation', 'dynamic_simulation']:
+        st.session_state.page = query_page
+    elif 'page' not in st.session_state:
+        st.session_state.page = 'welcome'
+
+    # 4. Xác định trang con của welcome (ưu tiên query param)
+    query_subpage = query_params.get("subpage")
+    if query_subpage:
+        st.session_state.welcome_subpage = query_subpage
+    elif 'welcome_subpage' not in st.session_state:
+        st.session_state.welcome_subpage = "home"
+    
+    # Khởi tạo các biến khác
+    if 'selected_model_key' not in st.session_state: st.session_state.selected_model_key = None
+    if 'simulation_results' not in st.session_state: st.session_state.simulation_results = {}
+    if 'validated_params' not in st.session_state: st.session_state.validated_params = {}
+    if 'anim_running' not in st.session_state: st.session_state.anim_running = False
+    if 'anim_frame' not in st.session_state: st.session_state.anim_frame = 0
+    if 'm5_scenario' not in st.session_state: st.session_state.m5_scenario = 1
+
+		
 # Hàm tiện ích để dịch văn bản
-def tr(key):
-    return st.session_state.translations.get(key, key)
+
 
 # Hàm chính để điều hướng giữa các trang
 def main():
@@ -1910,80 +2004,13 @@ def show_welcome_page():
     # --- CSS TÙY CHỈNH CHO GIAO DIỆN MỚI ---
     st.markdown("""
         <style>
-        .main { background-color: #E6ECF4; }
-        div[data-testid="stAppViewBlockContainer"] { padding-top: 2rem; }
-        .header-col h2 { font-size: 2.5rem; font-weight: bold; color: #1E3A8A; line-height: 1.4; margin: 0; text-align: center; }
         .project-title { font-size: 3rem; font-weight: bold; color: #1E3A8A; line-height: 1.3; }
         .welcome-text { color: #475569; font-size: 1rem; }
         .welcome-credits h3 { font-size: 1.2rem; font-weight: bold; color: #1E3A8A; }
-        .welcome-credits p { font-size: 1rem; color: #334155; margin-bottom: 0; }
-        
-        div[data-testid="stHorizontalBlock"] {
-            padding-bottom: 1rem;
-            margin-bottom: 1rem;
-        }
         </style>
     """, unsafe_allow_html=True)
 
-    with st.container():
-        st.markdown('<div class="welcome-container">', unsafe_allow_html=True)
-        
-        if 'welcome_subpage' not in st.session_state:
-            st.session_state.welcome_subpage = "home"
-
-        # Tỷ lệ cột mới để selectbox trông đẹp hơn
-        nav_cols = st.columns([3, 2, 1, 1, 1.5]) 
-        
-        with nav_cols[0]:
-            icon_path_nav = os.path.join(FIG_FOLDER, "icon app.png")
-            if os.path.exists(icon_path_nav):
-                import base64
-                with open(icon_path_nav, "rb") as img_file:
-                    img_base64 = base64.b64encode(img_file.read()).decode()
-                st.markdown(
-                    f"""
-                    <div style="display: flex; align-items: center; height: 100%;">
-                        <img src="data:image/png;base64,{img_base64}" width="30">
-                        <h3 style='color: #1E3A8A; margin-left: 10px; margin-bottom: 0;'>MultiStepSim</h3>
-                    </div>
-                    """,
-                    unsafe_allow_html=True
-                )
-            else:
-                st.markdown("<h3 style='color: #1E3A8A; margin-top: 5px;'>MultiStepSim</h3>", unsafe_allow_html=True)
-        
-        with nav_cols[2]:
-            if st.button(tr("nav_home"), use_container_width=True):
-                st.session_state.welcome_subpage = "home"
-                st.rerun()
-        with nav_cols[3]:
-            if st.button(tr("nav_contact"), use_container_width=True):
-                st.session_state.welcome_subpage = "contact"
-                st.rerun()
-
-        # Highlight: Thay thế st.radio bằng st.selectbox
-       	with nav_cols[4]:
-            lang_options_display = (tr('lang_vi'), tr('lang_en'))
-            lang_options_codes = ('vi', 'en')
-            
-            current_lang_index = lang_options_codes.index(st.session_state.lang)
-
-            # Highlight: Đơn giản hóa hàm callback
-            def on_lang_change_nav():
-                selected_display = st.session_state.lang_selector_nav
-                selected_index = lang_options_display.index(selected_display)
-                st.session_state.lang = lang_options_codes[selected_index]
-            
-            st.selectbox(
-                label="Language",
-                options=lang_options_display,
-                index=current_lang_index,
-                key='lang_selector_nav',
-                on_change=on_lang_change_nav, # Sửa tên hàm callback
-                label_visibility="collapsed"
-            )
-			
-        if st.session_state.welcome_subpage == "home":
+    if st.session_state.welcome_subpage == "home":
             col1, col2, col3 = st.columns([1, 4, 1], vertical_alignment="center") 
             with col1:
                 logo_tdtu_path = os.path.join(FIG_FOLDER, "logotdtu1.png")
@@ -2033,7 +2060,7 @@ def show_welcome_page():
             else:
                 st.error(f"Không tìm thấy file {contact_filename}.")
 
-        st.markdown('</div>', unsafe_allow_html=True)
+        st.markdown('</div>', unsafe_allow_html=True) 
 # --- Thay thế hàm show_model_selection_page cũ ---
 def show_model_selection_page():
     # --- CSS TÙY CHỈNH ---
@@ -2041,49 +2068,8 @@ def show_model_selection_page():
         <style>
         .main { background-color: #E6ECF4; }
         div[data-testid="stAppViewBlockContainer"] { padding-top: 2rem; }
-        
-        /* Highlight: Xóa class .stSelectbox ... gây in đậm */
-
-        /* CSS cho thanh điều hướng */
-        .nav-brand h3 { margin: 0; }
-        .nav-brand { display: flex; align-items: center; }
         </style>
     """, unsafe_allow_html=True)
-    
-    # Highlight: Xóa container bao ngoài, chỉ giữ lại thanh điều hướng và nội dung
-    
-    # --- THANH ĐIỀU HƯỚNG ---
-    # (Layout này sẽ nằm trực tiếp trên trang, không bị bọc trong container nào nữa)
-    nav_cols = st.columns([3, 2, 1, 1, 1.5]) 
-    with nav_cols[0]:
-        icon_path_nav = os.path.join(FIG_FOLDER, "icon app.png")
-        if os.path.exists(icon_path_nav):
-            import base64
-            with open(icon_path_nav, "rb") as img_file:
-                img_base64 = base64.b64encode(img_file.read()).decode()
-            st.markdown(f"""<div class="nav-brand"><img src="data:image/png;base64,{img_base64}" width="30" style="margin-right: 10px;"><h3 style='color: #1E3A8A;'>MultiStepSim</h3></div>""", unsafe_allow_html=True)
-        else:
-            st.markdown("<h3 style='color: #1E3A8A; margin-top: 5px;'>MultiStepSim</h3>", unsafe_allow_html=True)
-    
-    with nav_cols[2]:
-        if st.button(tr("nav_home"), use_container_width=True): 
-            st.session_state.page = "welcome"; st.rerun()
-    with nav_cols[3]:
-        if st.button(tr("nav_contact"), use_container_width=True): 
-            st.session_state.welcome_subpage = "contact"; st.session_state.page = "welcome"; st.rerun()
-    with nav_cols[4]:
-        lang_options_display = (tr('lang_vi'), tr('lang_en'))
-        lang_options_codes = ('vi', 'en')
-        current_lang_index = lang_options_codes.index(st.session_state.lang)
-        selected_display = st.selectbox("Language", lang_options_display, index=current_lang_index, key='lang_selector_page2', label_visibility="collapsed")
-        selected_index = lang_options_display.index(selected_display)
-        if st.session_state.lang != lang_options_codes[selected_index]:
-            st.session_state.lang = lang_options_codes[selected_index]
-            st.rerun()
-    
-    st.divider()
-
-    # --- NỘI DUNG CHÍNH CỦA TRANG ---
     st.title(tr('screen1_title'))
     
     model_display_names = [tr(f"{data['id']}_name") for data in MODELS_DATA.values()]
@@ -2529,98 +2515,13 @@ def show_simulation_page():
     st.markdown("""
         <style>
             /* Ẩn header mặc định của Streamlit */
-            header {visibility: hidden;}
-            
-            /* Định dạng thanh điều hướng tùy chỉnh */
-            .custom-nav {
-                position: fixed;
-                top: 0;
-                left: 0;
-                right: 0;
-                width: 100%;
-                height: 55px; /* Chiều cao của thanh nav */
-                background-color: white;
-                display: flex;
-                align-items: center;
-                padding: 0 2rem; /* Padding trái phải */
-                box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-                z-index: 1000;
-                border-bottom: 1px solid #e6e6e6;
-            }
-            .nav-brand {
-                display: flex;
-                align-items: center;
-                gap: 10px; /* Khoảng cách giữa logo và chữ */
-            }
-            .nav-brand h3 {
-                color: #1E3A8A;
-                font-weight: bold;
-                margin: 0;
-            }
-            .nav-spacer {
-                flex-grow: 1; /* Đẩy các mục sang hai bên */
-            }
-            .nav-buttons {
-                display: flex;
-                align-items: center;
-                gap: 8px; /* Khoảng cách giữa các nút */
-            }
-            
-            /* Đẩy nội dung chính của trang xuống để không bị thanh nav che */
-            .main .block-container {
-                padding-top: 70px; /* Chiều cao thanh nav + khoảng đệm */
-            }
-
+            header {visibility: hidden;}    
             /* CSS cho sidebar */
             [data-testid="stSidebar"] {
                 padding-top: 60px; /* Đẩy nội dung sidebar xuống */
             }
         </style>
     """, unsafe_allow_html=True)
-    
-    # Highlight: Tạo thanh điều hướng bằng st.markdown và HTML/CSS
-    icon_path_nav = os.path.join(FIG_FOLDER, "icon-app.png")
-    img_tag = ""
-    if os.path.exists(icon_path_nav):
-        with open(icon_path_nav, "rb") as img_file:
-            img_base64 = base64.b64encode(img_file.read()).decode()
-        img_tag = f'<img src="data:image/png;base64,{img_base64}" width="30">'
-    
-    # Streamlit không cho đặt button vào markdown, nên ta dùng cách này
-    # Vẽ các nút điều hướng và ngôn ngữ vào một container riêng ở đầu
-    with st.container():
-        nav_cols = st.columns([4, 1, 1, 1.5]) # Phân chia lại cột cho phù hợp
-        with nav_cols[0]:
-            st.markdown(f"""
-            <div class="custom-nav">
-                <div class="nav-brand">
-                    {img_tag}
-                    <h3>MultiStepSim</h3>
-                </div>
-                <div class="nav-spacer"></div>
-                <div class="nav-buttons" id="nav-buttons-placeholder">
-                    <!-- Các nút sẽ được "chèn" vào đây bằng cách vẽ chúng bên dưới -->
-                </div>
-            </div>
-            """, unsafe_allow_html=True)
-
-        with nav_cols[1]:
-             if st.button(tr("nav_home"), use_container_width=True, key="nav_home_btn"):
-                 st.session_state.page = "welcome"; st.rerun()
-        with nav_cols[2]:
-            if st.button(tr("nav_contact"), use_container_width=True, key="nav_contact_btn"): 
-                st.session_state.welcome_subpage = "contact"; st.session_state.page = "welcome"; st.rerun()
-        with nav_cols[3]:
-            lang_options_display = (tr('lang_vi'), tr('lang_en'))
-            lang_options_codes = ('vi', 'en')
-            current_lang_index = lang_options_codes.index(st.session_state.lang)
-            selected_display = st.selectbox("Language", lang_options_display, index=current_lang_index, key='lang_selector_page3', label_visibility="collapsed")
-            selected_index = lang_options_display.index(selected_display)
-            if st.session_state.lang != lang_options_codes[selected_index]:
-                st.session_state.lang = lang_options_codes[selected_index]
-                st.rerun()
-
-
     # --- THANH BÊN (SIDEBAR) CHO CÁC ĐIỀU KHIỂN ---
     with st.sidebar:
         if st.button(f"ᐊ {tr('screen2_back_button')}"):
