@@ -2968,7 +2968,7 @@ def show_dynamic_simulation_page():
             st.rerun()
         else:
             st.session_state.anim_frame += 1
-            time.sleep(max(0.01, 0.04 / speed_multiplier)) 
+            time.sleep(max(0.005, 0.01 / speed_multiplier)) 
             st.rerun()
 
 # =========================================================================
