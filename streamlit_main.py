@@ -2763,15 +2763,43 @@ def show_dynamic_simulation_page():
     # ==============================================
     #           PHẦN GIAO DIỆN
     # ==============================================
-    render_navbar() # Gọi thanh điều hướng chung
-    
     st.markdown(f"""
+        <style>
+            .page-header {{
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                width: 100%;
+            }}
+            .page-header h1 {{
+                font-size: 2.25rem; /* Tương đương st.title */
+                color: #0F172A; /* Màu chữ tối */
+                margin: 0;
+            }}
+            .header-button {{
+                display: inline-block;
+                padding: 0.5rem 1rem;
+                border: 1px solid #E2E8F0;
+                border-radius: 0.5rem;
+                background-color: white;
+                color: #334155;
+                text-decoration: none;
+                font-weight: 500;
+                transition: all 0.2s;
+            }}
+            .header-button:hover {{
+                background-color: #F8FAFC;
+                border-color: #CBD5E1;
+            }}
+        </style>
+
         <div class="page-header">
             <a href="?page=simulation" target="_self" class="header-button">ᐊ {tr('screen3_back_button')}</a>
             <h1>{tr('screen3_dyn_only_title')}</h1>
             <a href="?page=model_selection" target="_self" class="header-button">ᐊᐊ {tr('screen3_double_back_button')}</a>
         </div>
     """, unsafe_allow_html=True)
+    
     st.divider()
 
     col_controls, col_display = st.columns([1, 1.8])
