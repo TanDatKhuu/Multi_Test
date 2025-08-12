@@ -2667,6 +2667,7 @@ def show_simulation_page():
                 
             colors = plt.cm.viridis(np.linspace(0, 1, max(1, n_steps)))
             plot_figsize = (7, 5)
+			method_prefix = "AB" if method_short == "Bashforth" else "AM"
 
             # Đồ thị nghiệm
             fig_sol = Figure(figsize=plot_figsize)
@@ -2675,7 +2676,7 @@ def show_simulation_page():
             color_idx = 0
             for step_str, res in sorted(results_data.items()):
                 step = int(step_str) # JSON keys are strings
-                method_label = f"{method_short[:2].upper()}-{step}"
+                method_label = f"{method_prefix}{step}"
                 if res.get('t_plot') is not None and res.get('approx_sol_plot') is not None and len(res['t_plot']) > 0:
                     if not exact_plotted and res.get('exact_sol_plot') is not None and len(res['exact_sol_plot']) > 0:
                         ax_sol.plot(res['t_plot'], res['exact_sol_plot'], color='black', ls='--', label=_tr('screen2_plot_exact_label'))
@@ -2695,7 +2696,7 @@ def show_simulation_page():
             color_idx = 0
             for step_str, res in sorted(results_data.items()):
                 step = int(step_str)
-                method_label = f"{method_short[:2].upper()}-{step}"
+                method_label = f"{method_prefix}{step}"
                 if res.get('n_values_convergence') is not None and len(res['n_values_convergence']) > 0:
                     ax_err.plot(res['n_values_convergence'], res['errors_convergence'], marker='.', ms=3, ls='-', color=colors[color_idx % len(colors)], label=method_label)
                 color_idx += 1
@@ -2713,11 +2714,12 @@ def show_simulation_page():
             color_idx = 0
             for step_str, res in sorted(results_data.items()):
                 step = int(step_str)
-                method_label = f"{method_short[:2].upper()}-{step}"
+                method_label = f"{method_prefix}{step}"
                 log_h, log_err = res.get('log_h_convergence'), res.get('log_error_convergence')
                 if log_h is not None and len(log_h) >= 2:
                     slope = res.get('order_slope', 0)
-                    fit_label = _tr('screen2_plot_order_fit_label_suffix').format(slope)
+                    fit_label_text = _tr('screen2_plot_order_fit_label_suffix').format(slope)
+					fit_label_mathtext = fit_label_text.replace("O(h<sup>", "$O(h^{").replace("</sup>)", "})$")
                     ax_ord.plot(log_h, log_err, 'o', ms=3, color=colors[color_idx % len(colors)], label=f"{method_label} {_tr('screen2_plot_order_data_label_suffix')}")
                     if np.isfinite(slope):
                         fit_line = np.polyval(np.polyfit(log_h, log_err, 1), log_h)
