@@ -2059,7 +2059,7 @@ def show_welcome_page():
             else:
                 st.error(f"Không tìm thấy file {contact_filename}.")
 
-        st.markdown('</div>', unsafe_allow_html=True) 
+    st.markdown('</div>', unsafe_allow_html=True) 
 # --- Thay thế hàm show_model_selection_page cũ ---
 def show_model_selection_page():
     # --- CSS TÙY CHỈNH ---
