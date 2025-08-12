@@ -67,7 +67,7 @@
 	"model5_select_component": "Select component to display:",
 	"model5_component_x": "X-Component",
 	"model5_component_y": "Y-Component",
-	"go_back_to_select": "Back to model selection"
+	"go_back_to_select": "Back to model selection",
 	"screen2_back_button": "Back to model selection", 
 	"screen2_goto_screen3_button": "View dynamic simulation", 
 	"screen2_goto_screen3_tooltip": "Switch to the dynamic simulation screen (if available)",
