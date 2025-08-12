@@ -2525,16 +2525,43 @@ def show_simulation_page():
     model_id = model_data.get("id", "")
     model_name_tr = tr(f"{model_id}_name")
 
+    # Highlight (Yêu cầu 1): Thêm thanh điều hướng ở đầu trang
+    st.markdown("""<style>.main { background-color: #F0F2F6; } div[data-testid="stAppViewBlockContainer"] { padding-top: 2rem; } .stButton button { width: 100%; }</style>""", unsafe_allow_html=True)
+    
+    with st.container():
+        nav_cols = st.columns([3, 2, 1, 1, 1.5]) 
+        with nav_cols[0]:
+            icon_path_nav = os.path.join(FIG_FOLDER, "icon-app.png")
+            if os.path.exists(icon_path_nav):
+                import base64
+                with open(icon_path_nav, "rb") as img_file: img_base64 = base64.b64encode(img_file.read()).decode()
+                st.markdown(f"""<div style="display: flex; align-items: center; height: 100%;"><img src="data:image/png;base64,{img_base64}" width="30"><h3 style='color: #1E3A8A; margin-left: 10px; margin-bottom: 0;'>MultiStepSim</h3></div>""", unsafe_allow_html=True)
+            else:
+                st.markdown("<h3 style='color: #1E3A8A; margin-top: 5px;'>MultiStepSim</h3>", unsafe_allow_html=True)
+        with nav_cols[2]:
+            if st.button(tr("nav_home"), use_container_width=True): st.session_state.page = "welcome"; st.rerun()
+        with nav_cols[3]:
+            if st.button(tr("nav_contact"), use_container_width=True): st.session_state.welcome_subpage = "contact"; st.session_state.page = "welcome"; st.rerun()
+        with nav_cols[4]:
+            lang_options_display = (tr('lang_vi'), tr('lang_en')); lang_options_codes = ('vi', 'en')
+            current_lang_index = lang_options_codes.index(st.session_state.lang)
+            selected_display = st.selectbox("Language", lang_options_display, index=current_lang_index, key='lang_selector_page3', label_visibility="collapsed")
+            selected_index = lang_options_display.index(selected_display)
+            if st.session_state.lang != lang_options_codes[selected_index]: st.session_state.lang = lang_options_codes[selected_index]; st.rerun()
+    st.write("") # Thêm một khoảng trắng nhỏ
+
     # --- THANH BÊN (SIDEBAR) CHO CÁC ĐIỀU KHIỂN ---
     with st.sidebar:
-        st.title(tr("sidebar_title"))
-        
+        # Highlight (Yêu cầu 2): Di chuyển nút "Quay lại" lên đầu sidebar
         if st.button(f"ᐊ {tr('screen2_back_button')}"):
             st.session_state.page = 'model_selection'
+            # Reset trạng thái của trang này khi rời đi
             st.session_state.simulation_results = {}
             st.session_state.validated_params = {}
             st.rerun()
-
+        
+        st.title(tr("sidebar_title"))
+        
         with st.form(key='simulation_form'):
             st.header(tr('screen2_method_group'))
             method_options = {tr('screen2_method_ab'): "Bashforth", tr('screen2_method_am'): "Moulton"}
