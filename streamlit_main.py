@@ -58,6 +58,7 @@ def render_navbar():
     icon_path_nav = os.path.join(FIG_FOLDER, "icon-app.png")
     img_tag = ""
     if os.path.exists(icon_path_nav):
+        # Highlight: Sử dụng lại import base64 đã có ở đầu file
         with open(icon_path_nav, "rb") as img_file:
             img_base64 = base64.b64encode(img_file.read()).decode()
         img_tag = f'<img src="data:image/png;base64,{img_base64}" width="30">'
@@ -68,28 +69,30 @@ def render_navbar():
     current_lang_display = tr('lang_vi') if current_lang_code == 'vi' else tr('lang_en')
     other_lang_display = tr('lang_vi') if other_lang_code == 'vi' else tr('lang_en')
 
-    # Highlight: CSS đã được sửa lại hoàn toàn
+    # Highlight: Thêm unsafe_allow_html=True vào đây
     st.markdown(f"""
         <style>
-            /* Ẩn phần toolbar mặc định, nhưng giữ lại container của header */
-            [data-testid="stHeader"] {{
+            /* Ẩn header mặc định của Streamlit */
+            header {{visibility: hidden;}}
+            .main {{margin-top: 5rem;}} /* Đẩy nội dung chính xuống */
+
+            .custom-nav {{
+                position: fixed;
+                top: 0;
+                left: 0;
+                right: 0;
+                height: 55px;
                 background-color: white;
-                box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-                border-bottom: 1px solid #e6e6e6;
-            }}
-            [data-testid="stHeader"] .st-emotion-cache-18ni7ap {{
-                 display: none; /* Ẩn các nút mặc định của Streamlit trong header */
-            }}
-            /* Can thiệp vào container chính để đặt thanh nav của chúng ta vào */
-            [data-testid="stHeader"] > div:first-child {{
                 display: flex;
                 align-items: center;
-                justify-content: space-between;
-                width: 100%;
-                padding: 0 1rem; /* Padding cho header */
+                padding: 0 2rem;
+                box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+                z-index: 1000;
+                border-bottom: 1px solid #e6e6e6;
             }}
             .nav-brand {{ display: flex; align-items: center; gap: 10px; }}
             .nav-brand h3 {{ color: #1E3A8A; font-weight: bold; margin: 0; }}
+            .nav-spacer {{ flex-grow: 1; }}
             .nav-buttons {{ display: flex; align-items: center; gap: 8px; }}
             .nav-button {{
                 padding: 8px 16px;
@@ -99,8 +102,6 @@ def render_navbar():
                 text-decoration: none;
                 font-weight: 500;
                 transition: background-color 0.2s;
-                border: none;
-                cursor: pointer;
             }}
             .nav-button:hover {{ background-color: #F7FAFC; }}
             .language-dropdown {{ position: relative; display: inline-block; }}
@@ -111,29 +112,33 @@ def render_navbar():
             .language-dropdown-content {{
                 display: none; position: absolute; background-color: white;
                 min-width: 100px; box-shadow: 0px 8px 16px 0px rgba(0,0,0,0.2);
-                z-index: 1001; border-radius: 8px; right: 0;
+                z-index: 1; border-radius: 8px; right: 0;
             }}
             .language-dropdown-content a {{
                 color: black; padding: 12px 16px; text-decoration: none; display: block;
             }}
             .language-dropdown-content a:hover {{background-color: #f1f1f1;}}
             .language-dropdown:hover .language-dropdown-content {{display: block;}}
+            
+            /* CSS cho sidebar để không bị che */
+            [data-testid="stSidebar"] {{
+                padding-top: 60px;
+            }}
         </style>
 
-        <div data-testid="stHeader">
-            <div>
-                <div class="nav-brand">
-                    {img_tag}
-                    <h3>MultiStepSim</h3>
-                </div>
-                <div class="nav-buttons">
-                    <a href="?page=welcome&subpage=home" target="_self" class="nav-button">{tr("nav_home")}</a>
-                    <a href="?page=welcome&subpage=contact" target="_self" class="nav-button">{tr("nav_contact")}</a>
-                    <div class="language-dropdown">
-                        <button class="dropbtn">{current_lang_display} ▾</button>
-                        <div class="language-dropdown-content">
-                            <a href="?lang={other_lang_code}" target="_self">{other_lang_display}</a>
-                        </div>
+        <div class="custom-nav">
+            <div class="nav-brand">
+                {img_tag}
+                <h3>MultiStepSim</h3>
+            </div>
+            <div class="nav-spacer"></div>
+            <div class="nav-buttons">
+                <a href="?page=welcome&subpage=home" target="_self" class="nav-button">{tr("nav_home")}</a>
+                <a href="?page=welcome&subpage=contact" target="_self" class="nav-button">{tr("nav_contact")}</a>
+                <div class="language-dropdown">
+                    <button class="dropbtn">{current_lang_display} ▾</button>
+                    <div class="language-dropdown-content">
+                        <a href="?lang={other_lang_code}" target="_self">{other_lang_display}</a>
                     </div>
                 </div>
             </div>
