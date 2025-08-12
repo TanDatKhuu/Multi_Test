@@ -2481,7 +2481,7 @@ def show_simulation_page():
     model_name_tr = tr(f"{model_id}_name")
     # --- THANH BÊN (SIDEBAR) CHO CÁC ĐIỀU KHIỂN ---
     with st.sidebar:
-        if st.button(f"ᐊ {tr('screen2_back_button')}"):
+        if st.button(f"{tr('screen2_back_button')}",type = "primary"):
             st.session_state.page = 'model_selection'
             st.session_state.simulation_results = {}
             st.session_state.validated_params = {}
