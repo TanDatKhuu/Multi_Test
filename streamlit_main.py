@@ -55,17 +55,21 @@ def tr(key):
 	
 def render_navbar():
     # Sử dụng st.columns để tạo layout cho thanh nav
-    col1, col2, col3, col4, col5 = st.columns([4, 1, 1, 1, 1.5])
+    col1, col2, col3, col4, col5 = st.columns([3, 2, 1, 1, 1.5])
 
     with col1:
         icon_path_nav = os.path.join(FIG_FOLDER, "icon app.png")
+        img_tag = ""
         if os.path.exists(icon_path_nav):
-            import base64
             with open(icon_path_nav, "rb") as img_file:
                 img_base64 = base64.b64encode(img_file.read()).decode()
-            st.markdown(f"""<div class="nav-brand"><img src="data:image/png;base64,{img_base64}" width="30" style="margin-right: 10px;"><h3 style='color: #1E3A8A;'>MultiStepSim</h3></div>""", unsafe_allow_html=True)
-        else:
-            st.markdown("<h3 style='color: #1E3A8A; margin-top: 5px;'>MultiStepSim</h3>", unsafe_allow_html=True)
+            img_tag = f'<img src="data:image/png;base64,{img_base64}" width="30" style="margin-right: 10px;">'
+        st.markdown(f"""
+            <div style="display: flex; align-items: center; height: 55px;">
+                {img_tag}
+                <h3 style='color: #1E3A8A; margin: 0; font-weight: bold;'>MultiStepSim</h3>
+            </div>
+        """, unsafe_allow_html=True)
 
     with col3:
         if st.button(tr("nav_home"), use_container_width=True, key="nav_home_btn"):
