@@ -2544,7 +2544,8 @@ def show_simulation_page():
             st.rerun()
 
     # --- KHU VỰC HIỂN THỊ CHÍNH ---
-    st.header(f"{tr('simulation_results_title')}: {model_name_tr}")
+    st.header(tr('simulation_results_title'))
+    st.subheader(model_name_tr)
 
     if submitted:
         with st.spinner(tr('screen2_info_area_running')):
