@@ -2507,7 +2507,11 @@ def _perform_single_simulation(model_data, ode_func, exact_sol_func, y0, t_start
         "selected_component": selected_component
     }
 
-
+class NumpyEncoder(json.JSONEncoder):
+    def default(self, obj):
+        if isinstance(obj, np.ndarray):
+            return obj.tolist()
+        return json.JSONEncoder.default(self, obj)
 # Highlight: Toàn bộ hàm show_simulation_page được viết lại
 def show_simulation_page():
     if not st.session_state.selected_model_key:
@@ -2767,12 +2771,6 @@ def show_simulation_page():
                         st.dataframe(df.head(20).style.format("{:.6f}"), use_container_width=True, height=400)
                     else:
                         st.write(tr("screen2_info_area_show_data_no_points"))
-# Highlight: Thêm class này để giúp cache_data xử lý được numpy array
-class NumpyEncoder(json.JSONEncoder):
-    def default(self, obj):
-        if isinstance(obj, np.ndarray):
-            return obj.tolist()
-        return json.JSONEncoder.default(self, obj)
             
 # ==============================================
 #           PHẦN 4: TRANG MÔ PHỎNG ĐỘNG
