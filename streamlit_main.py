@@ -56,7 +56,7 @@ def tr(key):
 	
 def render_navbar():
     # Sử dụng st.columns để tạo layout cho thanh nav
-    col1, col2, col3, col4, col5 = st.columns([3, 2, 1, 1, 1.5])
+    col1, col2, col3, col4, col5 = st.columns([3, 1.5, 1.5, 1, 1.5])
 
     with col1:
         icon_path_nav = os.path.join(FIG_FOLDER, "icon app.png")
