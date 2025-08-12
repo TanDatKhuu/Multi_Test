@@ -54,93 +54,47 @@ def tr(key):
     return st.session_state.translations.get(key, key)
 	
 def render_navbar():
-    icon_path_nav = os.path.join(FIG_FOLDER, "icon-app.png")
-    img_tag = ""
-    if os.path.exists(icon_path_nav):
-        with open(icon_path_nav, "rb") as img_file:
-            img_base64 = base64.b64encode(img_file.read()).decode()
-        img_tag = f'<img src="data:image/png;base64,{img_base64}" width="30">'
+    # Sử dụng st.columns để tạo layout cho thanh nav
+    col1, col2, col3, col4, col5 = st.columns([2, 3, 1, 1, 1.5])
 
-    current_lang_code = st.session_state.lang
-    other_lang_code = 'en' if current_lang_code == 'vi' else 'vi'
-    current_lang_display = tr('lang_vi') if current_lang_code == 'vi' else tr('lang_en')
-    other_lang_display = tr('lang_vi') if other_lang_code == 'vi' else tr('lang_en')
+    with col1:
+        icon_path_nav = os.path.join(FIG_FOLDER, "icon-app.png")
+        if os.path.exists(icon_path_nav):
+            st.image(icon_path_nav, width=30)
+            st.markdown("<h3 style='color: #1E3A8A; margin-left: 40px; margin-top: -40px;'>MultiStepSim</h3>", unsafe_allow_html=True)
 
-    st.markdown(f"""
-        <style>
-            /* Làm cho header gốc trong suốt và không thể click */
-            [data-testid="stHeader"] {{
-                background-color: transparent;
-                pointer-events: none; /* Quan trọng: Cho phép click xuyên qua */
-            }}
-            /* Nút mở sidebar gốc vẫn tồn tại, nhưng nằm dưới */
-            [data-testid="stSidebarNav"] {{
-                pointer-events: auto; /* Cho phép nút sidebar vẫn được click */
-            }}
-            /* Đẩy nội dung chính của trang xuống */
-            .main .block-container {{
-                padding-top: 60px; 
-            }}
-            /* Thanh nav tùy chỉnh của chúng ta */
-            .custom-nav {{
-                position: fixed;
-                top: 0;
-                left: 0;
-                right: 0;
-                height: 55px;
-                background-color: white;
-                display: flex;
-                align-items: center;
-                padding: 0 2rem;
-                box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-                z-index: 999; /* Z-index thấp hơn nút sidebar trigger */
-                border-bottom: 1px solid #e6e6e6;
-            }}
-            .nav-brand {{ display: flex; align-items: center; gap: 10px; }}
-            .nav-brand h3 {{ color: #1E3A8A; font-weight: bold; margin: 0; }}
-            .nav-spacer {{ flex-grow: 1; }}
-            .nav-buttons {{ display: flex; align-items: center; gap: 8px; }}
-            .nav-button {{
-                padding: 8px 16px; border-radius: 8px; background-color: transparent;
-                color: #4A5568; text-decoration: none; font-weight: 500;
-                transition: background-color 0.2s;
-            }}
-            .nav-button:hover {{ background-color: #F7FAFC; }}
-            .language-dropdown {{ position: relative; display: inline-block; }}
-            .language-dropdown .dropbtn {{
-                padding: 8px 16px; border-radius: 8px; background-color: #F7FAFC;
-                border: 1px solid #E2E8F0; color: #2D3748; cursor: pointer;
-            }}
-            .language-dropdown-content {{
-                display: none; position: absolute; background-color: white;
-                min-width: 100px; box-shadow: 0px 8px 16px 0px rgba(0,0,0,0.2);
-                z-index: 1001; border-radius: 8px; right: 0;
-            }}
-            .language-dropdown-content a {{
-                color: black; padding: 12px 16px; text-decoration: none; display: block;
-            }}
-            .language-dropdown-content a:hover {{background-color: #f1f1f1;}}
-            .language-dropdown:hover .language-dropdown-content {{display: block;}}
-        </style>
+    with col3:
+        if st.button(tr("nav_home"), use_container_width=True, key="nav_home_btn"):
+            st.session_state.page = "welcome"
+            st.session_state.welcome_subpage = "home"
+            st.rerun()
 
-        <div class="custom-nav">
-            <div class="nav-brand">
-                {img_tag}
-                <h3>MultiStepSim</h3>
-            </div>
-            <div class="nav-spacer"></div>
-            <div class="nav-buttons">
-                <a href="?page=welcome&subpage=home" target="_self" class="nav-button">{tr("nav_home")}</a>
-                <a href="?page=welcome&subpage=contact" target="_self" class="nav-button">{tr("nav_contact")}</a>
-                <div class="language-dropdown">
-                    <button class="dropbtn">{current_lang_display} ▾</button>
-                    <div class="language-dropdown-content">
-                        <a href="?lang={other_lang_code}" target="_self">{other_lang_display}</a>
-                    </div>
-                </div>
-            </div>
-        </div>
-    """, unsafe_allow_html=True)
+    with col4:
+        if st.button(tr("nav_contact"), use_container_width=True, key="nav_contact_btn"): 
+            st.session_state.page = "welcome"
+            st.session_state.welcome_subpage = "contact"
+            st.rerun()
+    
+    with col5:
+        def on_lang_change():
+            selected_display = st.session_state.lang_selector_nav
+            lang_options_display = (tr('lang_vi'), tr('lang_en'))
+            lang_options_codes = ('vi', 'en')
+            selected_index = lang_options_display.index(selected_display)
+            st.session_state.lang = lang_options_codes[selected_index]
+
+        lang_options_display = (tr('lang_vi'), tr('lang_en'))
+        lang_options_codes = ('vi', 'en')
+        current_lang_index = lang_options_codes.index(st.session_state.lang)
+        
+        st.selectbox(
+            "Language", lang_options_display, 
+            index=current_lang_index, 
+            key='lang_selector_nav', 
+            label_visibility="collapsed",
+            on_change=on_lang_change
+        )
+    st.divider()
 # --- 3. CÁC HÀM TÍNH TOÁN, SOLVERS, MODEL DATA (GIỮ NGUYÊN) ---
 # Dán toàn bộ các hàm từ `RK2` đến `_model5_ode_system` và cả dictionary `MODELS_DATA`
 # cũng như các class/hàm cho Model 3 (ABM) vào đây.
