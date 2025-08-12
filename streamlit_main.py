@@ -1963,6 +1963,18 @@ def main():
 
 # --- Thay thế hàm show_welcome_page cũ ---
 def show_welcome_page():
+	st.markdown("""
+        <style>
+        .main { background-color: #E6ECF4; }
+        div[data-testid="stAppViewBlockContainer"] { padding-top: 2rem; }
+        .header-col h2 { font-size: 2.5rem; font-weight: bold; color: #1E3A8A; line-height: 1.4; margin: 0; text-align: center; }
+        .project-title { font-size: 3rem; font-weight: bold; color: #1E3A8A; line-height: 1.3; }
+        .welcome-text { color: #475569; font-size: 1rem; }
+        .welcome-credits h3 { font-size: 1.2rem; font-weight: bold; color: #1E3A8A; }
+        .welcome-credits p { font-size: 1rem; color: #334155; margin-bottom: 0; }
+        }
+        </style>
+    """, unsafe_allow_html=True)
     if st.session_state.welcome_subpage == "home":
             col1, col2, col3 = st.columns([1, 4, 1], vertical_alignment="center") 
             with col1:
