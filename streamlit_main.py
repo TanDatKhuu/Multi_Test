@@ -2039,6 +2039,8 @@ def show_model_selection_page():
         div[data-testid="stAppViewBlockContainer"] { padding-top: 2rem; }
         </style>
     """, unsafe_allow_html=True)
+	# --- NỘI DUNG CHÍNH CỦA TRANG ---
+    st.title(tr('screen1_title'))
     model_display_names = [tr(f"{data['id']}_name") for data in MODELS_DATA.values()]
     model_vi_keys = list(MODELS_DATA.keys())
     current_selection_index = model_vi_keys.index(st.session_state.selected_model_key) if st.session_state.selected_model_key in model_vi_keys else 0
