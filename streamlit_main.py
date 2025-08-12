@@ -2759,84 +2759,104 @@ def show_dynamic_simulation_page():
     if f'anim_init_{model_id}' not in st.session_state:
         st.session_state[f'anim_init_{model_id}'] = True
     
-    # --- HEADER ---
-    st.title(tr('screen3_dyn_only_title'))
-    col_h1, col_h2 = st.columns([1, 1])
-    if col_h1.button(f"ᐊ {tr('screen3_back_button')}"):
-        st.session_state.page = 'simulation'
-        st.session_state.anim_running = False # Dừng animation khi quay lại
-        st.rerun()
-    if col_h2.button(f"ᐊᐊ {tr('screen3_double_back_button')}"):
-        st.session_state.page = 'model_selection'
-        st.session_state.simulation_results = {}; st.session_state.validated_params = {}
-        st.session_state.anim_running = False # Dừng animation khi quay lại
-        st.rerun()
-    st.markdown("---")
-    
-    # --- LAYOUT CHÍNH ---
-    col_controls, col_display = st.columns([1, 2])
+    # ==============================================
+    #           PHẦN GIAO DIỆN MỚI
+    # ==============================================
 
+    # --- Header của trang ---
+    st.title(tr('screen3_dyn_only_title'))
+    
+    col_back1, col_back2 = st.columns(2)
+    with col_back1:
+        if st.button(f"ᐊ {tr('screen3_back_button')}"):
+            st.session_state.page = 'simulation'
+            st.session_state.anim_running = False
+            st.rerun()
+    with col_back2:
+        if st.button(f"ᐊᐊ {tr('screen3_double_back_button')}"):
+            st.session_state.page = 'model_selection'
+            st.session_state.simulation_results = {}
+            st.session_state.validated_params = {}
+            st.session_state.anim_running = False
+            st.rerun()
+    
+    st.divider()
+
+    # --- Layout chính: 2 cột ---
+    col_controls, col_display = st.columns([1, 1.8])
+
+    # --- CỘT BÊN TRÁI: ĐIỀU KHIỂN VÀ THÔNG TIN ---
     with col_controls:
-        st.subheader(tr('screen3_settings_group_title'))
-        
-        # Lựa chọn kịch bản cho Model 5
-        if model_id == 'model5':
-            if 'm5_scenario' not in st.session_state:
-                st.session_state.m5_scenario = 1 
+        # -- Hộp điều khiển --
+        with st.container(border=True):
+            st.subheader(tr('screen3_settings_group_title'))
+            speed_multiplier = st.slider(tr('screen3_speed_label'), min_value=0.1, max_value=5.0, value=1.0, step=0.1, format="%.1fx")
             
-            scenario_options = {tr("screen3_sim1_name_m5"): 1, tr("screen3_sim2_name_m5"): 2}
-            
-            def on_scenario_change():
-                # Highlight: Thêm hàm callback để reset animation khi đổi kịch bản
+            c1, c2, c3 = st.columns(3)
+            if c1.button('▶️ Play', use_container_width=True, type="primary"):
+                st.session_state.anim_running = True
+                st.session_state[anim_key] = False
+                st.rerun()
+            if c2.button('⏸️ Pause', use_container_width=True):
+                st.session_state.anim_running = False
+                st.rerun()
+            if c3.button('🔄 Reset', use_container_width=True):
                 st.session_state.anim_running = False
                 st.session_state.anim_frame = 0
-                st.session_state[f'anim_init_{model_id}'] = True
+                st.session_state[anim_key] = True
+                if 'abm_instance' in st.session_state: del st.session_state['abm_instance']
+                if 'model2_cells' in st.session_state: del st.session_state['model2_cells']
+                st.rerun()
 
-            selected_scenario_disp = st.radio(
-                tr("screen3_sim_list_group_title"),
-                options=scenario_options.keys(),
-                key="m5_scenario_selector",
-                on_change=on_scenario_change # Gọi callback khi thay đổi
-            )
-            st.session_state.m5_scenario = scenario_options[selected_scenario_disp]
+        # -- Hộp chọn kịch bản (chỉ cho Model 5) --
+        if model_id == 'model5':
+            with st.container(border=True):
+                if 'm5_scenario' not in st.session_state: st.session_state.m5_scenario = 1
+                scenario_options = {tr("screen3_sim1_name_m5"): 1, tr("screen3_sim2_name_m5"): 2}
+                
+                def on_scenario_change():
+                    st.session_state.anim_running = False
+                    st.session_state.anim_frame = 0
+                    st.session_state[f'anim_init_model5_{st.session_state.m5_scenario}'] = True
 
-        # Điều khiển animation
-        speed_multiplier = st.slider(tr('screen3_speed_label'), min_value=0.1, max_value=5.0, value=1.0, step=0.1, format="%.1fx")
-        
-        c1, c2, c3 = st.columns(3)
-        if c1.button('▶️ Play', use_container_width=True):
-            st.session_state.anim_running = True
-            st.session_state[f'anim_init_{model_id}'] = False
-            st.rerun() # Chạy lại để vào vòng lặp while
-        if c2.button('⏸️ Pause', use_container_width=True):
-            st.session_state.anim_running = False
-            st.rerun() # Chạy lại để thoát vòng lặp while
-        if c3.button('🔄 Reset', use_container_width=True):
-            st.session_state.anim_running = False
-            st.session_state.anim_frame = 0
-            st.session_state[f'anim_init_{model_id}'] = True
-            # Highlight: Xóa các instance cũ khi reset
-            if 'abm_instance' in st.session_state: del st.session_state['abm_instance']
-            if 'model2_cells' in st.session_state: del st.session_state['model2_cells']
-            st.rerun()
-        
-        st.subheader(tr('screen3_results_group_title'))
-        info_placeholder = st.empty()
+                selected_scenario_disp = st.radio(
+                    tr("screen3_sim_list_group_title"),
+                    options=scenario_options.keys(),
+                    key="m5_scenario_selector",
+                    on_change=on_scenario_change
+                )
+                st.session_state.m5_scenario = scenario_options[selected_scenario_disp]
 
+        # -- Hộp thông tin --
+        with st.container(border=True):
+            st.subheader(tr('screen3_results_group_title'))
+            info_placeholder = st.empty()
+
+    # --- CỘT BÊN PHẢI: HIỂN THỊ ANIMATION ---
     with col_display:
+        # Xác định tiêu đề cho đồ thị
+        plot_title_key = ""
+        if model_id == 'model2': plot_title_key = "screen3_model2_anim_plot_title"
+        elif model_id == 'model3': plot_title_key = "screen3_abm_anim_plot_title"
+        elif model_id == 'model5':
+            plot_title_key = "screen3_model5_plot_title_sim1" if st.session_state.m5_scenario == 1 else "screen3_model5_plot_title_sim2"
+        
+        st.subheader(tr(plot_title_key))
         plot_placeholder = st.empty()
+
+    # ==============================================
+    #           PHẦN LOGIC ANIMATION
+    # ==============================================
     
     results = st.session_state.get('simulation_results', {})
-    highest_step = max(results.keys()) if results else None
+    highest_step = max(results.keys(), key=int) if results else None
     sim_data = results[highest_step] if highest_step is not None else {}
     
-    # =========================================================================
-    # Highlight: BẮT ĐẦU VÒNG LẶP ANIMATION (THAY THẾ TOÀN BỘ VÒNG LẶP CŨ)
-    # =========================================================================
-    while st.session_state.anim_running:
+    # --- Vòng lặp chính của Animation ---
+    if st.session_state.anim_running:
         current_frame = st.session_state.anim_frame
         
-        fig = Figure(figsize=(8, 7)); ax = fig.subplots()
+        fig = Figure(figsize=(8, 8)); ax = fig.subplots() # Tăng kích thước đồ thị
         animation_ended = False
 
         if model_id == 'model2':
