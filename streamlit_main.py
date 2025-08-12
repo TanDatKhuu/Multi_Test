@@ -1963,7 +1963,7 @@ def main():
 
 # --- Thay thế hàm show_welcome_page cũ ---
 def show_welcome_page():
-	st.markdown("""
+    st.markdown("""
         <style>
         .main { background-color: #E6ECF4; }
         div[data-testid="stAppViewBlockContainer"] { padding-top: 2rem; }
