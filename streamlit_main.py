@@ -2046,8 +2046,7 @@ def show_welcome_page():
                 if st.button(f"**{tr('start_button')}**", use_container_width=True, type="primary"):
                     st.session_state.page = 'model_selection'
                     st.rerun()
-
-        elif st.session_state.welcome_subpage == "contact":
+    elif st.session_state.welcome_subpage == "contact":
             # Chọn file contact dựa trên ngôn ngữ hiện tại
             lang_code = st.session_state.lang
             contact_filename = f"contact_{lang_code}.txt"
