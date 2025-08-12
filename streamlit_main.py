@@ -2471,7 +2471,7 @@ class NumpyEncoder(json.JSONEncoder):
 def show_simulation_page():
     if not st.session_state.selected_model_key:
         st.warning(tr("msg_select_model_first"))
-        if st.button(tr("screen2_back_button")):
+        if st.button(tr("go_back_to_select"), type="primary"):
             st.session_state.page = 'model_selection'
             st.rerun()
         return
