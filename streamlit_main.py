@@ -2525,37 +2525,106 @@ def show_simulation_page():
     model_id = model_data.get("id", "")
     model_name_tr = tr(f"{model_id}_name")
 
-    # Highlight (Yêu cầu 1): Thêm thanh điều hướng ở đầu trang
-    st.markdown("""<style>.main { background-color: #F0F2F6; } div[data-testid="stAppViewBlockContainer"] { padding-top: 2rem; } .stButton button { width: 100%; }</style>""", unsafe_allow_html=True)
+    # Highlight: Thêm khối CSS mới để tạo thanh điều hướng cố định
+    st.markdown("""
+        <style>
+            /* Ẩn header mặc định của Streamlit */
+            header {visibility: hidden;}
+            
+            /* Định dạng thanh điều hướng tùy chỉnh */
+            .custom-nav {
+                position: fixed;
+                top: 0;
+                left: 0;
+                right: 0;
+                width: 100%;
+                height: 55px; /* Chiều cao của thanh nav */
+                background-color: white;
+                display: flex;
+                align-items: center;
+                padding: 0 2rem; /* Padding trái phải */
+                box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+                z-index: 1000;
+                border-bottom: 1px solid #e6e6e6;
+            }
+            .nav-brand {
+                display: flex;
+                align-items: center;
+                gap: 10px; /* Khoảng cách giữa logo và chữ */
+            }
+            .nav-brand h3 {
+                color: #1E3A8A;
+                font-weight: bold;
+                margin: 0;
+            }
+            .nav-spacer {
+                flex-grow: 1; /* Đẩy các mục sang hai bên */
+            }
+            .nav-buttons {
+                display: flex;
+                align-items: center;
+                gap: 8px; /* Khoảng cách giữa các nút */
+            }
+            
+            /* Đẩy nội dung chính của trang xuống để không bị thanh nav che */
+            .main .block-container {
+                padding-top: 70px; /* Chiều cao thanh nav + khoảng đệm */
+            }
+
+            /* CSS cho sidebar */
+            [data-testid="stSidebar"] {
+                padding-top: 60px; /* Đẩy nội dung sidebar xuống */
+            }
+        </style>
+    """, unsafe_allow_html=True)
     
+    # Highlight: Tạo thanh điều hướng bằng st.markdown và HTML/CSS
+    icon_path_nav = os.path.join(FIG_FOLDER, "icon-app.png")
+    img_tag = ""
+    if os.path.exists(icon_path_nav):
+        with open(icon_path_nav, "rb") as img_file:
+            img_base64 = base64.b64encode(img_file.read()).decode()
+        img_tag = f'<img src="data:image/png;base64,{img_base64}" width="30">'
+    
+    # Streamlit không cho đặt button vào markdown, nên ta dùng cách này
+    # Vẽ các nút điều hướng và ngôn ngữ vào một container riêng ở đầu
     with st.container():
-        nav_cols = st.columns([3, 2, 1, 1, 1.5]) 
+        nav_cols = st.columns([4, 1, 1, 1.5]) # Phân chia lại cột cho phù hợp
         with nav_cols[0]:
-            icon_path_nav = os.path.join(FIG_FOLDER, "icon-app.png")
-            if os.path.exists(icon_path_nav):
-                import base64
-                with open(icon_path_nav, "rb") as img_file: img_base64 = base64.b64encode(img_file.read()).decode()
-                st.markdown(f"""<div style="display: flex; align-items: center; height: 100%;"><img src="data:image/png;base64,{img_base64}" width="30"><h3 style='color: #1E3A8A; margin-left: 10px; margin-bottom: 0;'>MultiStepSim</h3></div>""", unsafe_allow_html=True)
-            else:
-                st.markdown("<h3 style='color: #1E3A8A; margin-top: 5px;'>MultiStepSim</h3>", unsafe_allow_html=True)
+            st.markdown(f"""
+            <div class="custom-nav">
+                <div class="nav-brand">
+                    {img_tag}
+                    <h3>MultiStepSim</h3>
+                </div>
+                <div class="nav-spacer"></div>
+                <div class="nav-buttons" id="nav-buttons-placeholder">
+                    <!-- Các nút sẽ được "chèn" vào đây bằng cách vẽ chúng bên dưới -->
+                </div>
+            </div>
+            """, unsafe_allow_html=True)
+
+        with nav_cols[1]:
+             if st.button(tr("nav_home"), use_container_width=True, key="nav_home_btn"):
+                 st.session_state.page = "welcome"; st.rerun()
         with nav_cols[2]:
-            if st.button(tr("nav_home"), use_container_width=True): st.session_state.page = "welcome"; st.rerun()
+            if st.button(tr("nav_contact"), use_container_width=True, key="nav_contact_btn"): 
+                st.session_state.welcome_subpage = "contact"; st.session_state.page = "welcome"; st.rerun()
         with nav_cols[3]:
-            if st.button(tr("nav_contact"), use_container_width=True): st.session_state.welcome_subpage = "contact"; st.session_state.page = "welcome"; st.rerun()
-        with nav_cols[4]:
-            lang_options_display = (tr('lang_vi'), tr('lang_en')); lang_options_codes = ('vi', 'en')
+            lang_options_display = (tr('lang_vi'), tr('lang_en'))
+            lang_options_codes = ('vi', 'en')
             current_lang_index = lang_options_codes.index(st.session_state.lang)
             selected_display = st.selectbox("Language", lang_options_display, index=current_lang_index, key='lang_selector_page3', label_visibility="collapsed")
             selected_index = lang_options_display.index(selected_display)
-            if st.session_state.lang != lang_options_codes[selected_index]: st.session_state.lang = lang_options_codes[selected_index]; st.rerun()
-    st.write("") # Thêm một khoảng trắng nhỏ
+            if st.session_state.lang != lang_options_codes[selected_index]:
+                st.session_state.lang = lang_options_codes[selected_index]
+                st.rerun()
+
 
     # --- THANH BÊN (SIDEBAR) CHO CÁC ĐIỀU KHIỂN ---
     with st.sidebar:
-        # Highlight (Yêu cầu 2): Di chuyển nút "Quay lại" lên đầu sidebar
         if st.button(f"ᐊ {tr('screen2_back_button')}"):
             st.session_state.page = 'model_selection'
-            # Reset trạng thái của trang này khi rời đi
             st.session_state.simulation_results = {}
             st.session_state.validated_params = {}
             st.rerun()
