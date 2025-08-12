@@ -54,28 +54,34 @@ def tr(key):
     return st.session_state.translations.get(key, key)
 	
 def render_navbar():
-    # Load ảnh logo và encode base64
     icon_path_nav = os.path.join(FIG_FOLDER, "icon-app.png")
     img_tag = ""
     if os.path.exists(icon_path_nav):
-        # Highlight: Sử dụng lại import base64 đã có ở đầu file
         with open(icon_path_nav, "rb") as img_file:
             img_base64 = base64.b64encode(img_file.read()).decode()
         img_tag = f'<img src="data:image/png;base64,{img_base64}" width="30">'
 
-    # Lấy ngôn ngữ hiện tại và ngôn ngữ còn lại
     current_lang_code = st.session_state.lang
     other_lang_code = 'en' if current_lang_code == 'vi' else 'vi'
     current_lang_display = tr('lang_vi') if current_lang_code == 'vi' else tr('lang_en')
     other_lang_display = tr('lang_vi') if other_lang_code == 'vi' else tr('lang_en')
 
-    # Highlight: Thêm unsafe_allow_html=True vào đây
     st.markdown(f"""
         <style>
-            /* Ẩn header mặc định của Streamlit */
-            header {{visibility: hidden;}}
-            .main {{margin-top: 5rem;}} /* Đẩy nội dung chính xuống */
-
+            /* Làm cho header gốc trong suốt và không thể click */
+            [data-testid="stHeader"] {{
+                background-color: transparent;
+                pointer-events: none; /* Quan trọng: Cho phép click xuyên qua */
+            }}
+            /* Nút mở sidebar gốc vẫn tồn tại, nhưng nằm dưới */
+            [data-testid="stSidebarNav"] {{
+                pointer-events: auto; /* Cho phép nút sidebar vẫn được click */
+            }}
+            /* Đẩy nội dung chính của trang xuống */
+            .main .block-container {{
+                padding-top: 60px; 
+            }}
+            /* Thanh nav tùy chỉnh của chúng ta */
             .custom-nav {{
                 position: fixed;
                 top: 0;
@@ -87,7 +93,7 @@ def render_navbar():
                 align-items: center;
                 padding: 0 2rem;
                 box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-                z-index: 1000;
+                z-index: 999; /* Z-index thấp hơn nút sidebar trigger */
                 border-bottom: 1px solid #e6e6e6;
             }}
             .nav-brand {{ display: flex; align-items: center; gap: 10px; }}
@@ -95,12 +101,8 @@ def render_navbar():
             .nav-spacer {{ flex-grow: 1; }}
             .nav-buttons {{ display: flex; align-items: center; gap: 8px; }}
             .nav-button {{
-                padding: 8px 16px;
-                border-radius: 8px;
-                background-color: transparent;
-                color: #4A5568;
-                text-decoration: none;
-                font-weight: 500;
+                padding: 8px 16px; border-radius: 8px; background-color: transparent;
+                color: #4A5568; text-decoration: none; font-weight: 500;
                 transition: background-color 0.2s;
             }}
             .nav-button:hover {{ background-color: #F7FAFC; }}
@@ -112,18 +114,13 @@ def render_navbar():
             .language-dropdown-content {{
                 display: none; position: absolute; background-color: white;
                 min-width: 100px; box-shadow: 0px 8px 16px 0px rgba(0,0,0,0.2);
-                z-index: 1; border-radius: 8px; right: 0;
+                z-index: 1001; border-radius: 8px; right: 0;
             }}
             .language-dropdown-content a {{
                 color: black; padding: 12px 16px; text-decoration: none; display: block;
             }}
             .language-dropdown-content a:hover {{background-color: #f1f1f1;}}
             .language-dropdown:hover .language-dropdown-content {{display: block;}}
-            
-            /* CSS cho sidebar để không bị che */
-            [data-testid="stSidebar"] {{
-                padding-top: 60px;
-            }}
         </style>
 
         <div class="custom-nav">
@@ -1990,7 +1987,7 @@ def main():
         page_title=tr("app_title"),
         page_icon=page_icon_to_use
     )
-
+    render_navbar() 
     # Bước 3: Chạy logic điều hướng trang
     if st.session_state.page == 'welcome':
         show_welcome_page()
@@ -2008,16 +2005,6 @@ def main():
 
 # --- Thay thế hàm show_welcome_page cũ ---
 def show_welcome_page():
-    render_navbar() 
-    # --- CSS TÙY CHỈNH CHO GIAO DIỆN MỚI ---
-    st.markdown("""
-        <style>
-        .project-title { font-size: 3rem; font-weight: bold; color: #1E3A8A; line-height: 1.3; }
-        .welcome-text { color: #475569; font-size: 1rem; }
-        .welcome-credits h3 { font-size: 1.2rem; font-weight: bold; color: #1E3A8A; }
-        </style>
-    """, unsafe_allow_html=True)
-
     if st.session_state.welcome_subpage == "home":
             col1, col2, col3 = st.columns([1, 4, 1], vertical_alignment="center") 
             with col1:
@@ -2069,17 +2056,7 @@ def show_welcome_page():
 
     st.markdown('</div>', unsafe_allow_html=True) 
 # --- Thay thế hàm show_model_selection_page cũ ---
-def show_model_selection_page():
-    render_navbar() 
-    # --- CSS TÙY CHỈNH ---
-    st.markdown("""
-        <style>
-        .main { background-color: #E6ECF4; }
-        div[data-testid="stAppViewBlockContainer"] { padding-top: 2rem; }
-        </style>
-    """, unsafe_allow_html=True)
-    st.title(tr('screen1_title'))
-    
+def show_model_selection_page():   
     model_display_names = [tr(f"{data['id']}_name") for data in MODELS_DATA.values()]
     model_vi_keys = list(MODELS_DATA.keys())
     current_selection_index = model_vi_keys.index(st.session_state.selected_model_key) if st.session_state.selected_model_key in model_vi_keys else 0
@@ -2508,7 +2485,6 @@ class NumpyEncoder(json.JSONEncoder):
         return json.JSONEncoder.default(self, obj)
 # Highlight: Toàn bộ hàm show_simulation_page được viết lại
 def show_simulation_page():
-    render_navbar() 
     if not st.session_state.selected_model_key:
         st.warning(tr("msg_select_model_first"))
         if st.button(tr("screen2_back_button")):
@@ -2519,18 +2495,6 @@ def show_simulation_page():
     model_data = MODELS_DATA[st.session_state.selected_model_key]
     model_id = model_data.get("id", "")
     model_name_tr = tr(f"{model_id}_name")
-
-    # Highlight: Thêm khối CSS mới để tạo thanh điều hướng cố định
-    st.markdown("""
-        <style>
-            /* Ẩn header mặc định của Streamlit */
-            header {visibility: hidden;}    
-            /* CSS cho sidebar */
-            [data-testid="stSidebar"] {
-                padding-top: 60px; /* Đẩy nội dung sidebar xuống */
-            }
-        </style>
-    """, unsafe_allow_html=True)
     # --- THANH BÊN (SIDEBAR) CHO CÁC ĐIỀU KHIỂN ---
     with st.sidebar:
         if st.button(f"ᐊ {tr('screen2_back_button')}"):
@@ -2789,7 +2753,6 @@ class Cell:
         self.last_division = -100
 		
 def show_dynamic_simulation_page():
-    render_navbar() 
     validated_params = st.session_state.get('validated_params', {})
     if not validated_params:
         st.error("Không có dữ liệu hợp lệ. Vui lòng chạy lại mô phỏng ở trang trước.")
