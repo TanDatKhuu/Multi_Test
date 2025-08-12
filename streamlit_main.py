@@ -2511,7 +2511,7 @@ def _perform_single_simulation(model_data, ode_func, exact_sol_func, y0, t_start
 # Highlight: Toàn bộ hàm show_simulation_page được viết lại
 def show_simulation_page():
     if not st.session_state.selected_model_key:
-        st.warning(tr("msg_select_model_first")) # Sử dụng key dịch mới
+        st.warning(tr("msg_select_model_first"))
         if st.button(tr("screen2_back_button")):
             st.session_state.page = 'model_selection'
             st.rerun()
@@ -2523,17 +2523,14 @@ def show_simulation_page():
 
     # --- THANH BÊN (SIDEBAR) CHO CÁC ĐIỀU KHIỂN ---
     with st.sidebar:
-        st.title(tr("sidebar_title")) # Key dịch mới
+        st.title(tr("sidebar_title"))
         
-        # Nút quay lại
         if st.button(f"ᐊ {tr('screen2_back_button')}"):
             st.session_state.page = 'model_selection'
-            # Reset trạng thái của trang này khi rời đi
             st.session_state.simulation_results = {}
             st.session_state.validated_params = {}
             st.rerun()
 
-        # Highlight: Sử dụng st.form để gom các input
         with st.form(key='simulation_form'):
             st.header(tr('screen2_method_group'))
             method_options = {tr('screen2_method_ab'): "Bashforth", tr('screen2_method_am'): "Moulton"}
@@ -2549,7 +2546,7 @@ def show_simulation_page():
             
             selected_steps_display = st.multiselect(
                 tr('screen2_steps_label'), 
-                options=step_options.keys(), 
+                options=list(step_options.keys()), 
                 default=list(step_options.keys())[2] if len(step_options) > 2 else list(step_options.keys())[0]
             )
             selected_steps_int = [step_options[s] for s in selected_steps_display]
@@ -2565,7 +2562,6 @@ def show_simulation_page():
             default_values = {'t₀': 0.0, 't₁': 10.0, 'O₀': 1.0, 'k': 0.5, 'x₀': 1.0, 'n': 10.0, 'm': 0.5, 'l': 0.2, 'a': 0.1, 's': 0.25, 'G': 20.0, 'Y0': 100.0, 'dY0': 1.0, 'x0': 10.0, 'y0': 0.0, 'u': 1.0, 'v': 2.0}
 
             if model_id == "model4":
-                # Layout 2 cột cho model 4
                 cols_m4 = st.columns(2)
                 for i, key in enumerate(internal_keys):
                     label = tr(f"model4_param_{key.replace('₀','0').replace('₁','1')}")
@@ -2584,31 +2580,32 @@ def show_simulation_page():
             
             submitted = st.form_submit_button(tr('screen2_init_button'), type="primary")
 
-        # Nút reset nằm ngoài form
         if st.button(tr('screen2_refresh_button')):
             st.session_state.simulation_results = {}
             st.session_state.validated_params = {}
             st.rerun()
 
     # --- KHU VỰC HIỂN THỊ CHÍNH ---
-    st.header(f"{tr('simulation_results_title')}: {model_name_tr}") # Key dịch mới
+    st.header(f"{tr('simulation_results_title')}: {model_name_tr}")
 
     if submitted:
-        # Xử lý khi người dùng nhấn nút submit
         with st.spinner(tr('screen2_info_area_running')):
             is_valid = True
-            if not selected_steps_int: st.toast(tr('msg_select_step'), icon='⚠️'); is_valid = False
-            if 't₀' in param_inputs and 't₁' in param_inputs and param_inputs['t₁'] <= param_inputs['t₀']: st.toast(tr('msg_t_end_error'), icon='⚠️'); is_valid = False
+            if not selected_steps_int:
+                st.toast(tr('msg_select_step'), icon='⚠️')
+                is_valid = False
+            if 't₀' in param_inputs and 't₁' in param_inputs and param_inputs['t₁'] <= param_inputs['t₀']:
+                st.toast(tr('msg_t_end_error'), icon='⚠️')
+                is_valid = False
             
             if is_valid:
-                # Xóa kết quả tính toán cũ
                 for key in ['last_calculated_c', 'last_calculated_r', 'last_calculated_alpha', 'last_calculated_beta']:
-                    if key in st.session_state: del st.session_state[key]
+                    if key in st.session_state:
+                        del st.session_state[key]
                 
                 prep_ok, prep_data, calculated_params = _prepare_simulation_functions(model_data, param_inputs, selected_method_short)
                 
                 if prep_ok:
-                    # Gán các giá trị tính được vào session_state
                     for key, value in calculated_params.items():
                         st.session_state[f'last_calculated_{key}'] = value
                     
@@ -2616,7 +2613,8 @@ def show_simulation_page():
                     results_dict = {}
                     for steps in selected_steps_int:
                         res = _perform_single_simulation(model_data, ode_func, exact_callable, y0, t_start, t_end, selected_method_short, steps, float(selected_h_str), selected_component)
-                        if res: results_dict[steps] = res
+                        if res:
+                            results_dict[steps] = res
                     
                     st.session_state.simulation_results = results_dict
                     st.session_state.validated_params = {
@@ -2626,14 +2624,12 @@ def show_simulation_page():
                     }
                     st.rerun()
                 else:
-                    st.session_state.simulation_results = {} # Xóa kết quả nếu chuẩn bị thất bại
-    
-    # --- Hiển thị kết quả (luôn chạy, dựa trên st.session_state) ---
+                    st.session_state.simulation_results = {}
+
     results = st.session_state.get('simulation_results', {})
     if not results:
         st.info(tr('screen2_info_area_init'))
     else:
-        # Hiển thị các giá trị được tính toán (nếu có)
         validated_params = st.session_state.validated_params
         if 'last_calculated_c' in st.session_state and validated_params.get('model_id') == 'model2':
             st.info(f"**{tr('model2_calculated_c_label')}** {st.session_state.last_calculated_c:.6g}")
@@ -2644,14 +2640,12 @@ def show_simulation_page():
             col_a.info(f"**{tr('model4_param_alpha')}:** {st.session_state.last_calculated_alpha:.6g}")
             col_b.info(f"**{tr('model4_param_beta')}:** {st.session_state.last_calculated_beta:.6g}")
 
-        # Nút đi đến trang mô phỏng động
         can_run_dynamic = model_data.get("can_run_abm_on_screen3", False) or model_id in ['model2', 'model5']
         if can_run_dynamic:
-            if st.button(tr("screen2_goto_screen3_button"), use_container_width=True):
+            if st.button(tr("screen2_goto_screen3_button"), use_container_width=True, type="primary"):
                 st.session_state.page = 'dynamic_simulation'
                 st.rerun()
         
-        # Tạo và hiển thị các tab đồ thị
         tab1, tab2, tab3, tab4 = st.tabs([
             f"📊 {tr('screen2_plot_solution_title')}", 
             f"📉 {tr('screen2_plot_error_title')}", 
@@ -2659,92 +2653,86 @@ def show_simulation_page():
             f"🔢 {tr('screen2_show_data_button')}"
         ])
 
-        # Highlight: Sử dụng cache để tăng tốc độ vẽ lại đồ thị
-		@st.cache_data
-		def generate_and_get_figures(results_data_json, lang, model_id, method_short, component):
-		    # Hàm này tạo ra các đối tượng Figure của Matplotlib
-		    # và trả về chúng. Streamlit sẽ cache kết quả này.
-		
-		    # Highlight: ĐÂY LÀ DÒNG SỬA LỖI QUAN TRỌNG NHẤT
-		    # Chuyển chuỗi JSON nhận được từ tham số về lại dạng dictionary
-		    results_data = json.loads(results_data_json)
-		    
-		    figs = {}
-		    translations = load_language_file(lang)
-		    def _tr(key): return translations.get(key, key)
-		    
-		    n_steps = len(results_data)
-		    # Highlight: Thêm check để tránh lỗi khi không có kết quả
-		    if n_steps == 0:
-		        return {'solution': Figure(), 'error': Figure(), 'order': Figure()}
-		        
-		    colors = plt.cm.viridis(np.linspace(0, 1, max(1, n_steps)))
-		    plot_figsize = (7, 5) # Tăng kích thước một chút cho dễ nhìn
-		
-		    # Đồ thị nghiệm
-		    fig_sol = Figure(figsize=plot_figsize)
-		    ax_sol = fig_sol.subplots()
-		    exact_plotted = False
-		    color_idx = 0
-		    for step, res in sorted(results_data.items()):
-		        method_label = f"{method_short[:2].upper()}-{step}"
-		        if res.get('t_plot') is not None and res.get('approx_sol_plot') is not None and len(res['t_plot']) > 0:
-		            if not exact_plotted and res.get('exact_sol_plot') is not None and len(res['exact_sol_plot']) > 0:
-		                ax_sol.plot(res['t_plot'], res['exact_sol_plot'], color='black', ls='--', label=_tr('screen2_plot_exact_label'))
-		                exact_plotted = True
-		            ax_sol.plot(res['t_plot'], res['approx_sol_plot'], color=colors[color_idx % len(colors)], label=method_label)
-		        color_idx += 1
-		    ax_sol.set_title(_tr('screen2_plot_solution_title'))
-		    ax_sol.set_xlabel(_tr('screen2_plot_t_axis'))
-		    ax_sol.set_ylabel(_tr('screen2_plot_value_axis') + (f" ({component.upper()})" if model_id == 'model5' else ""))
-		    ax_sol.grid(True, linestyle=':'); ax_sol.legend()
-		    fig_sol.tight_layout()
-		    figs['solution'] = fig_sol
-		    
-		    # Đồ thị sai số
-		    fig_err = Figure(figsize=plot_figsize)
-		    ax_err = fig_err.subplots()
-		    color_idx = 0
-		    for step, res in sorted(results_data.items()):
-		        method_label = f"{method_short[:2].upper()}-{step}"
-		        if res.get('n_values_convergence') is not None and len(res['n_values_convergence']) > 0:
-		            ax_err.plot(res['n_values_convergence'], res['errors_convergence'], marker='.', ms=3, ls='-', color=colors[color_idx % len(colors)], label=method_label)
-		        color_idx += 1
-		    ax_err.set_title(_tr('screen2_plot_error_title'))
-		    ax_err.set_xlabel(_tr('screen2_plot_n_axis'))
-		    ax_err.set_ylabel(_tr('screen2_plot_error_axis'))
-		    ax_err.set_yscale('log')
-		    ax_err.grid(True, which='both', linestyle=':'); ax_err.legend()
-		    fig_err.tight_layout()
-		    figs['error'] = fig_err
-		    
-		    # Đồ thị bậc hội tụ
-		    fig_ord = Figure(figsize=plot_figsize)
-		    ax_ord = fig_ord.subplots()
-		    color_idx = 0
-		    for step, res in sorted(results_data.items()):
-		        method_label = f"{method_short[:2].upper()}-{step}"
-		        log_h, log_err = res.get('log_h_convergence'), res.get('log_error_convergence')
-		        if log_h is not None and len(log_h) >= 2:
-		            slope = res.get('order_slope', 0)
-		            fit_label = _tr('screen2_plot_order_fit_label_suffix').format(slope)
-		            ax_ord.plot(log_h, log_err, 'o', ms=3, color=colors[color_idx % len(colors)], label=f"{method_label} {_tr('screen2_plot_order_data_label_suffix')}")
-		            # Vẽ đường fit
-		            if np.isfinite(slope):
-		                fit_line = np.polyval(np.polyfit(log_h, log_err, 1), log_h)
-		                ax_ord.plot(log_h, fit_line, '-', color=colors[color_idx % len(colors)], label=fit_label)
-		        color_idx += 1
-		    ax_ord.set_title(_tr('screen2_plot_order_title'))
-		    ax_ord.set_xlabel(_tr('screen2_plot_log_h_axis'))
-		    ax_ord.set_ylabel(_tr('screen2_plot_log_error_axis'))
-		    ax_ord.grid(True, linestyle=':'); ax_ord.legend()
-		    fig_ord.tight_layout()
-		    figs['order'] = fig_ord
-		    
-		    return figs
+        @st.cache_data
+        def generate_and_get_figures(results_data_json, lang, model_id, method_short, component):
+            results_data = json.loads(results_data_json)
+            
+            figs = {}
+            translations = load_language_file(lang)
+            def _tr(key): return translations.get(key, key)
+            
+            n_steps = len(results_data)
+            if n_steps == 0:
+                return {'solution': Figure(), 'error': Figure(), 'order': Figure()}
+                
+            colors = plt.cm.viridis(np.linspace(0, 1, max(1, n_steps)))
+            plot_figsize = (7, 5)
 
-        # Gọi hàm cache để lấy các đồ thị
-		results_json = json.dumps(results, cls=NumpyEncoder)
+            # Đồ thị nghiệm
+            fig_sol = Figure(figsize=plot_figsize)
+            ax_sol = fig_sol.subplots()
+            exact_plotted = False
+            color_idx = 0
+            for step_str, res in sorted(results_data.items()):
+                step = int(step_str) # JSON keys are strings
+                method_label = f"{method_short[:2].upper()}-{step}"
+                if res.get('t_plot') is not None and res.get('approx_sol_plot') is not None and len(res['t_plot']) > 0:
+                    if not exact_plotted and res.get('exact_sol_plot') is not None and len(res['exact_sol_plot']) > 0:
+                        ax_sol.plot(res['t_plot'], res['exact_sol_plot'], color='black', ls='--', label=_tr('screen2_plot_exact_label'))
+                        exact_plotted = True
+                    ax_sol.plot(res['t_plot'], res['approx_sol_plot'], color=colors[color_idx % len(colors)], label=method_label)
+                color_idx += 1
+            ax_sol.set_title(_tr('screen2_plot_solution_title'))
+            ax_sol.set_xlabel(_tr('screen2_plot_t_axis'))
+            ax_sol.set_ylabel(_tr('screen2_plot_value_axis') + (f" ({component.upper()})" if model_id == 'model5' else ""))
+            ax_sol.grid(True, linestyle=':'); ax_sol.legend()
+            fig_sol.tight_layout()
+            figs['solution'] = fig_sol
+            
+            # Đồ thị sai số
+            fig_err = Figure(figsize=plot_figsize)
+            ax_err = fig_err.subplots()
+            color_idx = 0
+            for step_str, res in sorted(results_data.items()):
+                step = int(step_str)
+                method_label = f"{method_short[:2].upper()}-{step}"
+                if res.get('n_values_convergence') is not None and len(res['n_values_convergence']) > 0:
+                    ax_err.plot(res['n_values_convergence'], res['errors_convergence'], marker='.', ms=3, ls='-', color=colors[color_idx % len(colors)], label=method_label)
+                color_idx += 1
+            ax_err.set_title(_tr('screen2_plot_error_title'))
+            ax_err.set_xlabel(_tr('screen2_plot_n_axis'))
+            ax_err.set_ylabel(_tr('screen2_plot_error_axis'))
+            ax_err.set_yscale('log')
+            ax_err.grid(True, which='both', linestyle=':'); ax_err.legend()
+            fig_err.tight_layout()
+            figs['error'] = fig_err
+            
+            # Đồ thị bậc hội tụ
+            fig_ord = Figure(figsize=plot_figsize)
+            ax_ord = fig_ord.subplots()
+            color_idx = 0
+            for step_str, res in sorted(results_data.items()):
+                step = int(step_str)
+                method_label = f"{method_short[:2].upper()}-{step}"
+                log_h, log_err = res.get('log_h_convergence'), res.get('log_error_convergence')
+                if log_h is not None and len(log_h) >= 2:
+                    slope = res.get('order_slope', 0)
+                    fit_label = _tr('screen2_plot_order_fit_label_suffix').format(slope)
+                    ax_ord.plot(log_h, log_err, 'o', ms=3, color=colors[color_idx % len(colors)], label=f"{method_label} {_tr('screen2_plot_order_data_label_suffix')}")
+                    if np.isfinite(slope):
+                        fit_line = np.polyval(np.polyfit(log_h, log_err, 1), log_h)
+                        ax_ord.plot(log_h, fit_line, '-', color=colors[color_idx % len(colors)], label=fit_label)
+                color_idx += 1
+            ax_ord.set_title(_tr('screen2_plot_order_title'))
+            ax_ord.set_xlabel(_tr('screen2_plot_log_h_axis'))
+            ax_ord.set_ylabel(_tr('screen2_plot_log_error_axis'))
+            ax_ord.grid(True, linestyle=':'); ax_ord.legend()
+            fig_ord.tight_layout()
+            figs['order'] = fig_ord
+            
+            return figs
+
+        results_json = json.dumps(results, cls=NumpyEncoder)
         figures = generate_and_get_figures(
             results_json,
             st.session_state.lang, 
@@ -2760,7 +2748,8 @@ def show_simulation_page():
         with tab3:
             st.pyplot(figures['order'])
         with tab4:
-            for step, res in sorted(results.items()):
+            for step_str, res in sorted(results.items()):
+                step = int(step_str)
                 with st.expander(f"**Adam-{validated_params['method_short']} {step} {tr('screen2_info_area_show_data_textCont1')}**"):
                     slope_str = f"{res.get('order_slope', 'N/A'):.4f}" if isinstance(res.get('order_slope'), float) else "N/A"
                     st.markdown(f"**{tr('screen2_info_area_show_data_order')}** {slope_str}")
@@ -2770,13 +2759,12 @@ def show_simulation_page():
                         df_data = {'t': t, tr('screen2_info_area_show_data_approx'): approx}
                         if exact is not None:
                             df_data[tr('screen2_info_area_show_data_exact')] = exact
-                            df_data[tr('screen2_info_area_show_data_error')] = np.abs(approx - exact)
+                            df_data[tr('screen2_info_area_show_data_error')] = np.abs(np.array(approx) - np.array(exact))
                         
                         df = pd.DataFrame(df_data)
                         st.dataframe(df.head(20).style.format("{:.6f}"), use_container_width=True, height=400)
                     else:
                         st.write(tr("screen2_info_area_show_data_no_points"))
-
 # Highlight: Thêm class này để giúp cache_data xử lý được numpy array
 class NumpyEncoder(json.JSONEncoder):
     def default(self, obj):
