@@ -2660,7 +2660,7 @@ def show_simulation_page():
         ])
 
         # Highlight: Sử dụng cache để tăng tốc độ vẽ lại đồ thị
-        @st.cache_data
+		@st.cache_data
 		def generate_and_get_figures(results_data_json, lang, model_id, method_short, component):
 		    # Hàm này tạo ra các đối tượng Figure của Matplotlib
 		    # và trả về chúng. Streamlit sẽ cache kết quả này.
