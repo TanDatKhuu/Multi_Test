@@ -2003,7 +2003,7 @@ def main():
 
 # --- Thay thế hàm show_welcome_page cũ ---
 def show_welcome_page():
-	render_navbar() 
+    render_navbar() 
     # --- CSS TÙY CHỈNH CHO GIAO DIỆN MỚI ---
     st.markdown("""
         <style>
