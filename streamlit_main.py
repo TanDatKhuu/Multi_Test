@@ -2032,6 +2032,13 @@ def show_welcome_page():
     st.markdown('</div>', unsafe_allow_html=True) 
 # --- Thay thế hàm show_model_selection_page cũ ---
 def show_model_selection_page():   
+	# --- CSS TÙY CHỈNH ---
+    st.markdown("""
+        <style>
+        .main { background-color: #E6ECF4; }
+        div[data-testid="stAppViewBlockContainer"] { padding-top: 2rem; }
+        </style>
+    """, unsafe_allow_html=True)
     model_display_names = [tr(f"{data['id']}_name") for data in MODELS_DATA.values()]
     model_vi_keys = list(MODELS_DATA.keys())
     current_selection_index = model_vi_keys.index(st.session_state.selected_model_key) if st.session_state.selected_model_key in model_vi_keys else 0
