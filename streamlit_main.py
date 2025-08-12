@@ -2738,7 +2738,6 @@ class Cell:
         self.last_division = -100
 		
 def show_dynamic_simulation_page():
-    def show_dynamic_simulation_page():
     # --- Phần kiểm tra dữ liệu và lấy thông tin model ---
     validated_params = st.session_state.get('validated_params', {})
     if not validated_params:
