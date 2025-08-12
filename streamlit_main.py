@@ -2667,7 +2667,7 @@ def show_simulation_page():
                 
             colors = plt.cm.viridis(np.linspace(0, 1, max(1, n_steps)))
             plot_figsize = (7, 5)
-		    method_prefix = "AB" if method_short == "Bashforth" else "AM"
+            method_prefix = "AB" if method_short == "Bashforth" else "AM"
 
             # Đồ thị nghiệm
             fig_sol = Figure(figsize=plot_figsize)
