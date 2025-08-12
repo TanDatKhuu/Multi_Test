@@ -2661,78 +2661,92 @@ def show_simulation_page():
 
         # Highlight: Sử dụng cache để tăng tốc độ vẽ lại đồ thị
         @st.cache_data
-        def generate_and_get_figures(results_data, lang, model_id, method_short, component):
-            # Hàm này tạo ra các đối tượng Figure của Matplotlib
-            # và trả về chúng. Streamlit sẽ cache kết quả này.
-            figs = {}
-            translations = load_language_file(lang)
-            def _tr(key): return translations.get(key, key)
-            
-            n_steps = len(results_data)
-            colors = plt.cm.viridis(np.linspace(0, 1, max(1, n_steps)))
-            
-            # Đồ thị nghiệm
-            fig_sol = Figure(figsize=(7, 5))
-            ax_sol = fig_sol.subplots()
-            exact_plotted = False
-            color_idx = 0
-            for step, res in sorted(results_data.items()):
-                method_label = f"{method_short[:2].upper()}-{step}"
-                if res.get('t_plot') is not None and res.get('approx_sol_plot') is not None:
-                    if not exact_plotted and res.get('exact_sol_plot') is not None:
-                        ax_sol.plot(res['t_plot'], res['exact_sol_plot'], color='black', ls='--', label=_tr('screen2_plot_exact_label'))
-                        exact_plotted = True
-                    ax_sol.plot(res['t_plot'], res['approx_sol_plot'], color=colors[color_idx % len(colors)], label=method_label)
-                color_idx += 1
-            ax_sol.set_title(_tr('screen2_plot_solution_title'))
-            ax_sol.set_xlabel(_tr('screen2_plot_t_axis'))
-            ax_sol.set_ylabel(_tr('screen2_plot_value_axis') + (f" ({component.upper()})" if model_id == 'model5' else ""))
-            ax_sol.grid(True, linestyle=':'); ax_sol.legend()
-            fig_sol.tight_layout()
-            figs['solution'] = fig_sol
-            
-            # Đồ thị sai số
-            fig_err = Figure(figsize=(7, 5))
-            ax_err = fig_err.subplots()
-            color_idx = 0
-            for step, res in sorted(results_data.items()):
-                method_label = f"{method_short[:2].upper()}-{step}"
-                if res.get('n_values_convergence') is not None and len(res['n_values_convergence']) > 0:
-                    ax_err.plot(res['n_values_convergence'], res['errors_convergence'], marker='.', ms=3, ls='-', color=colors[color_idx % len(colors)], label=method_label)
-                color_idx += 1
-            ax_err.set_title(_tr('screen2_plot_error_title'))
-            ax_err.set_xlabel(_tr('screen2_plot_n_axis'))
-            ax_err.set_ylabel(_tr('screen2_plot_error_axis'))
-            ax_err.set_yscale('log')
-            ax_err.grid(True, which='both', linestyle=':'); ax_err.legend()
-            fig_err.tight_layout()
-            figs['error'] = fig_err
-            
-            # Đồ thị bậc hội tụ
-            fig_ord = Figure(figsize=(7, 5))
-            ax_ord = fig_ord.subplots()
-            color_idx = 0
-            for step, res in sorted(results_data.items()):
-                method_label = f"{method_short[:2].upper()}-{step}"
-                log_h, log_err = res.get('log_h_convergence'), res.get('log_error_convergence')
-                if log_h is not None and len(log_h) >= 2:
-                    slope = res.get('order_slope', 0)
-                    fit_label = _tr('screen2_plot_order_fit_label_suffix').format(slope)
-                    ax_ord.plot(log_h, log_err, 'o', ms=3, color=colors[color_idx % len(colors)], label=f"{method_label} {_tr('screen2_plot_order_data_label_suffix')}")
-                    ax_ord.plot(log_h, np.polyval(np.polyfit(log_h, log_err, 1), log_h), '-', color=colors[color_idx % len(colors)], label=fit_label)
-                color_idx += 1
-            ax_ord.set_title(_tr('screen2_plot_order_title'))
-            ax_ord.set_xlabel(_tr('screen2_plot_log_h_axis'))
-            ax_ord.set_ylabel(_tr('screen2_plot_log_error_axis'))
-            ax_ord.grid(True, linestyle=':'); ax_ord.legend()
-            fig_ord.tight_layout()
-            figs['order'] = fig_ord
-            
-            return figs
+		def generate_and_get_figures(results_data_json, lang, model_id, method_short, component):
+		    # Hàm này tạo ra các đối tượng Figure của Matplotlib
+		    # và trả về chúng. Streamlit sẽ cache kết quả này.
+		
+		    # Highlight: ĐÂY LÀ DÒNG SỬA LỖI QUAN TRỌNG NHẤT
+		    # Chuyển chuỗi JSON nhận được từ tham số về lại dạng dictionary
+		    results_data = json.loads(results_data_json)
+		    
+		    figs = {}
+		    translations = load_language_file(lang)
+		    def _tr(key): return translations.get(key, key)
+		    
+		    n_steps = len(results_data)
+		    # Highlight: Thêm check để tránh lỗi khi không có kết quả
+		    if n_steps == 0:
+		        return {'solution': Figure(), 'error': Figure(), 'order': Figure()}
+		        
+		    colors = plt.cm.viridis(np.linspace(0, 1, max(1, n_steps)))
+		    plot_figsize = (7, 5) # Tăng kích thước một chút cho dễ nhìn
+		
+		    # Đồ thị nghiệm
+		    fig_sol = Figure(figsize=plot_figsize)
+		    ax_sol = fig_sol.subplots()
+		    exact_plotted = False
+		    color_idx = 0
+		    for step, res in sorted(results_data.items()):
+		        method_label = f"{method_short[:2].upper()}-{step}"
+		        if res.get('t_plot') is not None and res.get('approx_sol_plot') is not None and len(res['t_plot']) > 0:
+		            if not exact_plotted and res.get('exact_sol_plot') is not None and len(res['exact_sol_plot']) > 0:
+		                ax_sol.plot(res['t_plot'], res['exact_sol_plot'], color='black', ls='--', label=_tr('screen2_plot_exact_label'))
+		                exact_plotted = True
+		            ax_sol.plot(res['t_plot'], res['approx_sol_plot'], color=colors[color_idx % len(colors)], label=method_label)
+		        color_idx += 1
+		    ax_sol.set_title(_tr('screen2_plot_solution_title'))
+		    ax_sol.set_xlabel(_tr('screen2_plot_t_axis'))
+		    ax_sol.set_ylabel(_tr('screen2_plot_value_axis') + (f" ({component.upper()})" if model_id == 'model5' else ""))
+		    ax_sol.grid(True, linestyle=':'); ax_sol.legend()
+		    fig_sol.tight_layout()
+		    figs['solution'] = fig_sol
+		    
+		    # Đồ thị sai số
+		    fig_err = Figure(figsize=plot_figsize)
+		    ax_err = fig_err.subplots()
+		    color_idx = 0
+		    for step, res in sorted(results_data.items()):
+		        method_label = f"{method_short[:2].upper()}-{step}"
+		        if res.get('n_values_convergence') is not None and len(res['n_values_convergence']) > 0:
+		            ax_err.plot(res['n_values_convergence'], res['errors_convergence'], marker='.', ms=3, ls='-', color=colors[color_idx % len(colors)], label=method_label)
+		        color_idx += 1
+		    ax_err.set_title(_tr('screen2_plot_error_title'))
+		    ax_err.set_xlabel(_tr('screen2_plot_n_axis'))
+		    ax_err.set_ylabel(_tr('screen2_plot_error_axis'))
+		    ax_err.set_yscale('log')
+		    ax_err.grid(True, which='both', linestyle=':'); ax_err.legend()
+		    fig_err.tight_layout()
+		    figs['error'] = fig_err
+		    
+		    # Đồ thị bậc hội tụ
+		    fig_ord = Figure(figsize=plot_figsize)
+		    ax_ord = fig_ord.subplots()
+		    color_idx = 0
+		    for step, res in sorted(results_data.items()):
+		        method_label = f"{method_short[:2].upper()}-{step}"
+		        log_h, log_err = res.get('log_h_convergence'), res.get('log_error_convergence')
+		        if log_h is not None and len(log_h) >= 2:
+		            slope = res.get('order_slope', 0)
+		            fit_label = _tr('screen2_plot_order_fit_label_suffix').format(slope)
+		            ax_ord.plot(log_h, log_err, 'o', ms=3, color=colors[color_idx % len(colors)], label=f"{method_label} {_tr('screen2_plot_order_data_label_suffix')}")
+		            # Vẽ đường fit
+		            if np.isfinite(slope):
+		                fit_line = np.polyval(np.polyfit(log_h, log_err, 1), log_h)
+		                ax_ord.plot(log_h, fit_line, '-', color=colors[color_idx % len(colors)], label=fit_label)
+		        color_idx += 1
+		    ax_ord.set_title(_tr('screen2_plot_order_title'))
+		    ax_ord.set_xlabel(_tr('screen2_plot_log_h_axis'))
+		    ax_ord.set_ylabel(_tr('screen2_plot_log_error_axis'))
+		    ax_ord.grid(True, linestyle=':'); ax_ord.legend()
+		    fig_ord.tight_layout()
+		    figs['order'] = fig_ord
+		    
+		    return figs
 
         # Gọi hàm cache để lấy các đồ thị
+		results_json = json.dumps(results, cls=NumpyEncoder)
         figures = generate_and_get_figures(
-            json.dumps(results, cls=NumpyEncoder), # Chuyển dict sang JSON để cache được
+            results_json,
             st.session_state.lang, 
             validated_params['model_id'], 
             validated_params['method_short'], 
