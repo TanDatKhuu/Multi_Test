@@ -2727,7 +2727,7 @@ def show_simulation_page():
                     ax_ord.plot(log_h, log_err, 'o', ms=3, color=colors[color_idx % len(colors)], label=f"{method_label} {_tr('screen2_plot_order_data_label_suffix')}")
                     if np.isfinite(slope):
                         fit_line = np.polyval(np.polyfit(log_h, log_err, 1), log_h)
-                        ax_ord.plot(log_h, fit_line, '-', color=colors[color_idx % len(colors)], label=fit_label)
+                        ax_ord.plot(log_h, fit_line, '-', color=colors[color_idx % len(colors)], label=fit_label_mathtext)
                 color_idx += 1
             ax_ord.set_title(_tr('screen2_plot_order_title'))
             ax_ord.set_xlabel(_tr('screen2_plot_log_h_axis'))
