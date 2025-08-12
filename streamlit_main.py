@@ -2065,7 +2065,7 @@ def show_welcome_page():
     st.markdown('</div>', unsafe_allow_html=True) 
 # --- Thay thế hàm show_model_selection_page cũ ---
 def show_model_selection_page():
-	render_navbar() 
+    render_navbar() 
     # --- CSS TÙY CHỈNH ---
     st.markdown("""
         <style>
@@ -2503,7 +2503,7 @@ class NumpyEncoder(json.JSONEncoder):
         return json.JSONEncoder.default(self, obj)
 # Highlight: Toàn bộ hàm show_simulation_page được viết lại
 def show_simulation_page():
-	render_navbar() 
+    render_navbar() 
     if not st.session_state.selected_model_key:
         st.warning(tr("msg_select_model_first"))
         if st.button(tr("screen2_back_button")):
@@ -2784,7 +2784,7 @@ class Cell:
         self.last_division = -100
 		
 def show_dynamic_simulation_page():
-	render_navbar() 
+    render_navbar() 
     validated_params = st.session_state.get('validated_params', {})
     if not validated_params:
         st.error("Không có dữ liệu hợp lệ. Vui lòng chạy lại mô phỏng ở trang trước.")
