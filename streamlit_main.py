@@ -15,6 +15,7 @@ from datetime import datetime
 import random
 import json
 import time # Cần cho animation
+import base64
 
 def html_to_latex(html_string):
     """Chuyển đổi một số thẻ HTML đơn giản sang cú pháp LaTeX."""
