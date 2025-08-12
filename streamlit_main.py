@@ -2755,27 +2755,15 @@ def show_dynamic_simulation_page():
     if 'anim_frame' not in st.session_state: st.session_state.anim_frame = 0
     if anim_key not in st.session_state: st.session_state[anim_key] = True
     
-    # Tạo và lưu Figure vào session_state để chống nhấp nháy
+    # Highlight (Tối ưu): Giảm DPI để ảnh nhẹ hơn
     if 'anim_fig' not in st.session_state or st.session_state.get(anim_key, True):
-        st.session_state.anim_fig = Figure(figsize=(8, 8))
+        st.session_state.anim_fig = Figure(figsize=(8, 8), dpi=72) 
         st.session_state.anim_ax = st.session_state.anim_fig.subplots()
 
     # ==============================================
     #           PHẦN GIAO DIỆN
     # ==============================================
     st.markdown(f"""
-        <style>
-            .page-header {{
-                display: flex; justify-content: space-between; align-items: center; width: 100%;
-            }}
-            .page-header h1 {{ font-size: 2.25rem; color: #0F172A; margin: 0; }}
-            .header-button {{
-                display: inline-block; padding: 0.5rem 1rem; border: 1px solid #E2E8F0;
-                border-radius: 0.5rem; background-color: white; color: #334155;
-                text-decoration: none; font-weight: 500; transition: all 0.2s;
-            }}
-            .header-button:hover {{ background-color: #F8FAFC; border-color: #CBD5E1; }}
-        </style>
         <div class="page-header">
             <a href="?page=simulation" target="_self" class="header-button">ᐊ {tr('screen3_back_button')}</a>
             <h1>{tr('screen3_dyn_only_title')}</h1>
@@ -2795,8 +2783,10 @@ def show_dynamic_simulation_page():
             if c1.button('▶️ Play', use_container_width=True, type="primary"):
                 st.session_state.anim_running = True
                 if st.session_state.get(anim_key, False): st.session_state[anim_key] = False
+                st.rerun()
             if c2.button('⏸️ Pause', use_container_width=True):
                 st.session_state.anim_running = False
+                st.rerun()
             if c3.button('🔄 Reset', use_container_width=True):
                 st.session_state.anim_running = False
                 st.session_state.anim_frame = 0
@@ -2804,6 +2794,7 @@ def show_dynamic_simulation_page():
                 if 'abm_instance' in st.session_state: del st.session_state['abm_instance']
                 if 'model2_cells' in st.session_state: del st.session_state['model2_cells']
                 if 'm5s2_results' in st.session_state: del st.session_state['m5s2_results']
+                st.rerun()
 
         if model_id == 'model5':
             with st.container(border=True):
@@ -2842,10 +2833,9 @@ def show_dynamic_simulation_page():
     
     current_frame = st.session_state.anim_frame
     animation_ended = False
-
+    
     # --- LOGIC XỬ LÝ FRAME HIỆN TẠI (TĨNH VÀ ĐỘNG) ---
     if st.session_state.get(anim_key, True):
-        # Trạng thái khởi tạo, chưa nhấn Play
         with info_placeholder.container(): st.info(tr("screen3_waiting_for_data"))
         ax.text(0.5, 0.5, tr("screen3_waiting_for_data"), ha='center', va='center')
         ax.set_xticks([]); ax.set_yticks([])
@@ -2853,12 +2843,8 @@ def show_dynamic_simulation_page():
         # --- MODEL 2 ---
         if model_id == 'model2' and sim_data:
             t_data = sim_data.get('t_plot'); y_data = sim_data.get('approx_sol_plot')
-            
-            if 'model2_cells' not in st.session_state:
-                st.session_state.model2_cells = [Cell(0, 0, gen=0)]
-
-            if current_frame >= len(t_data):
-                animation_ended = True; current_frame = len(t_data) - 1
+            if 'model2_cells' not in st.session_state: st.session_state.model2_cells = [Cell(0, 0, gen=0)]
+            if current_frame >= len(t_data): animation_ended = True; current_frame = len(t_data) - 1
             
             if st.session_state.anim_running and not animation_ended:
                 target_n = int(round(y_data[current_frame]))
@@ -2896,10 +2882,7 @@ def show_dynamic_simulation_page():
                 r_val = st.session_state.get('last_calculated_r', 0.0001)
                 ptrans = np.clip(r_val * abm_params.get("r_to_ptrans_factor", 5000), abm_params.get("ptrans_min", 0.01), abm_params.get("ptrans_max", 0.9))
                 total_pop = int(validated_params['params']['n'] + 1)
-                st.session_state.abm_instance = DiseaseSimulationABM(
-                    total_population=total_pop, initial_infected_count_for_abm=1,
-                    room_dimension=abm_params.get('room_dimension', 10.0), contact_radius=abm_params.get('contact_radius', 0.55),
-                    transmission_prob=ptrans, agent_speed=abm_params.get('base_agent_speed', 0.05))
+                st.session_state.abm_instance = DiseaseSimulationABM(total_population=total_pop, initial_infected_count_for_abm=1, room_dimension=abm_params.get('room_dimension', 10.0), contact_radius=abm_params.get('contact_radius', 0.55), transmission_prob=ptrans, agent_speed=abm_params.get('base_agent_speed', 0.05))
             
             abm = st.session_state.abm_instance
             if st.session_state.anim_running:
@@ -2925,11 +2908,9 @@ def show_dynamic_simulation_page():
         elif model_id == 'model5' and sim_data:
             if st.session_state.m5_scenario == 1:
                 t_data = sim_data.get('t_plot')
-                if t_data is None or len(t_data) == 0:
-                    animation_ended = True
+                if t_data is None or len(t_data) == 0: animation_ended = True
                 else:
-                    if current_frame >= len(t_data):
-                        animation_ended = True; current_frame = len(t_data) - 1
+                    if current_frame >= len(t_data): animation_ended = True; current_frame = len(t_data) - 1
                     x_path, y_path = sim_data['approx_sol_plot_all_components']
                     ax.plot(x_path, y_path, 'b--', alpha=0.5, label=tr('screen3_legend_m5s1_path'))
                     ax.plot(x_path[current_frame], y_path[current_frame], 'rP', markersize=12, label=tr('screen3_legend_m5s1_boat'))
@@ -2951,9 +2932,8 @@ def show_dynamic_simulation_page():
             elif st.session_state.m5_scenario == 2:
                 ax.text(0.5, 0.5, tr('screen3_model5_not_implemented_msg'), ha='center', va='center')
                 animation_ended = True
-                with info_placeholder.container():
-                    st.info(tr('screen3_model5_not_implemented_msg'))
-        
+                with info_placeholder.container(): st.info(tr('screen3_model5_not_implemented_msg'))
+
     plot_placeholder.pyplot(fig)
 
     # --- ĐIỀU KHIỂN RERUN ---
@@ -2964,7 +2944,8 @@ def show_dynamic_simulation_page():
             st.rerun()
         else:
             st.session_state.anim_frame += 1
-            time.sleep(max(0.01, 0.1 / speed_multiplier)) # Đảm bảo sleep time không quá nhỏ
+            # Highlight (Tối ưu): Giảm sleep time
+            time.sleep(max(0.01, 0.04 / speed_multiplier)) 
             st.rerun()
 
 # =========================================================================
