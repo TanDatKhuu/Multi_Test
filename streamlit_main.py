@@ -58,10 +58,14 @@ def render_navbar():
     col1, col2, col3, col4, col5 = st.columns([2, 3, 1, 1, 1.5])
 
     with col1:
-        icon_path_nav = os.path.join(FIG_FOLDER, "icon-app.png")
+        icon_path_nav = os.path.join(FIG_FOLDER, "icon app.png")
         if os.path.exists(icon_path_nav):
-            st.image(icon_path_nav, width=30)
-            st.markdown("<h3 style='color: #1E3A8A; margin-left: 40px; margin-top: -40px;'>MultiStepSim</h3>", unsafe_allow_html=True)
+            import base64
+            with open(icon_path_nav, "rb") as img_file:
+                img_base64 = base64.b64encode(img_file.read()).decode()
+            st.markdown(f"""<div class="nav-brand"><img src="data:image/png;base64,{img_base64}" width="30" style="margin-right: 10px;"><h3 style='color: #1E3A8A;'>MultiStepSim</h3></div>""", unsafe_allow_html=True)
+        else:
+            st.markdown("<h3 style='color: #1E3A8A; margin-top: 5px;'>MultiStepSim</h3>", unsafe_allow_html=True)
 
     with col3:
         if st.button(tr("nav_home"), use_container_width=True, key="nav_home_btn"):
