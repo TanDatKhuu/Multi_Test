@@ -2900,16 +2900,22 @@ def _run_and_cache_m5_sim2(_solver_func_name, t_array, initial_state, catch_radi
 
 def create_animation_gif(model_id, model_data, validated_params, speed_multiplier):
     """
-    Chạy mô phỏng và render tất cả các frame thành một file GIF.
+    Chạy mô phỏng, render tất cả các frame thành một file GIF, và hiển thị thanh tiến trình.
     Trả về dữ liệu bytes của file GIF và một dictionary chứa thông tin cuối cùng.
     """
+    # Tạo placeholder cho thanh tiến trình và văn bản trong khu vực chính
+    progress_container = st.empty()
+    with progress_container.container():
+        progress_bar = st.progress(0)
+        progress_text = st.empty()
+
     gif_buf = io.BytesIO()
     with imageio.get_writer(gif_buf, mode='I', format='gif', duration=0.1 / speed_multiplier, loop=0) as writer:
         try:
-            fig, ax = plt.subplots(figsize=(8, 8), dpi=80)
+            fig, ax = plt.subplots(figsize=(8, 8), dpi=80) # Giảm DPI để frame nhẹ hơn
             final_stats = {}
 
-            # --- Lấy dữ liệu mô phỏng ---
+            # --- Lấy dữ liệu mô phỏng cần thiết ---
             sim_data = {}
             if model_id == 'model5' and st.session_state.m5_scenario == 2:
                 if 'm5s2_results' not in st.session_state:
@@ -2922,7 +2928,7 @@ def create_animation_gif(model_id, model_data, validated_params, speed_multiplie
 
             if not sim_data: return None, {}
 
-            # --- Xác định số lượng frame ---
+            # --- Xác định số lượng frame tối đa ---
             num_frames = 0
             if model_id == 'model2': num_frames = len(sim_data.get('t_plot', []))
             elif model_id == 'model3': num_frames = model_data.get("abm_defaults", {}).get("max_steps", 400)
@@ -2931,7 +2937,7 @@ def create_animation_gif(model_id, model_data, validated_params, speed_multiplie
             
             if num_frames == 0: return None, {}
             
-            # --- Khởi tạo đối tượng mô phỏng ---
+            # --- Khởi tạo đối tượng mô phỏng (nếu cần) ---
             abm_instance = None
             if model_id == 'model3':
                 abm_params = model_data.get("abm_defaults", {})
@@ -2947,10 +2953,16 @@ def create_animation_gif(model_id, model_data, validated_params, speed_multiplie
                 )
             model2_cells = [Cell(0, 0, gen=0)] if model_id == 'model2' else []
 
-            # --- Vòng lặp tạo frame ---
+            # --- Vòng lặp tạo từng frame ---
             for frame_idx in range(num_frames):
-                ax.clear()
+                # Cập nhật thanh tiến trình
+                progress_percent = (frame_idx + 1) / num_frames
+                progress_bar.progress(progress_percent)
+                progress_text.text(f"{tr('gif_generating_spinner')} ({frame_idx + 1}/{num_frames})")
 
+                ax.clear()
+                
+                # --- MODEL 2: TĂNG TRƯỞNG TẾ BÀO ---
                 if model_id == 'model2':
                     t_data, y_data = sim_data['t_plot'], sim_data['approx_sol_plot']
                     target_n = int(round(y_data[frame_idx]))
@@ -2974,6 +2986,7 @@ def create_animation_gif(model_id, model_data, validated_params, speed_multiplie
                     ax.legend([MplCircle((0,0), 0.1, color='brown')], [tr("screen3_legend_model2_cell")], loc='upper right')
                     ax.set_title(tr("screen3_model2_anim_plot_title") + f"\nTime: {t_data[frame_idx]:.2f}s | Cells: {len(model2_cells)}")
 
+                # --- MODEL 3: ABM DỊCH BỆNH ---
                 elif model_id == 'model3':
                     ended_by_logic = abm_instance.step()
                     ax.set_xlim(0, abm_instance.room_dimension); ax.set_ylim(0, abm_instance.room_dimension)
@@ -2987,6 +3000,7 @@ def create_animation_gif(model_id, model_data, validated_params, speed_multiplie
                     ax.set_title(tr("screen3_abm_anim_plot_title") + f"\nStep: {stats['time_step']} | Infected: {stats['infected_count']}")
                     if ended_by_logic: break
 
+                # --- MODEL 5.1: CON THUYỀN ---
                 elif model_id == 'model5' and st.session_state.m5_scenario == 1:
                     t_data = sim_data.get('t_plot')
                     x_path, y_path = sim_data['approx_sol_plot_all_components']
@@ -2998,6 +3012,7 @@ def create_animation_gif(model_id, model_data, validated_params, speed_multiplie
                     ax.grid(True); ax.legend(); ax.set_aspect('equal')
                     ax.set_title(tr("screen3_model5_plot_title_sim1") + f"\nTime: {t_data[frame_idx]:.2f}s")
                 
+                # --- MODEL 5.2: TÀU KHU TRỤC ---
                 elif model_id == 'model5' and st.session_state.m5_scenario == 2:
                     t_points, state_hist = sim_data['time_points'], sim_data['state_history']
                     is_caught, catch_time = sim_data['caught'], sim_data['time_of_catch']
@@ -3019,7 +3034,7 @@ def create_animation_gif(model_id, model_data, validated_params, speed_multiplie
                     if is_caught and t_points[frame_idx] >= catch_time:
                         break
                 
-                # Ghi frame vào GIF
+                # --- Ghi frame vào GIF ---
                 fig.canvas.draw()
                 frame_buf = io.BytesIO()
                 fig.savefig(frame_buf, format='png', bbox_inches='tight')
@@ -3029,7 +3044,7 @@ def create_animation_gif(model_id, model_data, validated_params, speed_multiplie
 
             plt.close(fig)
 
-            # Tạo thông tin cuối cùng (final_stats)
+            # --- Tạo thông tin cuối cùng (final_stats) ---
             if model_id == 'model2':
                 c_val = st.session_state.get('last_calculated_c', 'N/A')
                 final_stats = {
@@ -3080,7 +3095,10 @@ def create_animation_gif(model_id, model_data, validated_params, speed_multiplie
                 plt.close(fig)
             return None, {}
 
-    # Sau khi vòng lặp kết thúc, file GIF đã hoàn chỉnh trong gif_buf
+    # Sau khi xong, xóa placeholder của thanh tiến trình
+    progress_container.empty()
+
+    # Tạo GIF
     gif_buf.seek(0)
     return gif_buf.getvalue(), final_stats
 	
