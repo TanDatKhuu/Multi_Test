@@ -2736,59 +2736,130 @@ class Cell:
         self.y = y
         self.gen = gen
 
-# Highlight: Thêm một hàm helper để chạy và cache kết quả của Model 5 - Sim 2
-# Điều này ngăn việc tính toán lại ở mỗi khung hình của animation
-@st.cache_data
-def _run_and_cache_m5_sim2(method_func, t_array, initial_state, catch_radius):
-    """Chạy mô phỏng Sim2 một lần và trả về kết quả."""
-    print(f"Running M5 Sim2 with {method_func.__name__}...")
-    try:
-        t_points, state_hist, caught, t_catch = method_func(
-            f_combined_like=_m5_sim2_combined_ode,
-            t_array_full_potential=t_array,
-            initial_state_combined=initial_state,
-            catch_dist_threshold=catch_radius
-        )
-        return {
-            "time_points": t_points,
-            "state_history": state_hist,
-            "caught": caught,
-            "time_of_catch": t_catch
-        }
-    except Exception as e:
-        st.error(f"Lỗi khi chạy mô phỏng M5 Sim 2: {e}")
-        return None
+def _m5s2_z_tn_base(t, traj_params):
+    """Tính toán vị trí cơ sở của tàu ngầm (Evader) tại thời điểm t."""
+    if not traj_params or not traj_params.get("params_x") or not traj_params.get("params_y"):
+        return np.array([0.0, 0.0])
+    x_val = traj_params["offset_x"]
+    for p in traj_params["params_x"]:
+        x_val += p["amp"] * (np.sin(p["freq"] * t + p["phase"]) if p["type"] == 'sin' else np.cos(p["freq"] * t + p["phase"]))
+    y_val = traj_params["offset_y"]
+    for p in traj_params["params_y"]:
+        y_val += p["amp"] * (np.sin(p["freq"] * t + p["phase"]) if p["type"] == 'sin' else np.cos(p["freq"] * t + p["phase"]))
+    return np.array([x_val, y_val])
 
-# Highlight: Hàm ODE kết hợp cho Model 5, Sim 2 (Pursuit-Evasion)
+def _m5s2_get_base_submarine_velocity(t, traj_params, v_tn_max):
+    """Tính toán vector vận tốc cơ sở của tàu ngầm."""
+    vx_base = 0; vy_base = 0
+    for p in traj_params["params_x"]:
+        vx_base += p["amp"] * p["freq"] * (np.cos(p["freq"] * t + p["phase"]) if p["type"] == 'sin' else -np.sin(p["freq"] * t + p["phase"]))
+    for p in traj_params["params_y"]:
+        vy_base += p["amp"] * p["freq"] * (np.cos(p["freq"] * t + p["phase"]) if p["type"] == 'sin' else -np.sin(p["freq"] * t + p["phase"]))
+    v_base_vector = np.array([vx_base, vy_base])
+    norm_v_base = np.linalg.norm(v_base_vector)
+    if norm_v_base < 1e-9: return np.array([0.0, 0.0])
+    return (v_base_vector / norm_v_base) * v_tn_max
+
+def _m5s2_get_smarter_avoidance_info(z_tn, z_kt, v_base_tn_dir, radius_avoid, v_tn_max, strength_avoid, fov_deg):
+    """Logic né tránh thông minh của tàu ngầm."""
+    vector_tn_to_kt = z_kt - z_tn
+    distance = np.linalg.norm(vector_tn_to_kt)
+    is_avoiding = False
+    v_avoid_vector = np.array([0.0, 0.0])
+
+    if 0 < distance < radius_avoid:
+        dir_tn_to_kt = vector_tn_to_kt / distance
+        if np.linalg.norm(v_base_tn_dir) < 1e-6:
+            # Nếu không có hướng đi cơ sở, chỉ chạy ra xa
+            v_avoid_vector = -dir_tn_to_kt * v_tn_max * strength_avoid
+            is_avoiding = True
+        else:
+            # Kiểm tra góc nhìn (FOV)
+            dot_product = np.dot(v_base_tn_dir, dir_tn_to_kt)
+            if dot_product > np.cos(np.deg2rad(fov_deg / 2.0)):
+                is_avoiding = True
+                # Hướng đẩy ra xa
+                push_away_dir = -dir_tn_to_kt
+                # Hướng rẽ ngang (vuông góc với hướng đi)
+                cross_prod_val = v_base_tn_dir[0] * dir_tn_to_kt[1] - v_base_tn_dir[1] * dir_tn_to_kt[0]
+                turn_dir = np.array([0.0, 0.0])
+                if cross_prod_val > 0.05: turn_dir = np.array([v_base_tn_dir[1], -v_base_tn_dir[0]]) # Rẽ phải
+                elif cross_prod_val < -0.05: turn_dir = np.array([-v_base_tn_dir[1], v_base_tn_dir[0]]) # Rẽ trái
+                
+                # Kết hợp 2 hướng né
+                chosen_avoid_dir = 0.6 * turn_dir + 0.6 * push_away_dir
+                if np.linalg.norm(turn_dir) < 1e-6: chosen_avoid_dir = push_away_dir
+                
+                norm_chosen_avoid = np.linalg.norm(chosen_avoid_dir)
+                if norm_chosen_avoid > 1e-6:
+                    v_avoid_vector = (chosen_avoid_dir / norm_chosen_avoid) * v_tn_max * strength_avoid
+    return v_avoid_vector, is_avoiding
 def _m5_sim2_combined_ode(t, state):
     """
-    Hàm ODE cho bài toán đuổi bắt.
-    state = [xp, yp, xe, ye] (Pursuer x, y, Evader x, y)
+    Hàm ODE cho bài toán đuổi bắt PHỨC TẠP, tương tự PySide6.
+    state = [x_kt, y_kt, x_tn, y_tn] (Pursuer x, y, Evader x, y)
     """
-    xp, yp, xe, ye = state[0], state[1], state[2], state[3]
-    
-    # Lấy vận tốc từ session_state (đã được đặt trong UI)
-    vp = st.session_state.m5s2_params['vp']
-    ve = st.session_state.m5s2_params['ve']
+    z_kt = state[0:2]
+    z_tn = state[2:4]
 
-    # Logic cho Evader (E): Chạy thẳng theo hướng định trước (ví dụ: góc 45 độ)
-    angle_e = np.deg2rad(45) 
-    dxe_dt = ve * np.cos(angle_e)
-    dye_dt = ve * np.sin(angle_e)
+    # Lấy các tham số phức tạp từ session_state
+    params = st.session_state.m5s2_params
+    traj_params = st.session_state.m5s2_trajectory_params
 
-    # Logic for Pursuer (P): "Pure Pursuit" - luôn hướng về phía Evader
-    dist_x = xe - xp
-    dist_y = ye - yp
-    distance = np.sqrt(dist_x**2 + dist_y**2)
+    # --- Logic cho tàu khu trục (Pursuer) ---
+    dx_kt, dy_kt = 0.0, 0.0
+    distance_kt_tn = np.linalg.norm(z_tn - z_kt)
     
-    if distance < 1e-6: # Tránh chia cho 0
-        dxp_dt = 0
-        dyp_dt = 0
+    # Sử dụng `st.session_state` để lưu hướng đi cuối cùng
+    if 'm5s2_last_kt_dir' not in st.session_state:
+        st.session_state.m5s2_last_kt_dir = np.array([1.0, 0.0])
+
+    if 0 < distance_kt_tn < params['kt_radar_radius']:
+        if distance_kt_tn > params['catch_threshold'] / 2.0:
+            dir_to_tn = (z_tn - z_kt) / distance_kt_tn
+            dx_kt = params['v_kt'] * dir_to_tn[0]
+            dy_kt = params['v_kt'] * dir_to_tn[1]
+            st.session_state.m5s2_last_kt_dir = dir_to_tn
+    elif distance_kt_tn > params['catch_threshold'] / 2.0:
+        # Ngoài radar, đi theo hướng cũ với tốc độ giảm
+        dx_kt = (params['v_kt'] * 0.5) * st.session_state.m5s2_last_kt_dir[0]
+        dy_kt = (params['v_kt'] * 0.5) * st.session_state.m5s2_last_kt_dir[1]
+    
+    # --- Logic cho tàu ngầm (Evader) ---
+    v_base_tn = _m5s2_get_base_submarine_velocity(t, traj_params, params['v_tn_max'])
+    norm_v_base = np.linalg.norm(v_base_tn)
+    v_base_dir = v_base_tn / norm_v_base if norm_v_base > 1e-6 else np.array([0.0, 0.0])
+
+    v_avoid, is_avoiding = _m5s2_get_smarter_avoidance_info(
+        z_tn, z_kt, v_base_dir, params['avoidance_radius'], 
+        params['v_tn_max'], params['avoidance_strength'], params['fov_tn_degrees']
+    )
+
+    v_total_desired = np.array([0.0, 0.0])
+    if is_avoiding:
+        v_total_desired = 0.2 * v_base_tn + 0.8 * v_avoid # Kết hợp né và đi
     else:
-        dxp_dt = vp * dist_x / distance
-        dyp_dt = vp * dist_y / distance
-
-    return np.array([dxp_dt, dyp_dt, dxe_dt, dye_dt])
+        # Logic rẽ ngẫu nhiên
+        if 'm5s2_last_free_turn' not in st.session_state:
+            st.session_state.m5s2_last_free_turn = t - params['min_time_free_turn'] * 2
+        
+        v_final = v_base_tn
+        if (t - st.session_state.m5s2_last_free_turn) >= params['min_time_free_turn'] and norm_v_base > 1e-6:
+            angle = random.uniform(-params['max_angle_free_turn_rad'], params['max_angle_free_turn_rad'])
+            rot_matrix = np.array([[np.cos(angle), -np.sin(angle)], [np.sin(angle), np.cos(angle)]])
+            v_final = np.dot(rot_matrix, v_base_tn)
+            st.session_state.m5s2_last_free_turn = t
+        v_total_desired = v_final
+    
+    # Chuẩn hóa vận tốc cuối cùng về v_tn_max
+    norm_total_tn = np.linalg.norm(v_total_desired)
+    if norm_total_tn < 1e-9:
+        dx_tn, dy_tn = 0.0, 0.0
+    else:
+        dx_tn = (v_total_desired[0] / norm_total_tn) * params['v_tn_max']
+        dy_tn = (v_total_desired[1] / norm_total_tn) * params['v_tn_max']
+        
+    return np.array([dx_kt, dy_kt, dx_tn, dy_tn])
 
 # =================================================================================
 # Highlight: HÀM show_dynamic_simulation_page ĐÃ ĐƯỢC VIẾT LẠI HOÀN CHỈNH
@@ -3133,16 +3204,43 @@ def show_dynamic_simulation_page():
                     display_custom_metric(info_placeholder, metrics_data_m5s1)
             
             elif m5_scenario_id == 2:
+                # Tạo tham số mặc định nếu chưa có
                 if 'm5s2_params' not in st.session_state:
-                    st.session_state.m5s2_params = {'vp': 3.0, 've': 2.0, 'xp0': 0.0, 'yp0': 0.0, 'xe0': 10.0, 'ye0': 10.0, 'catch_radius': 0.5}
-                
-                if 'm5s2_results' not in st.session_state:
-                    method_short = validated_params.get('method_short', 'Bashforth')
-                    steps_int = validated_params.get('selected_steps_int', [4])[-1]
-                    solver_map = {
-                        "Bashforth": {2: AB2_system_M5_Sim2_CombinedLogic, 3: AB3_system_M5_Sim2_CombinedLogic, 4: AB4_system_M5_Sim2_CombinedLogic, 5: AB5_system_M5_Sim2_CombinedLogic},
-                        "Moulton": {2: AM2_system_M5_Sim2_CombinedLogic, 3: AM3_system_M5_Sim2_CombinedLogic, 4: AM4_system_M5_Sim2_CombinedLogic}
+                    st.session_state.m5s2_params = {
+                        'v_kt': 6.0, 'v_tn_max': 3.0, 'initial_dist': 30.0,
+                        'kt_radar_radius': 25.0, 'avoidance_radius': 10.0,
+                        'catch_threshold': 0.75, 'fov_tn_degrees': 120.0,
+                        'avoidance_strength': 1.1, 'min_time_free_turn': 7.0,
+                        'max_angle_free_turn_rad': np.deg2rad(50)
                     }
+                
+                # Phần UI để người dùng chỉnh sửa tham số (giữ nguyên hoặc tùy chỉnh thêm)
+                # ... st.number_input cho các giá trị trong st.session_state.m5s2_params ...
+
+                if 'm5s2_results' not in st.session_state:
+                    # Tạo quỹ đạo ngẫu nhiên cho tàu ngầm CHỈ MỘT LẦN
+                    if 'm5s2_trajectory_params' not in st.session_state:
+                        p = st.session_state.m5s2_params
+                        R_TN = 2.0; OMEGA_TN = p['v_tn_max'] / R_TN if R_TN > 1e-6 else 0.1
+                        
+                        # Tạo hàm sin/cos
+                        params_x = [{"amp": random.uniform(R_TN*6, R_TN*12), "freq": random.uniform(OMEGA_TN*0.015, OMEGA_TN*0.07), "phase": random.uniform(0, 2*np.pi), "type": 'sin'}]
+                        params_y = [{"amp": random.uniform(R_TN*5, R_TN*10), "freq": random.uniform(OMEGA_TN*0.02, OMEGA_TN*0.08), "phase": random.uniform(0, 2*np.pi), "type": 'cos'}]
+                        
+                        # Tính offset để đặt vị trí ban đầu
+                        z0_kt = np.array([0.0, 0.0]) # Giả định tàu khu trục ở gốc tọa độ
+                        random_angle = random.uniform(0, 2 * np.pi)
+                        tn_offset_from_kt = p['initial_dist'] * np.array([np.cos(random_angle), np.sin(random_angle)])
+                        
+                        z0_tn_base_at_t0 = _m5s2_z_tn_base(0.0, {"params_x": params_x, "params_y": params_y, "offset_x": 0, "offset_y": 0})
+                        
+                        st.session_state.m5s2_trajectory_params = {
+                            "offset_x": z0_kt[0] + tn_offset_from_kt[0] - z0_tn_base_at_t0[0],
+                            "offset_y": z0_kt[1] + tn_offset_from_kt[1] - z0_tn_base_at_t0[1],
+                            "params_x": params_x, "params_y": params_y
+                        }
+                        st.session_state.z0_kt = z0_kt
+                        st.session_state.z0_tn = _m5s2_z_tn_base(0.0, st.session_state.m5s2_trajectory_params)
                     solver_func = solver_map.get(method_short, {}).get(steps_int)
 
                     if solver_func:
