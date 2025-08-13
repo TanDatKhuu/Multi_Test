@@ -263,7 +263,7 @@
 	"screen3_legend_m5s2_path_destroyer": "Destroyer trajectory", 
 	"screen3_legend_m5s2_catch_point": "Catch point",
 	"screen3_m5_time_when_caught_label": "Time to catch submarine:",
-
+	"press_generate_to_see_info": "Press 'Generate and Show Simulation' to see detailed information.",
 	"speed_slow": "Slow",
     "speed_normal": "Normal",
     "speed_fast": "Fast",
