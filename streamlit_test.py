@@ -1938,7 +1938,7 @@ def initialize_session_state():
 
 # Hàm chính để điều hướng giữa các trang
 def main():
-    # Bước 1: Khởi tạo session_state (chỉ chạy một lần)
+    # Bước 1: Khởi tạo session_state
     if 'page' not in st.session_state:
         initialize_session_state()
 
@@ -1958,8 +1958,7 @@ def main():
     # Bước 4: Luôn render navbar
     render_navbar()
 
-    # Bước 5: Điều hướng trang một cách rõ ràng
-    # Chỉ một trong các khối if/elif này sẽ được thực thi
+    # Bước 5: Điều hướng trang
     page = st.session_state.get('page', 'welcome')
 
     if page == 'welcome':
@@ -1967,16 +1966,15 @@ def main():
     elif page == 'model_selection':
         show_model_selection_page()
     elif page == 'simulation':
-        # Chia layout cho trang mô phỏng
-        sidebar_col, main_col = st.columns([1, 2.5])
-        with sidebar_col:
-            show_simulation_sidebar() # Tách sidebar ra hàm riêng
-        with main_col:
-            show_simulation_main_content() # Tách nội dung chính ra hàm riêng
+        # Hàm sidebar sẽ trả về True nếu form được submit
+        form_submitted = show_simulation_sidebar()
+        
+        # Hàm main_content sẽ nhận biết form đã được submit hay chưa
+        show_simulation_main_content(form_submitted)
+        
     elif page == 'dynamic_simulation':
         show_dynamic_simulation_page()
     else:
-        # Mặc định quay về trang welcome nếu có lỗi
         show_welcome_page()
 
 # Các hàm render trang (sẽ được định nghĩa ở các phần sau)
@@ -2486,29 +2484,25 @@ class NumpyEncoder(json.JSONEncoder):
             return obj.tolist()
         return json.JSONEncoder.default(self, obj)
 # Highlight: Toàn bộ hàm show_simulation_page được viết lại
+
 def show_simulation_sidebar():
-    if not st.session_state.selected_model_key:
-        st.warning(tr("msg_select_model_first"))
-        if st.button(tr("go_back_to_select"), type="primary"):
-            st.session_state.page = 'model_selection'
-            st.rerun()
-        return
-
-    model_data = MODELS_DATA[st.session_state.selected_model_key]
-    model_id = model_data.get("id", "")
-    model_name_tr = tr(f"{model_id}_name")
-
-    # --- THANH BÊN (SIDEBAR) CHO CÁC ĐIỀU KHIỂN ---
+    """Vẽ sidebar và trả về True nếu form được submit."""
     with st.sidebar:
-        # Highlight: Nút quay lại chọn mô hình được đặt ở đây
         if st.button(f"ᐊᐊ {tr('go_back_to_select')}", key="back_to_model_selection_btn"):
             st.session_state.page = 'model_selection'
             st.session_state.simulation_results = {}
             st.session_state.validated_params = {}
             st.rerun()
-            
+
         st.title(tr('sidebar_title'))
         
+        if not st.session_state.selected_model_key:
+            st.warning("Vui lòng chọn một mô hình trước.")
+            return False # Trả về False vì không có gì để submit
+
+        model_data = MODELS_DATA[st.session_state.selected_model_key]
+        model_id = model_data.get("id", "")
+
         with st.form(key='simulation_form'):
             st.header(tr('screen2_method_group'))
             method_options = {tr('screen2_method_ab'): "Bashforth", tr('screen2_method_am'): "Moulton"}
@@ -2563,27 +2557,48 @@ def show_simulation_sidebar():
             st.session_state.validated_params = {}
             st.rerun()
 
-    # --- KHU VỰC HIỂN THỊ CHÍNH ---
-    st.header(tr('simulation_results_title'))
-    st.subheader(model_name_tr)
-
-    if submitted:
-        is_valid = True
-        if not selected_steps_int:
-            st.toast(tr('msg_select_step'), icon='⚠️')
-            is_valid = False
-        if 't₀' in param_inputs and 't₁' in param_inputs and param_inputs['t₁'] <= param_inputs['t₀']:
-            st.toast(tr('msg_t_end_error'), icon='⚠️')
-            is_valid = False
-        
-        if is_valid:
-            validated_params = {
+        if submitted:
+            # Nếu form được submit, lưu các tham số vào session_state
+            st.session_state.validated_params = {
                 'params': param_inputs, 'method_short': selected_method_short, 
                 'h_target': float(selected_h_str), 'model_id': model_id,
                 'selected_steps_int': selected_steps_int, 'selected_component': selected_component
             }
-            st.session_state.validated_params = validated_params # Lưu để các trang khác dùng
+            return True # Trả về True
+            
+    return False
+def show_simulation_main_content(form_submitted):
+    """Vẽ khu vực kết quả, đồ thị và các tab"""
+    if not st.session_state.selected_model_key:
+        st.warning(tr("msg_select_model_first"))
+        if st.button(tr("go_back_to_select"), type="primary"):
+            st.session_state.page = 'model_selection'
+            st.rerun()
+        return
 
+    model_data = MODELS_DATA[st.session_state.selected_model_key]
+    model_id = model_data.get("id", "")
+    model_name_tr = tr(f"{model_id}_name")
+
+    st.header(tr('simulation_results_title'))
+    st.subheader(model_name_tr)
+
+    # Chỉ chạy mô phỏng khi form vừa được submit
+    if form_submitted:
+        validated_params = st.session_state.validated_params
+        param_inputs = validated_params['params']
+        selected_method_short = validated_params['method_short']
+        selected_steps_int = validated_params['selected_steps_int']
+        selected_h_str = str(validated_params['h_target'])
+        selected_component = validated_params['selected_component']
+        
+        is_valid = True
+        if not selected_steps_int: 
+            st.toast(tr('msg_select_step'), icon='⚠️'); is_valid = False
+        if 't₀' in param_inputs and 't₁' in param_inputs and param_inputs['t₁'] <= param_inputs['t₀']: 
+            st.toast(tr('msg_t_end_error'), icon='⚠️'); is_valid = False
+        
+        if is_valid:
             with st.spinner(tr('screen2_info_area_running')):
                 for key in ['last_calculated_c', 'last_calculated_r', 'last_calculated_alpha', 'last_calculated_beta']:
                     if key in st.session_state: del st.session_state[key]
@@ -2600,8 +2615,10 @@ def show_simulation_sidebar():
                     st.session_state.simulation_results = results_dict
                 else:
                     st.session_state.simulation_results = {}
-            st.rerun()
-
+        else:
+            st.session_state.simulation_results = {} # Xóa kết quả cũ nếu input mới không hợp lệ
+    
+    # --- Phần hiển thị kết quả (luôn chạy) ---
     results = st.session_state.get('simulation_results', {})
     if not results:
         st.info(tr('screen2_info_area_init'))
@@ -2619,7 +2636,6 @@ def show_simulation_sidebar():
         can_run_dynamic = model_data.get("can_run_abm_on_screen3", False) or model_id in ['model2', 'model5']
         if can_run_dynamic:
             if st.button(tr("screen2_goto_screen3_button"), use_container_width=True, type="primary"):
-                # Dòng này vẫn cần thiết để truyền dữ liệu sang trang động
                 st.session_state.dynamic_plot_data = validated_params_display.copy()
                 st.session_state.page = 'dynamic_simulation'
                 st.rerun()
@@ -2653,7 +2669,7 @@ def show_simulation_sidebar():
             exact_plotted = False
             color_idx = 0
             for step_str, res in sorted(results_data.items()):
-                step = int(step_str) # JSON keys are strings
+                step = int(step_str)
                 method_label = f"{method_prefix}{step}"
                 if res.get('t_plot') is not None and res.get('approx_sol_plot') is not None and len(res['t_plot']) > 0:
                     if not exact_plotted and res.get('exact_sol_plot') is not None and len(res['exact_sol_plot']) > 0:
@@ -2716,9 +2732,9 @@ def show_simulation_sidebar():
         figures = generate_and_get_figures(
             results_json,
             st.session_state.lang, 
-            validated_params['model_id'], 
-            validated_params['method_short'], 
-            validated_params.get('selected_component', 'x')
+            validated_params_display['model_id'], 
+            validated_params_display['method_short'], 
+            validated_params_display.get('selected_component', 'x')
         )
         
         with tab1:
@@ -2730,7 +2746,7 @@ def show_simulation_sidebar():
         with tab4:
             for step_str, res in sorted(results.items()):
                 step = int(step_str)
-                with st.expander(f"**Adam-{validated_params['method_short']} {step} {tr('screen2_info_area_show_data_textCont1')}**"):
+                with st.expander(f"**Adam-{validated_params_display['method_short']} {step} {tr('screen2_info_area_show_data_textCont1')}**"):
                     slope_str = f"{res.get('order_slope', 'N/A'):.4f}" if isinstance(res.get('order_slope'), float) else "N/A"
                     st.markdown(f"**{tr('screen2_info_area_show_data_order')}** {slope_str}")
                     
