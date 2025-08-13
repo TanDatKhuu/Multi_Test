@@ -92,7 +92,7 @@
 	"screen2_actions_group": "4. Execute and save", 
 	"screen2_init_button": "🚀 Initialize and plot graphs", 
 	"screen2_refresh_button": "🔄 Refresh parameters", 
-	"screen2_show_data_button": "📊 View numerical data", 
+	"screen2_show_data_button": "View numerical data", 
 	"screen2_save_button": "💾 Save plot images",
 	"sidebar_title": "Control Panel",
   	"simulation_results_title": "Simulation Results",
