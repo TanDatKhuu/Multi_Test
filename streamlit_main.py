@@ -3176,25 +3176,38 @@ def show_dynamic_simulation_page():
         
         # --- MODEL 5 ---
         elif model_id == 'model5' and sim_data:
+            # --- KỊCH BẢN 1: Thuyền qua sông ---
             if m5_scenario_id == 1:
                 t_data = sim_data.get('t_plot')
-                if t_data is None or len(t_data) == 0: animation_ended = True
+                if t_data is None or len(t_data) == 0: 
+                    animation_ended = True
                 else:
-                    if current_frame >= len(t_data): animation_ended = True; current_frame = len(t_data) - 1
+                    if current_frame >= len(t_data): 
+                        animation_ended = True
+                        current_frame = len(t_data) - 1
+                    
                     x_path, y_path = sim_data['approx_sol_plot_all_components']
+                    
+                    # Vẽ đồ thị
                     ax.plot(x_path, y_path, 'b--', alpha=0.5, label=tr('screen3_legend_m5s1_path'))
                     ax.plot(x_path[current_frame], y_path[current_frame], 'rP', markersize=12, label=tr('screen3_legend_m5s1_boat'))
-                    d_val = validated_params['params']['x0']
-                    ax.axvline(0, color='grey', ls=':'); ax.axvline(d_val, color='grey', ls=':')
-                    ax.set_xlabel(tr('screen3_model5_plot_xlabel_sim1')); ax.set_ylabel(tr('screen3_model5_plot_ylabel_sim1'))
-                    ax.grid(True); ax.legend(); ax.set_aspect('equal')
                     
+                    d_val = validated_params['params']['x0']
+                    ax.axvline(0, color='grey', ls=':')
+                    ax.axvline(d_val, color='grey', ls=':')
+                    ax.set_xlabel(tr('screen3_model5_plot_xlabel_sim1'))
+                    ax.set_ylabel(tr('screen3_model5_plot_ylabel_sim1'))
+                    ax.grid(True)
+                    ax.legend()
+                    ax.set_aspect('equal')
+                    
+                    # Hiển thị thông tin
                     metrics_data_m5s1 = {
-					    tr('screen3_m5_boat_speed'): {'value': f"{validated_params['params']['v']:.2f}"},
-					    tr('screen3_m5_water_speed'): {'value': f"{validated_params['params']['u']:.2f}"},
-					    tr('screen3_m5_crossing_time'): {'value': f"{t_data[current_frame]:.2f} s"}
-					}
-					
+                        tr('screen3_m5_boat_speed'): {'value': f"{validated_params['params']['v']:.2f}"},
+                        tr('screen3_m5_water_speed'): {'value': f"{validated_params['params']['u']:.2f}"},
+                        tr('screen3_m5_crossing_time'): {'value': f"{t_data[current_frame]:.2f} s"}
+                    }
+
                     if animation_ended:
                         final_pos_str = f"({x_path[-1]:.2f}, {y_path[-1]:.2f})"
                         reaches_target_str = tr('answer_yes') if abs(x_path[-1]) < 0.1 else tr('answer_no')
@@ -3203,41 +3216,40 @@ def show_dynamic_simulation_page():
 
                     display_custom_metric(info_placeholder, metrics_data_m5s1)
             
+            # --- KỊCH BẢN 2: Đuổi bắt (LOGIC GIỐNG PYSIDE6) ---
             elif m5_scenario_id == 2:
                 # Khối này sẽ chạy một lần duy nhất sau khi Reset hoặc chuyển kịch bản
                 if 'm5s2_results' not in st.session_state:
-                    # 1. Thiết lập các tham số giống hệt PySide6
-                    if 'm5s2_params' not in st.session_state:
-                        print("Setting up M5S2 params from PySide6 logic...")
-                        # Lấy các giá trị v, u từ Screen 2
-                        s2_params = validated_params.get('params', {})
-                        v_kt = s2_params.get('v', 6.0) # Vận tốc tàu khu trục
-                        v_tn_max = s2_params.get('u', 3.0) # Vận tốc tàu ngầm
-                        t_start = s2_params.get('t₀', 0.0)
+                    
+                    # 1. Lấy tham số gốc từ Screen 2 (giống hệt PySide6)
+                    s2_params = validated_params.get('params', {})
+                    if not s2_params:
+                        st.error("Lỗi: Không tìm thấy tham số đã xác thực từ Screen 2.")
+                        return # Dừng thực thi nếu không có tham số
+                    
+                    # 2. Thiết lập các tham số mô phỏng dựa trên tham số gốc
+                    v_kt = s2_params.get('v', 6.0)       # Vận tốc tàu khu trục = v
+                    v_tn_max = s2_params.get('u', 3.0)   # Vận tốc tàu ngầm = u
+                    z0_kt = np.array([s2_params.get('x0', 0.0), s2_params.get('y0', 0.0)])
+                    t_start = s2_params.get('t₀', 0.0)
 
-                        # Các hằng số và giá trị tính toán giống PySide6
-                        INITIAL_DISTANCE_D = 30.0
-                        avoidance_radius = INITIAL_DISTANCE_D * 0.40
-                        
-                        st.session_state.m5s2_params = {
-                            'v_kt': v_kt,
-                            'v_tn_max': v_tn_max,
-                            'z0_kt': np.array([s2_params.get('x0', 0.0), s2_params.get('y0', 0.0)]),
-                            'initial_dist': INITIAL_DISTANCE_D,
-                            't_start': t_start,
-                            'simulation_duration': 70.0, # Thời gian mô phỏng tối đa
-                            'method_short': validated_params.get('method_short', 'Bashforth'),
-                            'method_steps': validated_params.get('selected_steps_int', [4])[-1],
-                            'avoidance_radius': avoidance_radius,
-                            'kt_radar_radius': avoidance_radius * 2.8,
-                            'catch_threshold': 0.75,
-                            'fov_tn_degrees': 120.0,
-                            'avoidance_strength': 1.1,
-                            'min_time_free_turn': 7.0, # 70.0 / 10.0
-                            'max_angle_free_turn_rad': np.deg2rad(50)
-                        }
+                    INITIAL_DISTANCE_D = 30.0
+                    avoidance_radius = INITIAL_DISTANCE_D * 0.40
+                    
+                    st.session_state.m5s2_params = {
+                        'v_kt': v_kt, 'v_tn_max': v_tn_max, 'z0_kt': z0_kt,
+                        'initial_dist': INITIAL_DISTANCE_D, 't_start': t_start,
+                        'simulation_duration': 70.0,
+                        'method_short': validated_params.get('method_short', 'Bashforth'),
+                        'method_steps': validated_params.get('selected_steps_int', [4])[-1],
+                        'avoidance_radius': avoidance_radius,
+                        'kt_radar_radius': avoidance_radius * 2.8,
+                        'catch_threshold': 0.75, 'fov_tn_degrees': 120.0,
+                        'avoidance_strength': 1.1, 'min_time_free_turn': 7.0,
+                        'max_angle_free_turn_rad': np.deg2rad(50)
+                    }
 
-                    # 2. Tạo quỹ đạo ngẫu nhiên cho tàu ngầm (chỉ một lần)
+                    # 3. Tạo quỹ đạo ngẫu nhiên cho tàu ngầm (chỉ một lần)
                     if 'm5s2_trajectory_params' not in st.session_state:
                         p = st.session_state.m5s2_params
                         R_TN = 2.0; OMEGA_TN = p['v_tn_max'] / R_TN if R_TN > 1e-6 else 0.1
@@ -3255,7 +3267,7 @@ def show_dynamic_simulation_page():
                         }
                         st.session_state.z0_tn = _m5s2_z_tn_base(p['t_start'], st.session_state.m5s2_trajectory_params)
 
-                    # 3. Chạy mô phỏng và cache kết quả
+                    # 4. Chạy mô phỏng và cache kết quả
                     solver_map = { "Bashforth": {2: AB2_system_M5_Sim2_CombinedLogic, 3: AB3_system_M5_Sim2_CombinedLogic, 4: AB4_system_M5_Sim2_CombinedLogic, 5: AB5_system_M5_Sim2_CombinedLogic}, "Moulton": {2: AM2_system_M5_Sim2_CombinedLogic, 3: AM3_system_M5_Sim2_CombinedLogic, 4: AM4_system_M5_Sim2_CombinedLogic} }
                     solver_func = solver_map[st.session_state.m5s2_params['method_short']][st.session_state.m5s2_params['method_steps']]
                     
@@ -3270,7 +3282,7 @@ def show_dynamic_simulation_page():
                         
                         st.session_state.m5s2_results = _run_and_cache_m5_sim2(solver_func, t_array, initial_state, p['catch_threshold'])
 
-                # 4. Vẽ đồ thị từ kết quả đã có (logic này không đổi)
+                # 5. Vẽ đồ thị và hiển thị thông tin từ kết quả đã có
                 m5s2_res = st.session_state.get('m5s2_results')
                 if not m5s2_res:
                     ax.text(0.5, 0.5, "Lỗi tính toán, không có dữ liệu.", ha='center', va='center')
@@ -3291,7 +3303,6 @@ def show_dynamic_simulation_page():
 
                     ax.set_xlabel("X"); ax.set_ylabel("Y"); ax.grid(True); ax.legend(); ax.set_aspect('equal')
                     
-                    # Cập nhật info panel với thông tin từ PySide6
                     p_disp = st.session_state.m5s2_params
                     z0_tn_disp = st.session_state.z0_tn
                     
