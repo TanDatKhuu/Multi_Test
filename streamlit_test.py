@@ -2904,7 +2904,7 @@ def create_animation_gif(model_id, model_data, validated_params, speed_multiplie
     Trả về dữ liệu bytes của file GIF và một dictionary chứa thông tin cuối cùng.
     """
     try:
-		progress_bar_placeholder = st.empty()
+        progress_bar_placeholder = st.empty()
         progress_text_placeholder = st.empty()
         frames = []
         fig, ax = plt.subplots(figsize=(8, 8), dpi=90) # DPI thấp hơn để file nhẹ hơn
