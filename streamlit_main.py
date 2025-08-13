@@ -55,26 +55,6 @@ def tr(key):
     return st.session_state.translations.get(key, key)
 	
 def render_navbar():
-    st.markdown("""
-        <style>
-            /* Tìm đến cột chứa selectbox ngôn ngữ */
-            div.st-emotion-cache-1jicfl2.e1f1d6gn3 > div:nth-child(5) > div > div > div[data-testid="stSelectbox"] {
-                position: relative; /* Cần thiết để lớp phủ hoạt động */
-            }
-
-            /* Tạo lớp phủ trong suốt */
-            div.st-emotion-cache-1jicfl2.e1f1d6gn3 > div:nth-child(5) > div > div > div[data-testid="stSelectbox"]::before {
-                content: '';
-                position: absolute;
-                left: 0;
-                right: 0;
-                top: 0;
-                bottom: 0;
-                cursor: pointer; /* Áp dụng con trỏ hình bàn tay cho lớp phủ */
-                z-index: 1; /* Đảm bảo lớp phủ nằm trên cùng */
-            }
-        </style>
-    """, unsafe_allow_html=True)
     # Sử dụng st.columns để tạo layout cho thanh nav
     col1, col2, col3, col4, col5 = st.columns([3, 1.5, 1.5, 1, 1.5])
 
