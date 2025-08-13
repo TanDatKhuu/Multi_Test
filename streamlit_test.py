@@ -3167,8 +3167,8 @@ def show_dynamic_simulation_page():
         if st.button(tr('screen3_back_button')): navigate_to('simulation')
         return
 
-    model_data = MODELS_DATA[st.session_state.selected_model_key]
-    model_id = model_data.get("id", "")
+    model_id = validated_params.get("model_id")
+    model_data = MODELS_DATA.get(st.session_state.get("selected_model_key"))
     
     # --- Bố cục giao diện chính ---
     header_cols = st.columns([1.5, 4, 1.5])
