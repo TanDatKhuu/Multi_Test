@@ -2930,7 +2930,7 @@ def show_dynamic_simulation_page():
         # Không cần thay đổi st.session_state.page vì ta muốn ở lại trang này
 
     # --- Bố cục giao diện ---
-    header_cols = st.columns([1, 2, 1])
+    header_cols = st.columns([0.75, 2.5, 0.75])
     with header_cols[0]:
         st.button(f"{tr('screen3_back_button')}", on_click=navigate_to, args=('simulation',),type="primary", use_container_width=True)
     with header_cols[1]:
