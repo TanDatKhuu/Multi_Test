@@ -2955,6 +2955,9 @@ def create_animation_gif(model_id, model_data, validated_params, speed_multiplie
 
         # --- Vòng lặp tạo từng frame ---
         for frame_idx in range(num_frames):
+            progress_percent = (frame_idx + 1) / num_frames
+            progress_bar_placeholder.progress(progress_percent)
+            progress_text_placeholder.text(f"{tr('gif_generating_spinner')} ({frame_idx + 1}/{num_frames})")
             ax.clear()
 
             # --- MODEL 2: TĂNG TRƯỞNG TẾ BÀO ---
