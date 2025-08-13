@@ -2795,7 +2795,7 @@ def _m5_sim2_combined_ode(t, state):
 # =================================================================================
 def show_dynamic_simulation_page():
     # --- Phần kiểm tra dữ liệu và lấy thông tin model (giữ nguyên) ---
-	st.markdown("""
+    st.markdown("""
     <style>
     .metric-container {
         border: 1px solid #e0e0e0;
@@ -2826,15 +2826,15 @@ def show_dynamic_simulation_page():
     """, unsafe_allow_html=True)
 
     def display_custom_metric(placeholder, data_dict):
-        """Hàm helper để hiển thị thông tin với style tùy chỉnh."""
-        html_content = "<div class='metric-container'>"
-        for label, value_info in data_dict.items():
-            value = value_info['value']
-            size_class = value_info.get('size_class', 'metric-value')
-            html_content += f"<div class='metric-label'>{label}</div>"
-            html_content += f"<div class='{size_class}'>{value}</div>"
-        html_content += "</div>"
-        placeholder.markdown(html_content, unsafe_allow_html=True)
+	        """Hàm helper để hiển thị thông tin với style tùy chỉnh."""
+	        html_content = "<div class='metric-container'>"
+	        for label, value_info in data_dict.items():
+	            value = value_info['value']
+	            size_class = value_info.get('size_class', 'metric-value')
+	            html_content += f"<div class='metric-label'>{label}</div>"
+	            html_content += f"<div class='{size_class}'>{value}</div>"
+	        html_content += "</div>"
+	        placeholder.markdown(html_content, unsafe_allow_html=True)
 		
     validated_params = st.session_state.get('validated_params', {})
     if not validated_params:
