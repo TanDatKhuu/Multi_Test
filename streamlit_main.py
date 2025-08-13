@@ -57,8 +57,12 @@ def tr(key):
 def render_navbar():
     st.markdown("""
         <style>
-            /* Thay đổi con trỏ chuột cho selectbox ngôn ngữ */
-            div[data-testid="stSelectbox"] > div {
+            /* Nhắm vào selectbox có key là 'lang_selector_nav' */
+            div[data-testid="stSelectbox"] [key="lang_selector_nav"] {
+                cursor: pointer;
+            }
+            /* Cần thêm cả phần tử bên trong nó để đảm bảo hoạt động trên mọi trình duyệt */
+            div[data-testid="stSelectbox"] [key="lang_selector_nav"] > div {
                 cursor: pointer;
             }
         </style>
@@ -2045,11 +2049,6 @@ def show_model_selection_page():
         <style>
         .main { background-color: #E6ECF4; }
         div[data-testid="stAppViewBlockContainer"] { padding-top: 2rem; }
-
-        /* Thay đổi con trỏ chuột cho selectbox ngôn ngữ */
-            div[data-testid="stSelectbox"] > div {
-                cursor: pointer;
-            }
         </style>
     """, unsafe_allow_html=True)
 	# --- NỘI DUNG CHÍNH CỦA TRANG ---
