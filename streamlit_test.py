@@ -3218,13 +3218,13 @@ def show_dynamic_simulation_page():
                 gif_bytes, final_stats = create_animation_gif(model_id, model_data, validated_params, speed_multiplier)
             
                 st.session_state.generate_gif_request = False # Reset cờ
-	            if gif_bytes:
-	                st.session_state.generated_gif = gif_bytes
-	                st.session_state.final_anim_stats = final_stats
-	                st.rerun()
-	            else:
-	                st.error(tr("gif_generation_error"))
-	                info_placeholder.error(tr("gif_generation_error"))
+                if gif_bytes:
+                    st.session_state.generated_gif = gif_bytes
+                    st.session_state.final_anim_stats = final_stats
+                    st.rerun()
+                else:
+                    st.error(tr("gif_generation_error"))
+                    info_placeholder.error(tr("gif_generation_error"))
 
         elif 'generated_gif' in st.session_state and st.session_state.generated_gif:
             # Nếu đã có GIF, hiển thị nó
