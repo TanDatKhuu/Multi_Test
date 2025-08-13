@@ -3213,12 +3213,9 @@ def show_dynamic_simulation_page():
         # Highlight: Sửa lại logic hiển thị
         # Ưu tiên kiểm tra cờ yêu cầu tạo GIF trước
         if st.session_state.get('generate_gif_request', False):
-            # Tạo placeholder cho progress bar ở đây
-            progress_container = st.empty()
-            with progress_container.container():
-                st.write(tr("gif_generating_spinner")) # Văn bản tĩnh
-                # Hàm create_animation_gif sẽ tự điền vào các placeholder nó tạo ra
-                gif_bytes, final_stats = create_animation_gif(model_id, model_data, validated_params, speed_multiplier)
+            speed_multiplier = st.session_state.get('speed_multiplier', 1.0)
+            # Hàm create_animation_gif sẽ tự điền vào các placeholder nó tạo ra
+            gif_bytes, final_stats = create_animation_gif(model_id, model_data, validated_params, speed_multiplier)
             
             st.session_state.generate_gif_request = False # Reset cờ
             if gif_bytes:
