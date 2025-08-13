@@ -1939,43 +1939,29 @@ def initialize_session_state():
 # Hàm chính để điều hướng giữa các trang
 def main():
     # Bước 1: Khởi tạo session_state
-    if 'page' not in st.session_state:
-        initialize_session_state()
+    initialize_session_state()
 
-    # Bước 2: Tải lại ngôn ngữ nếu có thay đổi
-    if 'translations' not in st.session_state or st.session_state.get('lang_changed', False):
-        st.session_state.translations = load_language_file(st.session_state.lang)
-        st.session_state.lang_changed = False
+    # Bước 2: Cấu hình trang
+    # Sử dụng tên file icon chính xác của bạn
+    icon_path = os.path.join(FIG_FOLDER, "icon-app.ico") 
+    
+    page_icon_to_use = icon_path 
 
-    # Bước 3: Cấu hình trang chung
-    icon_path = os.path.join(FIG_FOLDER, "icon-app.ico")
     st.set_page_config(
         layout="wide", 
         page_title=tr("app_title"),
-        page_icon=icon_path if os.path.exists(icon_path) else "🧪"
+        page_icon=page_icon_to_use
     )
-
-    # Bước 4: Luôn render navbar
-    render_navbar()
-
-    # Bước 5: Điều hướng trang
-    page = st.session_state.get('page', 'welcome')
-
-    if page == 'welcome':
+    render_navbar() 
+    # Bước 3: Chạy logic điều hướng trang
+    if st.session_state.page == 'welcome':
         show_welcome_page()
-    elif page == 'model_selection':
+    elif st.session_state.page == 'model_selection':
         show_model_selection_page()
-    elif page == 'simulation':
-        # Hàm sidebar sẽ trả về True nếu form được submit
-        form_submitted = show_simulation_sidebar()
-        
-        # Hàm main_content sẽ nhận biết form đã được submit hay chưa
-        show_simulation_main_content(form_submitted)
-        
-    elif page == 'dynamic_simulation':
+    elif st.session_state.page == 'simulation':
+        show_simulation_page()
+    elif st.session_state.page == 'dynamic_simulation':
         show_dynamic_simulation_page()
-    else:
-        show_welcome_page()
 
 # Các hàm render trang (sẽ được định nghĩa ở các phần sau)
 # ==============================================
@@ -2484,25 +2470,27 @@ class NumpyEncoder(json.JSONEncoder):
             return obj.tolist()
         return json.JSONEncoder.default(self, obj)
 # Highlight: Toàn bộ hàm show_simulation_page được viết lại
+def show_simulation_page():
+    if not st.session_state.selected_model_key:
+        st.warning(tr("msg_select_model_first"))
+        if st.button(tr("go_back_to_select"), type="primary"):
+            st.session_state.page = 'model_selection'
+            st.rerun()
+        return
 
-def show_simulation_sidebar():
-    """Vẽ sidebar và trả về True nếu form được submit."""
+    model_data = MODELS_DATA[st.session_state.selected_model_key]
+    model_id = model_data.get("id", "")
+    model_name_tr = tr(f"{model_id}_name")
+    # --- THANH BÊN (SIDEBAR) CHO CÁC ĐIỀU KHIỂN ---
     with st.sidebar:
-        if st.button(f"ᐊᐊ {tr('go_back_to_select')}", key="back_to_model_selection_btn"):
+        if st.button(f"{tr('screen2_back_button')}",type = "primary"):
             st.session_state.page = 'model_selection'
             st.session_state.simulation_results = {}
             st.session_state.validated_params = {}
             st.rerun()
-
-        st.title(tr('sidebar_title'))
         
-        if not st.session_state.selected_model_key:
-            st.warning("Vui lòng chọn một mô hình trước.")
-            return False # Trả về False vì không có gì để submit
-
-        model_data = MODELS_DATA[st.session_state.selected_model_key]
-        model_id = model_data.get("id", "")
-
+        st.title(tr("sidebar_title"))
+        
         with st.form(key='simulation_form'):
             st.header(tr('screen2_method_group'))
             method_options = {tr('screen2_method_ab'): "Bashforth", tr('screen2_method_am'): "Moulton"}
@@ -2550,85 +2538,65 @@ def show_simulation_sidebar():
                 selected_comp_disp = st.radio(tr('model5_select_component'), list(comp_options.keys()), horizontal=True, key=f"comp_{model_id}")
                 selected_component = comp_options[selected_comp_disp]
             
-            submitted = st.form_submit_button(f"🚀 {tr('screen2_init_button')}", type="primary")
+            submitted = st.form_submit_button(tr('screen2_init_button'), type="primary")
 
-        if st.button(f"🔄 {tr('screen2_refresh_button')}"):
+        if st.button(tr('screen2_refresh_button')):
             st.session_state.simulation_results = {}
             st.session_state.validated_params = {}
             st.rerun()
 
-        if submitted:
-            # Nếu form được submit, lưu các tham số vào session_state
-            st.session_state.validated_params = {
-                'params': param_inputs, 'method_short': selected_method_short, 
-                'h_target': float(selected_h_str), 'model_id': model_id,
-                'selected_steps_int': selected_steps_int, 'selected_component': selected_component
-            }
-            return True # Trả về True
-            
-    return False
-def show_simulation_main_content(form_submitted):
-    """Vẽ khu vực kết quả, đồ thị và các tab"""
-    if not st.session_state.selected_model_key:
-        st.warning(tr("msg_select_model_first"))
-        if st.button(tr("go_back_to_select"), type="primary"):
-            st.session_state.page = 'model_selection'
-            st.rerun()
-        return
-
-    model_data = MODELS_DATA[st.session_state.selected_model_key]
-    model_id = model_data.get("id", "")
-    model_name_tr = tr(f"{model_id}_name")
-
+    # --- KHU VỰC HIỂN THỊ CHÍNH ---
     st.header(tr('simulation_results_title'))
     st.subheader(model_name_tr)
 
-    # Chỉ chạy mô phỏng khi form vừa được submit
-    if form_submitted:
-        validated_params = st.session_state.validated_params
-        param_inputs = validated_params['params']
-        selected_method_short = validated_params['method_short']
-        selected_steps_int = validated_params['selected_steps_int']
-        selected_h_str = str(validated_params['h_target'])
-        selected_component = validated_params['selected_component']
-        
-        is_valid = True
-        if not selected_steps_int: 
-            st.toast(tr('msg_select_step'), icon='⚠️'); is_valid = False
-        if 't₀' in param_inputs and 't₁' in param_inputs and param_inputs['t₁'] <= param_inputs['t₀']: 
-            st.toast(tr('msg_t_end_error'), icon='⚠️'); is_valid = False
-        
-        if is_valid:
-            with st.spinner(tr('screen2_info_area_running')):
+    if submitted:
+        with st.spinner(tr('screen2_info_area_running')):
+            is_valid = True
+            if not selected_steps_int:
+                st.toast(tr('msg_select_step'), icon='⚠️')
+                is_valid = False
+            if 't₀' in param_inputs and 't₁' in param_inputs and param_inputs['t₁'] <= param_inputs['t₀']:
+                st.toast(tr('msg_t_end_error'), icon='⚠️')
+                is_valid = False
+            
+            if is_valid:
                 for key in ['last_calculated_c', 'last_calculated_r', 'last_calculated_alpha', 'last_calculated_beta']:
-                    if key in st.session_state: del st.session_state[key]
+                    if key in st.session_state:
+                        del st.session_state[key]
                 
                 prep_ok, prep_data, calculated_params = _prepare_simulation_functions(model_data, param_inputs, selected_method_short)
                 
                 if prep_ok:
-                    for key, value in calculated_params.items(): st.session_state[f'last_calculated_{key}'] = value
+                    for key, value in calculated_params.items():
+                        st.session_state[f'last_calculated_{key}'] = value
+                    
                     ode_func, exact_callable, y0, t_start, t_end = prep_data
                     results_dict = {}
                     for steps in selected_steps_int:
                         res = _perform_single_simulation(model_data, ode_func, exact_callable, y0, t_start, t_end, selected_method_short, steps, float(selected_h_str), selected_component)
-                        if res: results_dict[steps] = res
+                        if res:
+                            results_dict[steps] = res
+                    
                     st.session_state.simulation_results = results_dict
+                    st.session_state.validated_params = {
+                        'params': param_inputs, 'method_short': selected_method_short, 
+                        'h_target': float(selected_h_str), 'model_id': model_id,
+                        'selected_steps_int': selected_steps_int, 'selected_component': selected_component
+                    }
+                    st.rerun()
                 else:
                     st.session_state.simulation_results = {}
-        else:
-            st.session_state.simulation_results = {} # Xóa kết quả cũ nếu input mới không hợp lệ
-    
-    # --- Phần hiển thị kết quả (luôn chạy) ---
+
     results = st.session_state.get('simulation_results', {})
     if not results:
         st.info(tr('screen2_info_area_init'))
     else:
-        validated_params_display = st.session_state.validated_params
-        if 'last_calculated_c' in st.session_state and validated_params_display.get('model_id') == 'model2':
+        validated_params = st.session_state.validated_params
+        if 'last_calculated_c' in st.session_state and validated_params.get('model_id') == 'model2':
             st.info(f"**{tr('model2_calculated_c_label')}** {st.session_state.last_calculated_c:.6g}")
-        if 'last_calculated_r' in st.session_state and validated_params_display.get('model_id') == 'model3':
+        if 'last_calculated_r' in st.session_state and validated_params.get('model_id') == 'model3':
             st.info(f"**{tr('model3_calculated_r_label')}** {st.session_state.last_calculated_r:.8g}")
-        if 'last_calculated_alpha' in st.session_state and validated_params_display.get('model_id') == 'model4':
+        if 'last_calculated_alpha' in st.session_state and validated_params.get('model_id') == 'model4':
             col_a, col_b = st.columns(2)
             col_a.info(f"**{tr('model4_param_alpha')}:** {st.session_state.last_calculated_alpha:.6g}")
             col_b.info(f"**{tr('model4_param_beta')}:** {st.session_state.last_calculated_beta:.6g}")
@@ -2636,7 +2604,11 @@ def show_simulation_main_content(form_submitted):
         can_run_dynamic = model_data.get("can_run_abm_on_screen3", False) or model_id in ['model2', 'model5']
         if can_run_dynamic:
             if st.button(tr("screen2_goto_screen3_button"), use_container_width=True, type="primary"):
-                st.session_state.dynamic_plot_data = validated_params_display.copy()
+                # --- SỬA LỖI: Thêm khối code lưu dữ liệu vào session_state ---
+                # Dữ liệu này sẽ được trang mô phỏng động sử dụng
+                st.session_state.dynamic_plot_data = validated_params.copy()
+                
+                # Sau khi lưu dữ liệu, mới chuyển trang
                 st.session_state.page = 'dynamic_simulation'
                 st.rerun()
         
@@ -2669,7 +2641,7 @@ def show_simulation_main_content(form_submitted):
             exact_plotted = False
             color_idx = 0
             for step_str, res in sorted(results_data.items()):
-                step = int(step_str)
+                step = int(step_str) # JSON keys are strings
                 method_label = f"{method_prefix}{step}"
                 if res.get('t_plot') is not None and res.get('approx_sol_plot') is not None and len(res['t_plot']) > 0:
                     if not exact_plotted and res.get('exact_sol_plot') is not None and len(res['exact_sol_plot']) > 0:
@@ -2732,9 +2704,9 @@ def show_simulation_main_content(form_submitted):
         figures = generate_and_get_figures(
             results_json,
             st.session_state.lang, 
-            validated_params_display['model_id'], 
-            validated_params_display['method_short'], 
-            validated_params_display.get('selected_component', 'x')
+            validated_params['model_id'], 
+            validated_params['method_short'], 
+            validated_params.get('selected_component', 'x')
         )
         
         with tab1:
@@ -2746,7 +2718,7 @@ def show_simulation_main_content(form_submitted):
         with tab4:
             for step_str, res in sorted(results.items()):
                 step = int(step_str)
-                with st.expander(f"**Adam-{validated_params_display['method_short']} {step} {tr('screen2_info_area_show_data_textCont1')}**"):
+                with st.expander(f"**Adam-{validated_params['method_short']} {step} {tr('screen2_info_area_show_data_textCont1')}**"):
                     slope_str = f"{res.get('order_slope', 'N/A'):.4f}" if isinstance(res.get('order_slope'), float) else "N/A"
                     st.markdown(f"**{tr('screen2_info_area_show_data_order')}** {slope_str}")
                     
@@ -2928,15 +2900,15 @@ def _run_and_cache_m5_sim2(_solver_func_name, t_array, initial_state, catch_radi
 
 def create_animation_gif(model_id, model_data, validated_params, speed_multiplier):
     """
-    Chạy mô phỏng, render các frame thành GIF, và trả về cả thông tin cuối cùng.
-    Trả về: (dữ liệu bytes của GIF, dictionary chứa thông tin cuối cùng)
+    Chạy mô phỏng và render tất cả các frame thành một file GIF.
+    Trả về dữ liệu bytes của file GIF và một dictionary chứa thông tin cuối cùng.
     """
     try:
         frames = []
-        fig, ax = plt.subplots(figsize=(8, 8), dpi=90)
+        fig, ax = plt.subplots(figsize=(8, 8), dpi=90) # DPI thấp hơn để file nhẹ hơn
         final_stats = {} # Dictionary để lưu thông tin cuối cùng
 
-        # --- Lấy dữ liệu mô phỏng ---
+        # --- Lấy dữ liệu mô phỏng cần thiết ---
         sim_data = {}
         if model_id == 'model5' and st.session_state.m5_scenario == 2:
             if 'm5s2_results' not in st.session_state:
@@ -2949,19 +2921,22 @@ def create_animation_gif(model_id, model_data, validated_params, speed_multiplie
 
         if not sim_data: return None, {}
 
-        # --- Xác định số lượng frame ---
+        # --- Xác định số lượng frame tối đa ---
         num_frames = 0
-        if model_id == 'model2': num_frames = len(sim_data.get('t_plot', []))
-        elif model_id == 'model3': num_frames = model_data.get("abm_defaults", {}).get("max_steps", 400)
-        elif model_id == 'model5' and st.session_state.m5_scenario == 1: num_frames = len(sim_data.get('t_plot', []))
-        elif model_id == 'model5' and st.session_state.m5_scenario == 2: num_frames = len(sim_data.get('time_points', []))
+        if model_id == 'model2':
+            num_frames = len(sim_data.get('t_plot', []))
+        elif model_id == 'model3':
+            num_frames = model_data.get("abm_defaults", {}).get("max_steps", 400)
+        elif model_id == 'model5' and st.session_state.m5_scenario == 1:
+            num_frames = len(sim_data.get('t_plot', []))
+        elif model_id == 'model5' and st.session_state.m5_scenario == 2:
+            num_frames = len(sim_data.get('time_points', []))
         
         if num_frames == 0: return None, {}
         
-        # --- Khởi tạo đối tượng mô phỏng ---
+        # --- Khởi tạo các đối tượng mô phỏng (nếu cần) ---
         abm_instance = None
         if model_id == 'model3':
-            # (logic khởi tạo abm_instance giữ nguyên)
             abm_params = model_data.get("abm_defaults", {})
             r_val = st.session_state.get('last_calculated_r', 0.0001)
             ptrans = np.clip(r_val * abm_params.get("r_to_ptrans_factor", 5000), abm_params.get("ptrans_min", 0.01), abm_params.get("ptrans_max", 0.9))
@@ -2980,16 +2955,15 @@ def create_animation_gif(model_id, model_data, validated_params, speed_multiplie
         for frame_idx in range(num_frames):
             ax.clear()
 
-            # --- MODEL 2 ---
+            # --- MODEL 2: TĂNG TRƯỞNG TẾ BÀO ---
             if model_id == 'model2':
-                # (logic vẽ của model 2 giữ nguyên)
                 t_data = sim_data.get('t_plot'); y_data = sim_data.get('approx_sol_plot')
                 target_n = int(round(y_data[frame_idx]))
                 if len(model2_cells) < target_n:
                     existing_pos = {(cell.x, cell.y) for cell in model2_cells}
                     for _ in range(target_n - len(model2_cells)):
                         parent = random.choice(model2_cells)
-                        for _ in range(20):
+                        for _ in range(20): # Thử 20 lần để tìm vị trí mới
                             angle = random.uniform(0, 2 * np.pi)
                             new_x, new_y = parent.x + np.cos(angle) * 1.1, parent.y + np.sin(angle) * 1.1
                             if not any(np.hypot(new_x - px, new_y - py) < 1.0 for px, py in existing_pos):
@@ -3005,12 +2979,12 @@ def create_animation_gif(model_id, model_data, validated_params, speed_multiplie
                 ax.legend([MplCircle((0,0), 0.1, color='brown')], [tr("screen3_legend_model2_cell")], loc='upper right')
                 ax.set_title(tr("screen3_model2_anim_plot_title") + f"\nTime: {t_data[frame_idx]:.2f}s | Cells: {len(model2_cells)}")
 
-            # --- MODEL 3 ---
+            # --- MODEL 3: ABM DỊCH BỆNH ---
             elif model_id == 'model3':
                 ended_by_logic = abm_instance.step()
-                # (logic vẽ của model 3 giữ nguyên)
                 ax.set_xlim(0, abm_instance.room_dimension); ax.set_ylim(0, abm_instance.room_dimension)
                 ax.set_aspect('equal'); ax.set_xticks([]); ax.set_yticks([])
+                abm_params = model_data.get("abm_defaults", {})
                 s_coords, i_coords = abm_instance.get_display_coords(abm_params['display_max_total'], abm_params['display_sample_size'])
                 if s_coords.shape[0] > 0: ax.scatter(s_coords[:, 0], s_coords[:, 1], c='blue', s=20, label=tr('screen3_legend_abm_susceptible'))
                 if i_coords.shape[0] > 0: ax.scatter(i_coords[:, 0], i_coords[:, 1], c='red', marker='*', s=80, label=tr('screen3_legend_abm_infected'))
@@ -3019,9 +2993,8 @@ def create_animation_gif(model_id, model_data, validated_params, speed_multiplie
                 ax.set_title(tr("screen3_abm_anim_plot_title") + f"\nStep: {stats['time_step']} | Infected: {stats['infected_count']}")
                 if ended_by_logic: break
 
-            # --- MODEL 5.1 ---
+            # --- MODEL 5.1: CON THUYỀN ---
             elif model_id == 'model5' and st.session_state.m5_scenario == 1:
-                # (logic vẽ của model 5.1 giữ nguyên)
                 t_data = sim_data.get('t_plot')
                 x_path, y_path = sim_data['approx_sol_plot_all_components']
                 ax.plot(x_path, y_path, 'b--', alpha=0.5, label=tr('screen3_legend_m5s1_path'))
@@ -3032,9 +3005,8 @@ def create_animation_gif(model_id, model_data, validated_params, speed_multiplie
                 ax.grid(True); ax.legend(); ax.set_aspect('equal')
                 ax.set_title(tr("screen3_model5_plot_title_sim1") + f"\nTime: {t_data[frame_idx]:.2f}s")
             
-            # --- MODEL 5.2 ---
+            # --- MODEL 5.2: TÀU KHU TRỤC ---
             elif model_id == 'model5' and st.session_state.m5_scenario == 2:
-                # (logic vẽ của model 5.2 giữ nguyên)
                 t_points, state_hist = sim_data['time_points'], sim_data['state_history']
                 is_caught, catch_time = sim_data['caught'], sim_data['time_of_catch']
                 pursuer_path, evader_path = state_hist[:, 0:2], state_hist[:, 2:4]
@@ -3057,15 +3029,15 @@ def create_animation_gif(model_id, model_data, validated_params, speed_multiplie
             
             # --- Lưu frame vào bộ đệm ---
             fig.canvas.draw()
-            img_buf = io.BytesIO()
-            fig.savefig(img_buf, format='png', bbox_inches='tight')
-            img_buf.seek(0)
-            frames.append(imageio.imread(img_buf))
-            img_buf.close()
+            buf = io.BytesIO()
+            fig.savefig(buf, format='png', bbox_inches='tight')
+            buf.seek(0)
+            frames.append(imageio.imread(buf))
+            buf.close()
 
         plt.close(fig)
 
-        # --- Tạo thông tin cuối cùng ---
+        # --- Tạo thông tin cuối cùng (final_stats) ---
         if model_id == 'model2':
             c_val = st.session_state.get('last_calculated_c', 'N/A')
             final_stats = {
@@ -3127,7 +3099,7 @@ def create_animation_gif(model_id, model_data, validated_params, speed_multiplie
         return None, {}
 		
 def show_dynamic_simulation_page():
-    # --- CSS tùy chỉnh ---
+    # --- CSS và các hàm nội bộ ---
     st.markdown("""
     <style>
     .metric-container {
@@ -3140,7 +3112,6 @@ def show_dynamic_simulation_page():
     </style>
     """, unsafe_allow_html=True)
 
-    # --- Các hàm nội bộ ---
     def display_custom_metric(placeholder, data_dict):
         html_content = "<div class='metric-container'>"
         for label, value_info in data_dict.items():
@@ -3162,13 +3133,13 @@ def show_dynamic_simulation_page():
 
     # --- Kiểm tra dữ liệu đầu vào ---
     validated_params = st.session_state.get('validated_params', {})
-    if not validated_params:
+    if not validated_params or 'model_id' not in validated_params:
         st.error(tr("msg_no_data_for_dynamic"))
         if st.button(tr('screen3_back_button')): navigate_to('simulation')
         return
 
-    model_id = validated_params.get("model_id")
-    model_data = MODELS_DATA.get(st.session_state.get("selected_model_key"))
+    model_data = MODELS_DATA[st.session_state.selected_model_key]
+    model_id = model_data.get("id", "")
     
     # --- Bố cục giao diện chính ---
     header_cols = st.columns([1.5, 4, 1.5])
@@ -3180,7 +3151,7 @@ def show_dynamic_simulation_page():
     
     col_controls, col_display = st.columns([1, 1.8])
 
-    # --- Cột điều khiển (Sidebar) ---
+    # --- Cột điều khiển ---
     with col_controls:
         with st.container(border=True):
             st.subheader(tr('screen3_settings_group_title'))
@@ -3220,49 +3191,28 @@ def show_dynamic_simulation_page():
         with st.container(border=True):
             info_title_key = "screen3_results_group_title"
             current_scenario = st.session_state.get('m5_scenario', 1)
-            if model_id == 'model2': info_title_key = "screen3_results_group_title"
-            elif model_id == 'model3': info_title_key = "screen3_results_group_title"
-            elif model_id == 'model5':
+            if model_id == 'model5':
                 info_title_key = "screen3_info_m5_sim1_title" if current_scenario == 1 else "screen3_info_m5_sim2_title"
             
             st.subheader(tr(info_title_key))
             info_placeholder = st.empty()
-            # Hiển thị thông tin tĩnh ban đầu
             with info_placeholder.container():
-                if model_id == 'model5' and current_scenario == 1:
-                    metrics_data = {
-                        tr('screen3_m5_boat_speed'): {'value': f"{validated_params['params']['v']:.2f}"},
-                        tr('screen3_m5_water_speed'): {'value': f"{validated_params['params']['u']:.2f}"}
-                    }
-                    display_custom_metric(st.empty(), metrics_data)
-                elif model_id == 'model5' and current_scenario == 2:
-                    metrics_data = {
-                        tr('screen3_m5_submarine_speed'): {'value': f"{validated_params['params']['u']:.2f}"}, # u là vận tốc tàu ngầm trong params mặc định
-                        tr('screen3_m5_destroyer_speed'): {'value': f"{validated_params['params']['v']:.2f}"} # v là vận tốc tàu khu trục
-                    }
-                    display_custom_metric(st.empty(), metrics_data)
-                else:
-                    st.info(tr("press_generate_to_see_info")) # Cần thêm key này
-
+                st.info(tr("press_generate_to_see_info"))
 
     # --- Cột hiển thị chính ---
     with col_display:
         if 'generated_gif' in st.session_state and st.session_state.generated_gif:
-            plot_placeholder = st.image(st.session_state.generated_gif)
-
-            # Cập nhật thông tin cuối cùng sau khi GIF được hiển thị
+            st.image(st.session_state.generated_gif)
             final_stats = st.session_state.get('final_anim_stats', {})
-            display_custom_metric(info_placeholder, final_stats)
+            if final_stats:
+                display_custom_metric(info_placeholder, final_stats)
         else:
-            with st.spinner(tr("gif_generating_spinner")):
-                gif_bytes, final_stats = create_animation_gif(model_id, model_data, validated_params, speed_multiplier)
-                if gif_bytes:
-                    st.session_state.generated_gif = gif_bytes
-                    st.session_state.final_anim_stats = final_stats
-                    st.rerun()
-                else:
-                    st.error(tr("gif_generation_error"))
-                    info_placeholder.error(tr("gif_generation_error"))
+            plot_placeholder = st.empty()
+            with plot_placeholder.container():
+                fig, ax = plt.subplots(figsize=(8,8))
+                ax.text(0.5, 0.5, tr("press_generate_to_see_info"), ha='center', va='center')
+                ax.set_xticks([]); ax.set_yticks([])
+                st.pyplot(fig)
 
 # =========================================================================
 # Highlight: KẾT THÚC CẬP NHẬT VÒNG LẶP ANIMATION
