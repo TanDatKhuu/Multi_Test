@@ -90,7 +90,7 @@
 	"screen2_sim_toggle": "Show separate dynamic simulation window",
 	"screen2_params_group": "3. Model input parameters", 
 	"screen2_actions_group": "4. Execute and save", 
-	"screen2_init_button": "🚀 Initialize and plot graphs", 
+	"screen2_init_button": "🚀 Initialize", 
 	"screen2_refresh_button": "🔄 Refresh parameters", 
 	"screen2_show_data_button": "View numerical data", 
 	"screen2_save_button": "💾 Save plot images",
