@@ -3046,30 +3046,63 @@ def show_dynamic_simulation_page():
         # --- MODEL 3 (ABM) ---
         elif model_id == 'model3':
             abm_params = model_data.get("abm_defaults", {})
+            
+            # Khởi tạo instance ABM nếu chưa có
             if 'abm_instance' not in st.session_state:
                 r_val = st.session_state.get('last_calculated_r', 0.0001)
                 ptrans = np.clip(r_val * abm_params.get("r_to_ptrans_factor", 5000), abm_params.get("ptrans_min", 0.01), abm_params.get("ptrans_max", 0.9))
+                # Lấy tổng dân số từ tham số đã xác thực
                 total_pop = int(validated_params['params']['n'] + 1)
-                st.session_state.abm_instance = DiseaseSimulationABM(total_population=total_pop, initial_infected_count_for_abm=1, room_dimension=abm_params.get('room_dimension', 10.0), contact_radius=abm_params.get('contact_radius', 0.55), transmission_prob=ptrans, agent_speed=abm_params.get('base_agent_speed', 0.05))
+                st.session_state.abm_instance = DiseaseSimulationABM(
+                    total_population=total_pop, 
+                    initial_infected_count_for_abm=1, # Luôn bắt đầu với 1 ca nhiễm
+                    room_dimension=abm_params.get('room_dimension', 10.0), 
+                    contact_radius=abm_params.get('base_contact_radius', 0.5), # Sử dụng base_contact_radius
+                    transmission_prob=ptrans, 
+                    agent_speed=abm_params.get('base_agent_speed', 0.05)
+                )
             
             abm = st.session_state.abm_instance
+            
+            # Nếu animation đang chạy, thực hiện một bước mô phỏng
             if st.session_state.anim_running:
                 ended_by_logic = abm.step()
                 if ended_by_logic or current_frame >= abm_params.get('max_steps', 400):
                     animation_ended = True
 
-            ax.set_xlim(0, abm.room_dimension); ax.set_ylim(0, abm.room_dimension)
-            ax.set_aspect('equal'); ax.set_xticks([]); ax.set_yticks([])
+            # --- Phần vẽ đồ thị ---
+            # Xóa trục cũ và thiết lập giới hạn
+            ax.clear()
+            ax.set_xlim(0, abm.room_dimension)
+            ax.set_ylim(0, abm.room_dimension)
+            ax.set_aspect('equal')
+            ax.set_xticks([])
+            ax.set_yticks([])
+            
+            # Lấy và vẽ tọa độ các cá thể
             s_coords, i_coords = abm.get_display_coords(abm_params['display_max_total'], abm_params['display_sample_size'])
-            ax.scatter(s_coords[:, 0], s_coords[:, 1], c='blue', s=20, label=tr('screen3_legend_abm_susceptible'))
-            ax.scatter(i_coords[:, 0], i_coords[:, 1], c='red', marker='*', s=80, label=tr('screen3_legend_abm_infected'))
+            
+            # Chỉ vẽ nếu có dữ liệu để tránh lỗi
+            if s_coords.shape[0] > 0:
+                ax.scatter(s_coords[:, 0], s_coords[:, 1], c='blue', s=20, label=tr('screen3_legend_abm_susceptible'))
+            if i_coords.shape[0] > 0:
+                ax.scatter(i_coords[:, 0], i_coords[:, 1], c='red', marker='*', s=80, label=tr('screen3_legend_abm_infected'))
+            
+            # Luôn hiển thị legend, kể cả khi một nhóm không còn cá thể nào
             ax.legend()
             
+            # --- Phần cập nhật thông tin ---
             stats = abm.get_current_stats()
-            info_placeholder.markdown(f"**{tr('screen3_total_pop')}** `{stats['total_population']}`\n\n"
-                                      f"**{tr('screen3_susceptible_pop')}** `{stats['susceptible_count']}`\n\n"
-                                      f"**{tr('screen3_infected_pop')}** `{stats['infected_count']}`\n\n"
-                                      f"**{tr('screen3_model3_simulation_time_label')}** `{stats['time_step']}`")
+            
+            metrics_data_m3 = {
+                tr('screen3_total_pop'): {'value': stats['total_population']},
+                tr('screen3_susceptible_pop'): {'value': stats['susceptible_count']},
+                tr('screen3_infected_pop'): {'value': stats['infected_count']},
+                tr('screen3_model3_simulation_time_label'): {'value': stats['time_step']}
+            }
+            
+            # Gọi hàm helper để hiển thị thông tin với style mới
+            display_custom_metric(info_placeholder, metrics_data_m3)
         
         # --- MODEL 5 ---
         elif model_id == 'model5' and sim_data:
