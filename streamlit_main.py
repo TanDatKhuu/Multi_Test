@@ -3154,12 +3154,12 @@ def show_dynamic_simulation_page():
 					}
 					
                     if is_caught and t_points[current_frame] >= catch_time:
-					     status_html = f"<span style='color:red;'>{tr('screen3_m5_caught_status').format(catch_time)}</span>"
-					     metrics_data_m5s2[tr('status_label_m5s2')] = {'value': status_html, 'size_class': 'metric-value-small'} # Cần thêm 'status_label_m5s2' vào file json
-					     animation_ended = True
+                         status_html = f"<span style='color:red;'>{tr('screen3_m5_caught_status').format(catch_time)}</span>"
+                         metrics_data_m5s2[tr('status_label_m5s2')] = {'value': status_html, 'size_class': 'metric-value-small'} # Cần thêm 'status_label_m5s2' vào file json
+                         animation_ended = True
                     else:
-					     status_html = tr('screen3_m5_uncaught_status')
-					     metrics_data_m5s2[tr('status_label_m5s2')] = {'value': status_html, 'size_class': 'metric-value-small'}
+                         status_html = tr('screen3_m5_uncaught_status')
+                         metrics_data_m5s2[tr('status_label_m5s2')] = {'value': status_html, 'size_class': 'metric-value-small'}
 					
                     display_custom_metric(info_placeholder, metrics_data_m5s2)
 
