@@ -2795,6 +2795,46 @@ def _m5_sim2_combined_ode(t, state):
 # =================================================================================
 def show_dynamic_simulation_page():
     # --- Phần kiểm tra dữ liệu và lấy thông tin model (giữ nguyên) ---
+	st.markdown("""
+    <style>
+    .metric-container {
+        border: 1px solid #e0e0e0;
+        border-radius: 8px;
+        padding: 1rem;
+        margin-bottom: 1rem;
+        background-color: #fafafa;
+    }
+    .metric-label {
+        font-size: 1rem;
+        color: #4a4a4a;
+        margin-bottom: 0.5rem;
+        font-weight: bold;
+    }
+    .metric-value {
+        font-size: 1.75rem; /* Kích thước lớn */
+        color: #000000;      /* Màu đen */
+        font-weight: 600;
+        line-height: 1.2;
+    }
+    .metric-value-small {
+        font-size: 1.25rem;
+        color: #000000;
+        font-weight: 500;
+        line-height: 1.2;
+    }
+    </style>
+    """, unsafe_allow_html=True)
+
+    def display_custom_metric(placeholder, data_dict):
+        """Hàm helper để hiển thị thông tin với style tùy chỉnh."""
+        html_content = "<div class='metric-container'>"
+        for label, value_info in data_dict.items():
+            value = value_info['value']
+            size_class = value_info.get('size_class', 'metric-value')
+            html_content += f"<div class='metric-label'>{label}</div>"
+            html_content += f"<div class='{size_class}'>{value}</div>"
+        html_content += "</div>"
+        placeholder.markdown(html_content, unsafe_allow_html=True)
     validated_params = st.session_state.get('validated_params', {})
     if not validated_params:
         st.error(tr("msg_no_data_for_dynamic"))
@@ -2988,17 +3028,20 @@ def show_dynamic_simulation_page():
             
             c_val = st.session_state.get('last_calculated_c', 'N/A')
 
-            # Tạo chuỗi đã định dạng cho c một cách an toàn
             if isinstance(c_val, (float, int)):
                 c_str = f"{c_val:.4g}"
             else:
-                c_str = str(c_val)  # Chuyển thành chuỗi, ví dụ 'N/A'
+                c_str = str(c_val)
+			    
+            time_str = f"{t_data[current_frame]:.2f} s"
 			
-			# Hiển thị thông tin bằng biến đã được định dạng sẵn
-            info_placeholder.markdown(f"**{tr('screen3_result_c')}** `{c_str}`\n\n"
-			                          f"**{tr('screen3_result_mass')}** `{len(cells)}`\n\n"
-			                          f"**{tr('screen3_result_time')}** `{t_data[current_frame]:.2f} s`")
-        
+            metrics_data_m2 = {
+			    tr('screen3_result_c'): {'value': c_str},
+			    tr('screen3_result_mass'): {'value': len(cells)},
+			    tr('screen3_result_time'): {'value': time_str}
+			}
+			# Gọi hàm helper để hiển thị
+           display_custom_metric(info_placeholder, metrics_data_m2)
         # --- MODEL 3 (ABM) ---
         elif model_id == 'model3':
             abm_params = model_data.get("abm_defaults", {})
@@ -3042,15 +3085,19 @@ def show_dynamic_simulation_page():
                     ax.set_xlabel(tr('screen3_model5_plot_xlabel_sim1')); ax.set_ylabel(tr('screen3_model5_plot_ylabel_sim1'))
                     ax.grid(True); ax.legend(); ax.set_aspect('equal')
                     
-                    with info_placeholder.container():
-                        st.metric(label=tr('screen3_m5_boat_speed'), value=f"{validated_params['params']['v']:.2f}")
-                        st.metric(label=tr('screen3_m5_water_speed'), value=f"{validated_params['params']['u']:.2f}")
-                        st.metric(label=tr('screen3_m5_crossing_time'), value=f"{t_data[current_frame]:.2f} s")
-                        if animation_ended:
-                            final_pos_str = f"({x_path[-1]:.2f}, {y_path[-1]:.2f})"
-                            reaches_target_str = tr('answer_yes') if abs(x_path[-1]) < 0.1 else tr('answer_no')
-                            st.metric(label=tr('screen3_m5_boat_reaches_target'), value=reaches_target_str)
-                            st.metric(label=tr('screen3_m5_boat_final_pos'), value=final_pos_str)
+                    metrics_data_m5s1 = {
+					    tr('screen3_m5_boat_speed'): {'value': f"{validated_params['params']['v']:.2f}"},
+					    tr('screen3_m5_water_speed'): {'value': f"{validated_params['params']['u']:.2f}"},
+					    tr('screen3_m5_crossing_time'): {'value': f"{t_data[current_frame]:.2f} s"}
+					}
+					
+                    if animation_ended:
+					    final_pos_str = f"({x_path[-1]:.2f}, {y_path[-1]:.2f})"
+					    reaches_target_str = tr('answer_yes') if abs(x_path[-1]) < 0.1 else tr('answer_no')
+					    metrics_data_m5s1[tr('screen3_m5_boat_reaches_target')] = {'value': reaches_target_str, 'size_class': 'metric-value-small'}
+					    metrics_data_m5s1[tr('screen3_m5_boat_final_pos')] = {'value': final_pos_str, 'size_class': 'metric-value-small'}
+
+                   display_custom_metric(info_placeholder, metrics_data_m5s1)
             
             elif m5_scenario_id == 2:
                 if 'm5s2_params' not in st.session_state:
@@ -3099,14 +3146,21 @@ def show_dynamic_simulation_page():
                     ax.set_xlabel("X"); ax.set_ylabel("Y"); ax.grid(True); ax.legend(); ax.set_aspect('equal')
                     
                     current_dist = np.linalg.norm(pursuer_path[current_frame] - evader_path[current_frame])
-                    info_md = f"**{tr('screen3_m5_time')}:** `{t_points[current_frame]:.2f} s`\n\n" \
-                              f"**{tr('screen3_m5_distance')}:** `{current_dist:.2f}`\n\n"
+
+                    metrics_data_m5s2 = {
+					    tr('screen3_m5_time'): {'value': f"{t_points[current_frame]:.2f} s"},
+					    tr('screen3_m5_distance'): {'value': f"{current_dist:.2f}"}
+					}
+					
                     if is_caught and t_points[current_frame] >= catch_time:
-                         info_md += f"**<span style='color:red;'>{tr('screen3_m5_caught_status').format(catch_time)}</span>**"
-                         animation_ended = True
+					     status_html = f"<span style='color:red;'>{tr('screen3_m5_caught_status').format(catch_time)}</span>"
+					     metrics_data_m5s2[tr('status_label_m5s2')] = {'value': status_html, 'size_class': 'metric-value-small'} # Cần thêm 'status_label_m5s2' vào file json
+					     animation_ended = True
                     else:
-                         info_md += f"**{tr('screen3_m5_uncaught_status')}**"
-                    info_placeholder.markdown(info_md, unsafe_allow_html=True)
+					     status_html = tr('screen3_m5_uncaught_status')
+					     metrics_data_m5s2[tr('status_label_m5s2')] = {'value': status_html, 'size_class': 'metric-value-small'}
+					
+                    display_custom_metric(info_placeholder, metrics_data_m5s2)
 
     plot_placeholder.pyplot(fig, clear_figure=False)
 
