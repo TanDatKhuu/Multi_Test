@@ -2914,13 +2914,13 @@ def show_dynamic_simulation_page():
             speed_multiplier = st.slider(tr('screen3_speed_label'), min_value=0.1, max_value=5.0, value=1.0, step=0.1, format="%.1fx")
             
             c1, c2, c3 = st.columns(3)
-            if c1.button('▶️ Play', use_container_width=True, type="primary"):
+            if c1.button(f"▶️ {tr('play_button')}", use_container_width=True, type="primary"):
                 st.session_state.anim_running = True
                 if st.session_state.get(anim_key, False): 
                     st.session_state[anim_key] = False
                 st.rerun()
 
-            if c2.button('⏸️ Pause', use_container_width=True):
+            if c2.button(f"🔄 {tr('reset_button')}", use_container_width=True):
                 st.session_state.anim_running = False
                 st.rerun()
             
