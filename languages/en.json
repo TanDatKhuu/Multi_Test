@@ -262,5 +262,14 @@
 	"screen3_legend_m5s2_path_submarine": "Submarine trajectory", 
 	"screen3_legend_m5s2_path_destroyer": "Destroyer trajectory", 
 	"screen3_legend_m5s2_catch_point": "Catch point",
-	"screen3_m5_time_when_caught_label": "Time to catch submarine:"
+	"screen3_m5_time_when_caught_label": "Time to catch submarine:",
+
+	"speed_slow": "Slow",
+    "speed_normal": "Normal",
+    "speed_fast": "Fast",
+    "speed_very_fast": "Very Fast",
+    "generate_and_show_button": "Generate and Show Simulation",
+    "gif_display_info": "The simulation is being displayed as a GIF animation.",
+    "gif_generating_spinner": "Rendering simulation to GIF, please wait...",
+    "gif_generation_error": "An error occurred while generating the simulation GIF."
 }
