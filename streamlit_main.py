@@ -2819,20 +2819,81 @@ def _m5_sim2_combined_ode(t, state):
 
 @st.cache_data
 def _run_and_cache_m5_sim2(_solver_func_name, t_array, initial_state, catch_radius, _params_dict_json, _traj_params_dict_json):
-    solver_map = { "AB2_system_M5_Sim2_CombinedLogic": AB2_system_M5_Sim2_CombinedLogic, "AB3_system_M5_Sim2_CombinedLogic": AB3_system_M5_Sim2_CombinedLogic, "AB4_system_M5_Sim2_CombinedLogic": AB4_system_M5_Sim2_CombinedLogic, "AB5_system_M5_Sim2_CombinedLogic": AB5_system_M5_Sim2_CombinedLogic, "AM2_system_M5_Sim2_CombinedLogic": AM2_system_M5_Sim2_CombinedLogic, "AM3_system_M5_Sim2_CombinedLogic": AM3_system_M5_Sim2_CombinedLogic, "AM4_system_M5_Sim2_CombinedLogic": AM4_system_M5_Sim2_CombinedLogic }
+    """
+    Hàm được cache để chạy mô phỏng nặng.
+    Tất cả các tham số cần thiết phải được truyền vào, không dựa vào st.session_state.
+    """
+    solver_map = { 
+        "AB2_system_M5_Sim2_CombinedLogic": AB2_system_M5_Sim2_CombinedLogic, "AB3_system_M5_Sim2_CombinedLogic": AB3_system_M5_Sim2_CombinedLogic, 
+        "AB4_system_M5_Sim2_CombinedLogic": AB4_system_M5_Sim2_CombinedLogic, "AB5_system_M5_Sim2_CombinedLogic": AB5_system_M5_Sim2_CombinedLogic, 
+        "AM2_system_M5_Sim2_CombinedLogic": AM2_system_M5_Sim2_CombinedLogic, "AM3_system_M5_Sim2_CombinedLogic": AM3_system_M5_Sim2_CombinedLogic, 
+        "AM4_system_M5_Sim2_CombinedLogic": AM4_system_M5_Sim2_CombinedLogic 
+    }
     method_func = solver_map[_solver_func_name]
-    st.session_state.m5s2_params = json.loads(_params_dict_json)
-    st.session_state.m5s2_trajectory_params = json.loads(_traj_params_dict_json)
+    
+    # Giải mã JSON để lấy lại các dictionary tham số
+    params = json.loads(_params_dict_json)
+    traj_params = json.loads(_traj_params_dict_json)
+
+    # Khởi tạo các biến trạng thái cục bộ, không dùng session_state
+    local_last_kt_dir = np.array([1.0, 0.0])
+    local_last_free_turn = params['t_start'] - params['min_time_free_turn'] * 2
+
+    def f_combined_for_solver_cached(t, current_state):
+        nonlocal local_last_kt_dir, local_last_free_turn
+        
+        z_kt, z_tn = current_state[0:2], current_state[2:4]
+        
+        # Logic Tàu khu trục (pursuer)
+        dx_kt, dy_kt = 0.0, 0.0
+        dist = np.linalg.norm(z_tn - z_kt)
+        if 0 < dist < params['kt_radar_radius']:
+            if dist > params['catch_threshold'] / 2.0:
+                direction = (z_tn - z_kt) / dist
+                dx_kt, dy_kt = params['v_kt'] * direction[0], params['v_kt'] * direction[1]
+                local_last_kt_dir = direction
+        elif dist > params['catch_threshold'] / 2.0:
+            dx_kt = (params['v_kt'] * 0.5) * local_last_kt_dir[0]
+            dy_kt = (params['v_kt'] * 0.5) * local_last_kt_dir[1]
+
+        # Logic Tàu ngầm (target)
+        v_base = _m5s2_get_base_submarine_velocity(t, traj_params, params['v_tn_max'])
+        v_base_norm = np.linalg.norm(v_base)
+        v_base_dir = v_base / v_base_norm if v_base_norm > 1e-6 else np.array([0.0, 0.0])
+        
+        v_avoid, is_avoiding = _m5s2_get_smarter_avoidance_info(z_tn, z_kt, v_base_dir, params['avoidance_radius'], params['v_tn_max'], params['avoidance_strength'], params['fov_tn_degrees'])
+        
+        if is_avoiding: 
+            v_total_desired = 0.2 * v_base + 0.8 * v_avoid
+        else:
+            v_final = v_base
+            if (t - local_last_free_turn) >= params['min_time_free_turn'] and v_base_norm > 1e-6:
+                angle = random.uniform(-params['max_angle_free_turn_rad'], params['max_angle_free_turn_rad'])
+                rot_matrix = np.array([[np.cos(angle), -np.sin(angle)], [np.sin(angle), np.cos(angle)]])
+                v_final = np.dot(rot_matrix, v_base)
+                local_last_free_turn = t
+            v_total_desired = v_final
+        
+        norm_total_tn = np.linalg.norm(v_total_desired)
+        if norm_total_tn < 1e-9: 
+            dx_tn, dy_tn = 0.0, 0.0
+        else:
+            dx_tn = (v_total_desired[0] / norm_total_tn) * params['v_tn_max']
+            dy_tn = (v_total_desired[1] / norm_total_tn) * params['v_tn_max']
+            
+        return np.array([dx_kt, dy_kt, dx_tn, dy_tn])
+
     try:
         t_points, state_hist, caught, t_catch = method_func(
-            f_combined_like=_m5_sim2_combined_ode,
+            f_combined_like=f_combined_for_solver_cached, # Sử dụng hàm cục bộ
             t_array_full_potential=t_array,
             initial_state_combined=initial_state,
             catch_dist_threshold=catch_radius
         )
         return { "time_points": t_points, "state_history": state_hist, "caught": caught, "time_of_catch": t_catch }
     except Exception as e:
-        st.error(f"Lỗi khi chạy mô phỏng M5 Sim 2: {e}")
+        # st.error sẽ không hoạt động trong hàm cache, nên ta chỉ print ra console
+        print(f"Lỗi khi chạy mô phỏng M5 Sim 2 trong cache: {e}")
         return None
 
 def show_dynamic_simulation_page():
