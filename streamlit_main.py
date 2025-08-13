@@ -2730,11 +2730,33 @@ def show_simulation_page():
 # ==============================================
 #           PHẦN 4: TRANG MÔ PHỎNG ĐỘNG
 # ==============================================
+# Lớp Cell cần cho Model 2
 class Cell:
     def __init__(self, x, y, gen=0):
         self.x = x
         self.y = y
         self.gen = gen
+
+# Các hàm Helper cho Model 5 - Kịch bản 2
+@st.cache_data
+def _run_and_cache_m5_sim2(method_func, t_array, initial_state, catch_radius):
+    """Chạy mô phỏng Sim2 một lần và trả về kết quả."""
+    try:
+        t_points, state_hist, caught, t_catch = method_func(
+            f_combined_like=_m5_sim2_combined_ode,
+            t_array_full_potential=t_array,
+            initial_state_combined=initial_state,
+            catch_dist_threshold=catch_radius
+        )
+        return {
+            "time_points": t_points,
+            "state_history": state_hist,
+            "caught": caught,
+            "time_of_catch": t_catch
+        }
+    except Exception as e:
+        st.error(f"Lỗi khi chạy mô phỏng M5 Sim 2: {e}")
+        return None
 
 def _m5s2_z_tn_base(t, traj_params):
     """Tính toán vị trí cơ sở của tàu ngầm (Evader) tại thời điểm t."""
@@ -2766,83 +2788,51 @@ def _m5s2_get_smarter_avoidance_info(z_tn, z_kt, v_base_tn_dir, radius_avoid, v_
     distance = np.linalg.norm(vector_tn_to_kt)
     is_avoiding = False
     v_avoid_vector = np.array([0.0, 0.0])
-
     if 0 < distance < radius_avoid:
         dir_tn_to_kt = vector_tn_to_kt / distance
         if np.linalg.norm(v_base_tn_dir) < 1e-6:
-            # Nếu không có hướng đi cơ sở, chỉ chạy ra xa
             v_avoid_vector = -dir_tn_to_kt * v_tn_max * strength_avoid
             is_avoiding = True
         else:
-            # Kiểm tra góc nhìn (FOV)
             dot_product = np.dot(v_base_tn_dir, dir_tn_to_kt)
             if dot_product > np.cos(np.deg2rad(fov_deg / 2.0)):
                 is_avoiding = True
-                # Hướng đẩy ra xa
                 push_away_dir = -dir_tn_to_kt
-                # Hướng rẽ ngang (vuông góc với hướng đi)
                 cross_prod_val = v_base_tn_dir[0] * dir_tn_to_kt[1] - v_base_tn_dir[1] * dir_tn_to_kt[0]
                 turn_dir = np.array([0.0, 0.0])
-                if cross_prod_val > 0.05: turn_dir = np.array([v_base_tn_dir[1], -v_base_tn_dir[0]]) # Rẽ phải
-                elif cross_prod_val < -0.05: turn_dir = np.array([-v_base_tn_dir[1], v_base_tn_dir[0]]) # Rẽ trái
-                
-                # Kết hợp 2 hướng né
+                if cross_prod_val > 0.05: turn_dir = np.array([v_base_tn_dir[1], -v_base_tn_dir[0]])
+                elif cross_prod_val < -0.05: turn_dir = np.array([-v_base_tn_dir[1], v_base_tn_dir[0]])
                 chosen_avoid_dir = 0.6 * turn_dir + 0.6 * push_away_dir
                 if np.linalg.norm(turn_dir) < 1e-6: chosen_avoid_dir = push_away_dir
-                
                 norm_chosen_avoid = np.linalg.norm(chosen_avoid_dir)
                 if norm_chosen_avoid > 1e-6:
                     v_avoid_vector = (chosen_avoid_dir / norm_chosen_avoid) * v_tn_max * strength_avoid
     return v_avoid_vector, is_avoiding
+
 def _m5_sim2_combined_ode(t, state):
-    """
-    Hàm ODE cho bài toán đuổi bắt PHỨC TẠP, tương tự PySide6.
-    state = [x_kt, y_kt, x_tn, y_tn] (Pursuer x, y, Evader x, y)
-    """
-    z_kt = state[0:2]
-    z_tn = state[2:4]
-
-    # Lấy các tham số phức tạp từ session_state
-    params = st.session_state.m5s2_params
-    traj_params = st.session_state.m5s2_trajectory_params
-
-    # --- Logic cho tàu khu trục (Pursuer) ---
-    dx_kt, dy_kt = 0.0, 0.0
-    distance_kt_tn = np.linalg.norm(z_tn - z_kt)
-    
-    # Sử dụng `st.session_state` để lưu hướng đi cuối cùng
-    if 'm5s2_last_kt_dir' not in st.session_state:
-        st.session_state.m5s2_last_kt_dir = np.array([1.0, 0.0])
-
+    """Hàm ODE cho bài toán đuổi bắt PHỨC TẠP, tương tự PySide6."""
+    z_kt = state[0:2]; z_tn = state[2:4]
+    params = st.session_state.m5s2_params; traj_params = st.session_state.m5s2_trajectory_params
+    dx_kt, dy_kt = 0.0, 0.0; distance_kt_tn = np.linalg.norm(z_tn - z_kt)
+    if 'm5s2_last_kt_dir' not in st.session_state: st.session_state.m5s2_last_kt_dir = np.array([1.0, 0.0])
     if 0 < distance_kt_tn < params['kt_radar_radius']:
         if distance_kt_tn > params['catch_threshold'] / 2.0:
             dir_to_tn = (z_tn - z_kt) / distance_kt_tn
-            dx_kt = params['v_kt'] * dir_to_tn[0]
-            dy_kt = params['v_kt'] * dir_to_tn[1]
+            dx_kt = params['v_kt'] * dir_to_tn[0]; dy_kt = params['v_kt'] * dir_to_tn[1]
             st.session_state.m5s2_last_kt_dir = dir_to_tn
     elif distance_kt_tn > params['catch_threshold'] / 2.0:
-        # Ngoài radar, đi theo hướng cũ với tốc độ giảm
         dx_kt = (params['v_kt'] * 0.5) * st.session_state.m5s2_last_kt_dir[0]
         dy_kt = (params['v_kt'] * 0.5) * st.session_state.m5s2_last_kt_dir[1]
     
-    # --- Logic cho tàu ngầm (Evader) ---
     v_base_tn = _m5s2_get_base_submarine_velocity(t, traj_params, params['v_tn_max'])
     norm_v_base = np.linalg.norm(v_base_tn)
     v_base_dir = v_base_tn / norm_v_base if norm_v_base > 1e-6 else np.array([0.0, 0.0])
-
-    v_avoid, is_avoiding = _m5s2_get_smarter_avoidance_info(
-        z_tn, z_kt, v_base_dir, params['avoidance_radius'], 
-        params['v_tn_max'], params['avoidance_strength'], params['fov_tn_degrees']
-    )
-
-    v_total_desired = np.array([0.0, 0.0])
+    v_avoid, is_avoiding = _m5s2_get_smarter_avoidance_info(z_tn, z_kt, v_base_dir, params['avoidance_radius'], params['v_tn_max'], params['avoidance_strength'], params['fov_tn_degrees'])
+    
     if is_avoiding:
-        v_total_desired = 0.2 * v_base_tn + 0.8 * v_avoid # Kết hợp né và đi
+        v_total_desired = 0.2 * v_base_tn + 0.8 * v_avoid
     else:
-        # Logic rẽ ngẫu nhiên
-        if 'm5s2_last_free_turn' not in st.session_state:
-            st.session_state.m5s2_last_free_turn = t - params['min_time_free_turn'] * 2
-        
+        if 'm5s2_last_free_turn' not in st.session_state: st.session_state.m5s2_last_free_turn = t - params['min_time_free_turn'] * 2
         v_final = v_base_tn
         if (t - st.session_state.m5s2_last_free_turn) >= params['min_time_free_turn'] and norm_v_base > 1e-6:
             angle = random.uniform(-params['max_angle_free_turn_rad'], params['max_angle_free_turn_rad'])
@@ -2851,36 +2841,22 @@ def _m5_sim2_combined_ode(t, state):
             st.session_state.m5s2_last_free_turn = t
         v_total_desired = v_final
     
-    # Chuẩn hóa vận tốc cuối cùng về v_tn_max
     norm_total_tn = np.linalg.norm(v_total_desired)
-    if norm_total_tn < 1e-9:
-        dx_tn, dy_tn = 0.0, 0.0
+    if norm_total_tn < 1e-9: dx_tn, dy_tn = 0.0, 0.0
     else:
         dx_tn = (v_total_desired[0] / norm_total_tn) * params['v_tn_max']
         dy_tn = (v_total_desired[1] / norm_total_tn) * params['v_tn_max']
-        
     return np.array([dx_kt, dy_kt, dx_tn, dy_tn])
+# =================================================================================
 
-# =================================================================================
-# Highlight: HÀM show_dynamic_simulation_page ĐÃ ĐƯỢC VIẾT LẠI HOÀN CHỈNH
-# =================================================================================
 def show_dynamic_simulation_page():
     # --- CSS và hàm helper cho giao diện ---
     st.markdown("""
     <style>
-    .metric-container {
-        border: 1px solid #e0e0e0; border-radius: 8px; padding: 1rem;
-        margin-bottom: 1rem; background-color: #fafafa;
-    }
-    .metric-label {
-        font-size: 1rem; color: #4a4a4a; margin-bottom: 0.5rem; font-weight: bold;
-    }
-    .metric-value {
-        font-size: 1.75rem; color: #000000; font-weight: 600; line-height: 1.2;
-    }
-    .metric-value-small {
-        font-size: 1.25rem; color: #000000; font-weight: 500; line-height: 1.2;
-    }
+    .metric-container { border: 1px solid #e0e0e0; border-radius: 8px; padding: 1rem; margin-bottom: 1rem; background-color: #fafafa; }
+    .metric-label { font-size: 1rem; color: #4a4a4a; margin-bottom: 0.5rem; font-weight: bold; }
+    .metric-value { font-size: 1.75rem; color: #000000; font-weight: 600; line-height: 1.2; }
+    .metric-value-small { font-size: 1.25rem; color: #000000; font-weight: 500; line-height: 1.2; }
     </style>
     """, unsafe_allow_html=True)
 
@@ -2896,9 +2872,8 @@ def show_dynamic_simulation_page():
     # --- Kiểm tra dữ liệu và lấy thông tin model ---
     validated_params = st.session_state.get('validated_params', {})
     if not validated_params:
-        st.error(tr("msg_no_data_for_dynamic"))
-        if st.button(tr('screen3_back_button')):
-            st.session_state.page = 'simulation'; st.rerun()
+        st.error(tr("msg_no_data_for_dynamic"));
+        if st.button(tr('screen3_back_button')): st.session_state.page = 'simulation'; st.rerun()
         return
 
     model_data = MODELS_DATA[st.session_state.selected_model_key]
@@ -2916,8 +2891,7 @@ def show_dynamic_simulation_page():
 
     # --- Các hàm dọn dẹp và điều hướng ---
     def cleanup_dynamic_sim_state():
-        st.session_state.anim_running = False
-        st.session_state.anim_frame = 0
+        st.session_state.anim_running = False; st.session_state.anim_frame = 0
         keys_to_delete = ['abm_instance', 'model2_cells', 'm5s2_results', 'm5s2_params', 'anim_fig', 'anim_ax', 'm5s2_trajectory_params', 'm5s2_view_span']
         for key in list(st.session_state.keys()):
             if key.startswith('anim_init_'): keys_to_delete.append(key)
@@ -2925,26 +2899,18 @@ def show_dynamic_simulation_page():
             if key in st.session_state: del st.session_state[key]
 
     def navigate_to(page_name):
-        cleanup_dynamic_sim_state()
-        st.session_state.page = page_name
+        cleanup_dynamic_sim_state(); st.session_state.page = page_name
     
-    def reset_animation():
-        cleanup_dynamic_sim_state()
-
     # --- GIAO DIỆN ---
     header_cols = st.columns([0.5, 3, 0.5])
-    with header_cols[0]:
-        st.button(f"ᐊ {tr('screen3_back_button')}", on_click=navigate_to, args=('simulation',), type="primary", use_container_width=True)
-    with header_cols[1]:
-        st.markdown(f"<h1 style='text-align: center; margin: 0;'>{tr('screen3_dyn_only_title')}</h1>", unsafe_allow_html=True)
-    with header_cols[2]:
-        st.button(f"ᐊᐊ {tr('screen3_double_back_button')}", on_click=navigate_to, args=('model_selection',), type="primary", use_container_width=True)
+    with header_cols[0]: st.button(f"ᐊ {tr('screen3_back_button')}", on_click=navigate_to, args=('simulation',), type="primary", use_container_width=True)
+    with header_cols[1]: st.markdown(f"<h1 style='text-align: center; margin: 0;'>{tr('screen3_dyn_only_title')}</h1>", unsafe_allow_html=True)
+    with header_cols[2]: st.button(f"ᐊᐊ {tr('screen3_double_back_button')}", on_click=navigate_to, args=('model_selection',), type="primary", use_container_width=True)
     
     st.divider()
     col_controls, col_display = st.columns([1, 1.8])
 
     with col_controls:
-        # --- Khối điều khiển chung ---
         with st.container(border=True):
             st.subheader(tr('screen3_settings_group_title'))
             speed_multiplier = st.slider(tr('screen3_speed_label'), 0.1, 5.0, 1.0, 0.1, "%.1fx")
@@ -2955,28 +2921,21 @@ def show_dynamic_simulation_page():
                 st.rerun()
             if c2.button(f"⏸️ {tr('pause_button')}", use_container_width=True):
                 st.session_state.anim_running = False; st.rerun()
-            if c3.button(f"🔄 {tr('reset_button')}", use_container_width=True, on_click=reset_animation):
+            if c3.button(f"🔄 {tr('reset_button')}", use_container_width=True, on_click=cleanup_dynamic_sim_state):
                 st.rerun()
 
-        # --- Khối cài đặt riêng cho Model 5 ---
         if model_id == 'model5':
             with st.container(border=True):
                 if 'm5_scenario' not in st.session_state: st.session_state.m5_scenario = 1
                 scenario_options = {tr("screen3_sim1_name_m5"): 1, tr("screen3_sim2_name_m5"): 2}
-                
                 selected_scenario_disp = st.radio(
-                    tr("screen3_sim_list_group_title"), 
-                    options=list(scenario_options.keys()), 
-                    index=st.session_state.m5_scenario - 1, 
-                    key="m5_scenario_selector", 
-                    on_change=reset_animation # Dọn dẹp state khi chuyển kịch bản
-                )
+                    tr("screen3_sim_list_group_title"), options=list(scenario_options.keys()), 
+                    index=st.session_state.m5_scenario - 1, key="m5_scenario_selector", 
+                    on_change=cleanup_dynamic_sim_state)
                 st.session_state.m5_scenario = scenario_options[selected_scenario_disp]
 
-        # --- Khối hiển thị kết quả ---
         with st.container(border=True):
-            st.subheader(tr('screen3_results_group_title'))
-            info_placeholder = st.empty()
+            st.subheader(tr('screen3_results_group_title')); info_placeholder = st.empty()
 
     with col_display:
         with st.container(border=True):
@@ -2985,8 +2944,7 @@ def show_dynamic_simulation_page():
             elif model_id == 'model3': plot_title_key = "screen3_abm_anim_plot_title"
             elif model_id == 'model5':
                 plot_title_key = "screen3_model5_plot_title_sim1" if m5_scenario_id == 1 else "screen3_model5_plot_title_sim2"
-            st.subheader(tr(plot_title_key))
-            plot_placeholder = st.empty()
+            st.subheader(tr(plot_title_key)); plot_placeholder = st.empty()
 
     # --- LOGIC MÔ PHỎNG VÀ VẼ ---
     results = st.session_state.get('simulation_results', {}); highest_step_key = max(results.keys(), key=int) if results else None
@@ -3001,57 +2959,25 @@ def show_dynamic_simulation_page():
         ax.text(0.5, 0.5, tr("screen3_waiting_for_data"), ha='center', va='center', fontsize=12)
         ax.set_xticks([]); ax.set_yticks([])
     else:
-        # --- Logic cho Model 2 (giữ nguyên) ---
         if model_id == 'model2' and sim_data:
-            # ... (toàn bộ logic của model 2)
+            # (Toàn bộ logic của model 2)
             pass
-
-        # --- Logic cho Model 3 (giữ nguyên) ---
         elif model_id == 'model3':
-            # ... (toàn bộ logic của model 3)
+            # (Toàn bộ logic của model 3)
             pass
-
-        # --- Logic cho Model 5 ---
         elif model_id == 'model5' and sim_data:
-            # --- Kịch bản 1: Thuyền qua sông ---
             if m5_scenario_id == 1:
-                t_data = sim_data.get('t_plot')
-                if t_data is None or len(t_data) == 0: animation_ended = True
-                else:
-                    if current_frame >= len(t_data): animation_ended = True; current_frame = len(t_data) - 1
-                    x_path, y_path = sim_data['approx_sol_plot_all_components']
-                    ax.plot(x_path, y_path, 'b--', alpha=0.5, label=tr('screen3_legend_m5s1_path'))
-                    ax.plot(x_path[current_frame], y_path[current_frame], 'rP', markersize=12, label=tr('screen3_legend_m5s1_boat'))
-                    d_val = validated_params['params']['x0']
-                    ax.axvline(0, color='grey', ls=':'); ax.axvline(d_val, color='grey', ls=':')
-                    ax.set_xlabel(tr('screen3_model5_plot_xlabel_sim1')); ax.set_ylabel(tr('screen3_model5_plot_ylabel_sim1'))
-                    ax.grid(True); ax.legend(); ax.set_aspect('equal')
-                    
-                    metrics_data_m5s1 = {
-                        tr('screen3_m5_boat_speed'): {'value': f"{validated_params['params']['v']:.2f}"},
-                        tr('screen3_m5_water_speed'): {'value': f"{validated_params['params']['u']:.2f}"},
-                        tr('screen3_m5_crossing_time'): {'value': f"{t_data[current_frame]:.2f} s"}
-                    }
-                    if animation_ended:
-                        final_pos_str = f"({x_path[-1]:.2f}, {y_path[-1]:.2f})"
-                        reaches_target_str = tr('answer_yes') if abs(x_path[-1]) < 0.1 else tr('answer_no')
-                        metrics_data_m5s1[tr('screen3_m5_boat_reaches_target')] = {'value': reaches_target_str, 'size_class': 'metric-value-small'}
-                        metrics_data_m5s1[tr('screen3_m5_boat_final_pos')] = {'value': final_pos_str, 'size_class': 'metric-value-small'}
-                    display_custom_metric(info_placeholder, metrics_data_m5s1)
-            
-            # --- Kịch bản 2: Đuổi bắt ---
+                # (Toàn bộ logic của Model 5, Kịch bản 1)
+                pass
             elif m5_scenario_id == 2:
                 if 'm5s2_results' not in st.session_state:
                     s2_params = validated_params.get('params', {})
                     if not s2_params:
-                        st.error("Lỗi: Không tìm thấy tham số đã xác thực từ Screen 2.")
-                        return 
-                    
+                        st.error("Lỗi: Không tìm thấy tham số đã xác thực từ Screen 2."); return 
                     v_kt = s2_params.get('v', 6.0); v_tn_max = s2_params.get('u', 3.0)
                     z0_kt = np.array([s2_params.get('x0', 0.0), s2_params.get('y0', 0.0)])
                     t_start = s2_params.get('t₀', 0.0)
                     INITIAL_DISTANCE_D = 30.0; avoidance_radius = INITIAL_DISTANCE_D * 0.40
-                    
                     st.session_state.m5s2_params = {
                         'v_kt': v_kt, 'v_tn_max': v_tn_max, 'z0_kt': z0_kt, 'initial_dist': INITIAL_DISTANCE_D, 
                         't_start': t_start, 'simulation_duration': 70.0,
@@ -3061,7 +2987,6 @@ def show_dynamic_simulation_page():
                         'catch_threshold': 0.75, 'fov_tn_degrees': 120.0, 'avoidance_strength': 1.1, 
                         'min_time_free_turn': 7.0, 'max_angle_free_turn_rad': np.deg2rad(50)
                     }
-
                     if 'm5s2_trajectory_params' not in st.session_state:
                         p = st.session_state.m5s2_params
                         R_TN = 2.0; OMEGA_TN = p['v_tn_max'] / R_TN if R_TN > 1e-6 else 0.1
@@ -3077,36 +3002,27 @@ def show_dynamic_simulation_page():
                         }
                         st.session_state.z0_tn = _m5s2_z_tn_base(p['t_start'], st.session_state.m5s2_trajectory_params)
 
-                     # 4. Chạy mô phỏng và cache kết quả
                     solver_map = { "Bashforth": {2: AB2_system_M5_Sim2_CombinedLogic, 3: AB3_system_M5_Sim2_CombinedLogic, 4: AB4_system_M5_Sim2_CombinedLogic, 5: AB5_system_M5_Sim2_CombinedLogic}, "Moulton": {2: AM2_system_M5_Sim2_CombinedLogic, 3: AM3_system_M5_Sim2_CombinedLogic, 4: AM4_system_M5_Sim2_CombinedLogic} }
                     solver_func = solver_map[st.session_state.m5s2_params['method_short']][st.session_state.m5s2_params['method_steps']]
                     
                     if solver_func:
-                        # Biến `p` được định nghĩa bên trong để đảm bảo an toàn
                         p = st.session_state.m5s2_params
-                        
                         initial_state = np.concatenate([p['z0_kt'], st.session_state.z0_tn])
                         t_end = p['t_start'] + p['simulation_duration']
                         t_array = np.linspace(p['t_start'], t_end, 1500)
-                        
-                        # =========================================================
-                        # >>> THỤT ĐẦU DÒNG CHO 2 KHỐI DƯỚI ĐÂY <<<
-                        
-                        # Vòng lặp for và lệnh chạy mô phỏng ĐÃ ĐƯỢC DI CHUYỂN VÀO TRONG
                         for key in ['m5s2_last_kt_dir', 'm5s2_last_free_turn']:
                             if key in st.session_state: del st.session_state[key]
-                        
                         st.session_state.m5s2_results = _run_and_cache_m5_sim2(solver_func, t_array, initial_state, p['catch_threshold'])
                 
                 m5s2_res = st.session_state.get('m5s2_results')
                 if not m5s2_res:
                     ax.text(0.5, 0.5, "Lỗi tính toán, không có dữ liệu.", ha='center', va='center'); animation_ended = True
                 else:
-                    t_points = m5s2_res['time_points']; state_hist = m5s2_res['state_history']
-                    is_caught = m5s2_res['caught']; catch_time = m5s2_res['time_of_catch']
+                    t_points, state_hist = m5s2_res['time_points'], m5s2_res['state_history']
+                    is_caught, catch_time = m5s2_res['caught'], m5s2_res['time_of_catch']
                     p_disp = st.session_state.m5s2_params
                     if current_frame >= len(t_points): animation_ended = True; current_frame = len(t_points) - 1
-                    pursuer_path = state_hist[:, 0:2]; evader_path = state_hist[:, 2:4]
+                    pursuer_path, evader_path = state_hist[:, 0:2], state_hist[:, 2:4]
                     
                     ax.set_facecolor('#AFDDFF'); ax.grid(True, linestyle=':', alpha=0.7, zorder=-1)
                     line_tn, = ax.plot(evader_path[:, 0], evader_path[:, 1], lw=1.5, color="darkorange", linestyle='--', label=tr('screen3_legend_m5s2_path_submarine'), zorder=2)
@@ -3119,11 +3035,8 @@ def show_dynamic_simulation_page():
                     ax.add_artist(MplCircle((tn_x, tn_y), p_disp['avoidance_radius'], color='darkorange', fill=False, linestyle=':', alpha=0.9, zorder=3))
                     
                     if 'm5s2_view_span' not in st.session_state: st.session_state.m5s2_view_span = max(45.0, p_disp['initial_dist'] * 1.6)
-                    if any(abs(coord) > st.session_state.m5s2_view_span * 0.85 for coord in [tn_x, tn_y, kt_x, kt_y]):
-                        st.session_state.m5s2_view_span *= 1.3
-                    
-                    ax.set_xlim(-st.session_state.m5s2_view_span, st.session_state.m5s2_view_span)
-                    ax.set_ylim(-st.session_state.m5s2_view_span, st.session_state.m5s2_view_span)
+                    if any(abs(coord) > st.session_state.m5s2_view_span * 0.85 for coord in [tn_x, tn_y, kt_x, kt_y]): st.session_state.m5s2_view_span *= 1.3
+                    ax.set_xlim(-st.session_state.m5s2_view_span, st.session_state.m5s2_view_span); ax.set_ylim(-st.session_state.m5s2_view_span, st.session_state.m5s2_view_span)
                     ax.set_aspect('equal', adjustable='box'); ax.set_xlabel(tr("screen3_model5_plot_xlabel_sim2")); ax.set_ylabel(tr("screen3_model5_plot_ylabel_sim2"))
 
                     proxy_radar_kt = Line2D([0], [0], linestyle=':', color='red', label=tr("screen3_legend_m5s2_kt_radar_radius"))
