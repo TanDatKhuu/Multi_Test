@@ -2610,7 +2610,7 @@ def show_simulation_main_content():
                 st.session_state.simulation_results = {}
         
         st.session_state.run_simulation = False # Reset cờ
-	results = st.session_state.get('simulation_results', {})
+    results = st.session_state.get('simulation_results', {})
     if not results:
         st.info(tr('screen2_info_area_init'))
     else:
