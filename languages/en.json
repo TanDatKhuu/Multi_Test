@@ -8,7 +8,7 @@
 	"welcome_advisors_title": "Advisors",
 	"welcome_advisor1": "Assoc. Prof. Minh Phuong Tran",
 	"welcome_advisor2": "PhD. Huu Can Nguyen",
-	"main_desc": "The primary goal of tool was to create an intuitive and interactive tool for studying and visualizing the application of multistep numerical methods specifically Adams-Bashforth and Adams-Moulton to solve ordinary differential equations (ODEs) that model practical phenomena.",
+	"main_desc": "The primary goal of tool was to create an intuitive and interactive tool for studying and visualizing the application of Multi-step numerical methods specifically Adams-Bashforth and Adams-Moulton to solve ordinary differential equations (ODEs) that model practical phenomena.",
 	"lang_vi": "Tiếng Việt", 
 	"lang_en": "English",
 	"start_button": "Start",
