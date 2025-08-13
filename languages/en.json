@@ -218,7 +218,7 @@
 	"screen3_sim1_name_m5": "Simulation 1: Boat crossing river to a fixed target",
 	"screen3_sim2_name_m5": "Simulation 2: Destroyer hunting submarine (In fog)",
 	
-	"screen3_info_m5_sim1_title": "Simulation 1 information (boat crossing)", 
+	"screen3_info_m5_sim1_title": "Simulation 1 information", 
 	"screen3_m5_boat_speed": "Boat velocity (v):",
 	"screen3_m5_water_speed": "Current velocity (u):",
 	"screen3_m5_crossing_time": "Simulation time (t):",
@@ -229,7 +229,7 @@
 	"answer_yes": "Yes",
 	"answer_no": "No",
 	
-	"screen3_info_m5_sim2_title": "Simulation 2 information (destroyer vs. submarine)", 
+	"screen3_info_m5_sim2_title": "Simulation 2 information", 
 	"status_label_m5s2": "Status",
 	"screen3_m5_submarine_speed": "Submarine velocity (v<sub>target</sub>):",
 	"screen3_m5_destroyer_speed": "Destroyer velocity (v<sub>pursuer</sub>):",
