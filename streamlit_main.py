@@ -2831,409 +2831,319 @@ def _run_and_cache_m5_sim2(_solver_func_name, t_array, initial_state, catch_radi
         return None
 
 def show_dynamic_simulation_page():
+    # --- CSS tùy chỉnh cho trang này ---
     st.markdown("""
     <style>
     .metric-container {
-        border: 1px solid #e0e0e0;
-        border-radius: 8px;
-        padding: 1rem;
-        margin-bottom: 1rem;
-        background-color: #fafafa;
+        border: 1px solid #e0e0e0; border-radius: 8px; padding: 1rem;
+        margin-bottom: 1rem; background-color: #fafafa;
     }
-    .metric-label {
-        font-size: 1rem;
-        color: #4a4a4a;
-        margin-bottom: 0.5rem;
-        font-weight: bold;
-    }
-    .metric-value {
-        font-size: 1.75rem; /* Kích thước lớn */
-        color: #000000;      /* Màu đen */
-        font-weight: 600;
-        line-height: 1.2;
-    }
-    .metric-value-small {
-        font-size: 1.25rem;
-        color: #000000;
-        font-weight: 500;
-        line-height: 1.2;
-    }
+    .metric-label { font-size: 1rem; color: #4a4a4a; margin-bottom: 0.5rem; font-weight: bold; }
+    .metric-value { font-size: 1.5rem; color: #000000; font-weight: 600; line-height: 1.2; }
+    .metric-value-small { font-size: 1.1rem; color: #000000; font-weight: 500; line-height: 1.2; }
     </style>
     """, unsafe_allow_html=True)
+
+    # --- Các hàm nội bộ để dọn dẹp, điều hướng, và hiển thị ---
     def display_custom_metric(placeholder, data_dict):
-        """Hàm helper để hiển thị thông tin với style tùy chỉnh."""
         html_content = "<div class='metric-container'>"
         for label, value_info in data_dict.items():
-            value = value_info['value']
-            size_class = value_info.get('size_class', 'metric-value')
-            html_content += f"<div class='metric-label'>{label}</div>"
-            html_content += f"<div class='{size_class}'>{value}</div>"
+            value, size_class = value_info['value'], value_info.get('size_class', 'metric-value')
+            html_content += f"<div class='metric-label'>{label}</div><div class='{size_class}'>{value}</div>"
         html_content += "</div>"
         placeholder.markdown(html_content, unsafe_allow_html=True)
-    # --- Phần kiểm tra dữ liệu và lấy thông tin model (giữ nguyên) ---
+
+    def cleanup_dynamic_sim_state():
+        keys_to_delete = [k for k in st.session_state if k.startswith('anim_') or k.startswith('m5s') or k == 'abm_instance' or k == 'model2_cells']
+        for key in keys_to_delete:
+            if key in st.session_state:
+                del st.session_state[key]
+        st.session_state.anim_running = False
+
+    def navigate_to(page_name):
+        cleanup_dynamic_sim_state()
+        st.session_state.page = page_name
+
+    def reset_animation():
+        cleanup_dynamic_sim_state()
+
+    # --- Kiểm tra dữ liệu đầu vào ---
     validated_params = st.session_state.get('validated_params', {})
     if not validated_params:
         st.error(tr("msg_no_data_for_dynamic"))
-        if st.button(tr('screen3_back_button')):
-            st.session_state.page = 'simulation'
-            st.rerun()
+        if st.button(tr('screen3_back_button')): navigate_to('simulation')
         return
 
     model_data = MODELS_DATA[st.session_state.selected_model_key]
     model_id = model_data.get("id", "")
     
-    # --- Khởi tạo trạng thái cho trang này (giữ nguyên) ---
-    m5_scenario_id = st.session_state.get("m5_scenario", 1)
-    anim_key = f'anim_init_{model_id}_{m5_scenario_id}'
+    # --- Bố cục giao diện chính ---
+    header_cols = st.columns([1, 4, 1])
+    header_cols[0].button(f"ᐊ {tr('screen3_back_button')}", on_click=navigate_to, args=('simulation',), use_container_width=True)
+    header_cols[1].markdown(f"<h1 style='text-align: center; margin: 0;'>{tr('screen3_dyn_only_title')}</h1>", unsafe_allow_html=True)
     
-    if 'anim_running' not in st.session_state: st.session_state.anim_running = False
-    if 'anim_frame' not in st.session_state: st.session_state.anim_frame = 0
-    if anim_key not in st.session_state: st.session_state[anim_key] = True
-    
-    if 'anim_fig' not in st.session_state or st.session_state.get(anim_key, True):
-        st.session_state.anim_fig = Figure(figsize=(8, 8), dpi=100)
-        st.session_state.anim_ax = st.session_state.anim_fig.subplots()
-
-    # ==============================================
-    # Highlight: PHẦN GIAO DIỆN ĐƯỢC CẬP NHẬT VỚI NÚT BẤM MỚI
-    # ==============================================
-
-    # --- Các hàm dọn dẹp và điều hướng ---
-    def cleanup_dynamic_sim_state():
-        """Hàm này dọn dẹp tất cả các state liên quan đến trang mô phỏng động."""
-        st.session_state.anim_running = False
-        st.session_state.anim_frame = 0
-        
-        # Danh sách các key cần xóa
-        keys_to_delete = [
-            'abm_instance', 'model2_cells', 'm5s2_results', 'm5s2_params',
-            'anim_fig', 'anim_ax'
-        ]
-        # Tìm và thêm các key anim_init_* vào danh sách
-        for key in list(st.session_state.keys()):
-            if key.startswith('anim_init_'):
-                keys_to_delete.append(key)
-        
-        # Xóa các key nếu chúng tồn tại
-        for key in keys_to_delete:
-            if key in st.session_state:
-                del st.session_state[key]
-
-    def navigate_to(page_name):
-        """Hàm callback để dọn dẹp và chuyển trang."""
-        cleanup_dynamic_sim_state()
-        st.session_state.page = page_name
-    
-    def reset_animation():
-        """Hàm callback cho nút Reset, dọn dẹp và giữ nguyên trang."""
-        cleanup_dynamic_sim_state()
-        # Không cần thay đổi st.session_state.page vì ta muốn ở lại trang này
-
-    # --- Bố cục giao diện ---
-    header_cols = st.columns([0.75, 2.5, 0.75])
-    with header_cols[0]:
-        st.button(f"{tr('screen3_back_button')}", on_click=navigate_to, args=('simulation',),type="primary", use_container_width=True)
-    with header_cols[1]:
-        st.markdown(f"<h1 style='text-align: center; margin: 0;'>{tr('screen3_dyn_only_title')}</h1>", unsafe_allow_html=True)
-    with header_cols[2]:
-        st.button(f"{tr('screen3_double_back_button')}", on_click=navigate_to, args=('model_selection',),type="primary", use_container_width=True)
-    
-    st.divider()
-
     col_controls, col_display = st.columns([1, 1.8])
 
     with col_controls:
-        # --- KHỐI ĐIỀU KHIỂN CHUNG ---
         with st.container(border=True):
             st.subheader(tr('screen3_settings_group_title'))
-            speed_multiplier = st.slider(tr('screen3_speed_label'), min_value=0.1, max_value=5.0, value=1.0, step=0.1, format="%.1fx")
+            speed_multiplier = st.slider(tr('screen3_speed_label'), 0.1, 5.0, 1.0, 0.1, "%.1fx")
             
-            c1, c2, c3 = st.columns([1, 1.25, 1])
-            if c1.button(f"▶️ {tr('play_button')}", use_container_width=True):
+            c1, c2, c3 = st.columns(3)
+            if c1.button(f"▶️ {tr('play_button')}", use_container_width=True, type="primary"):
                 st.session_state.anim_running = True
+                # Đánh dấu là không cần init lại nữa khi bấm play
+                anim_key = f'anim_init_{model_id}_{st.session_state.get("m5_scenario", 1)}'
                 if st.session_state.get(anim_key, False): 
                     st.session_state[anim_key] = False
                 st.rerun()
 
             if c2.button(f"⏸️ {tr('pause_button')}", use_container_width=True):
                 st.session_state.anim_running = False
-                st.rerun()
-            
-            # Highlight: Nút Reset giờ sẽ gọi hàm dọn dẹp riêng
-            if c3.button(f"🔄 {tr('reset_button')}", use_container_width=True, on_click=reset_animation):
-                st.rerun() # Rerun sau khi on_click đã dọn dẹp state
 
-        # --- Phần còn lại của giao diện không đổi ---
+            if c3.button(f"🔄 {tr('reset_button')}", use_container_width=True, on_click=reset_animation):
+                st.rerun()
+
         if model_id == 'model5':
             with st.container(border=True):
                 if 'm5_scenario' not in st.session_state: st.session_state.m5_scenario = 1
                 scenario_options = {tr("screen3_sim1_name_m5"): 1, tr("screen3_sim2_name_m5"): 2}
-                
-                def on_scenario_change():
-                    cleanup_dynamic_sim_state() # Dọn dẹp khi đổi kịch bản
                 
                 selected_scenario_disp = st.radio(
                     tr("screen3_sim_list_group_title"), 
                     options=scenario_options.keys(), 
                     index=st.session_state.m5_scenario - 1, 
                     key="m5_scenario_selector", 
-                    on_change=on_scenario_change
+                    on_change=reset_animation # Reset khi đổi kịch bản
                 )
                 st.session_state.m5_scenario = scenario_options[selected_scenario_disp]
 
-                if st.session_state.m5_scenario == 2:
-                    st.markdown(f"**{tr('screen3_m5_sim2_params_title')}**")
-                    with st.form("m5s2_params_form"):
-                        vp = st.number_input(tr('screen3_m5_pursuer_speed'), min_value=0.1, value=3.0, step=0.1)
-                        ve = st.number_input(tr('screen3_m5_evader_speed'), min_value=0.1, value=2.0, step=0.1)
-                        xp0 = st.number_input(tr('screen3_m5_pursuer_x0'), value=0.0)
-                        yp0 = st.number_input(tr('screen3_m5_pursuer_y0'), value=0.0)
-                        xe0 = st.number_input(tr('screen3_m5_evader_x0'), value=10.0)
-                        ye0 = st.number_input(tr('screen3_m5_evader_y0'), value=10.0)
-                        catch_radius = st.number_input(tr('screen3_m5_catch_radius'), min_value=0.1, value=0.5, step=0.1)
-                        
-                        if st.form_submit_button(tr("screen3_m5_apply_params")):
-                            st.session_state.m5s2_params = {'vp': vp, 've': ve, 'xp0': xp0, 'yp0': yp0, 'xe0': xe0, 'ye0': ye0, 'catch_radius': catch_radius}
-                            reset_animation() # Dùng lại hàm reset để áp dụng tham số
-                            st.rerun()
-
         with st.container(border=True):
-            st.subheader(tr('screen3_results_group_title'))
+            info_title_key = "screen3_results_group_title"
+            if model_id == 'model5':
+                info_title_key = "screen3_info_m5_sim1_title" if st.session_state.get('m5_scenario', 1) == 1 else "screen3_info_m5_sim2_title"
+            st.subheader(tr(info_title_key))
             info_placeholder = st.empty()
 
     with col_display:
-        with st.container(border=True):
-            plot_title_key = ""
-            if model_id == 'model2': plot_title_key = "screen3_model2_anim_plot_title"
-            elif model_id == 'model3': plot_title_key = "screen3_abm_anim_plot_title"
-            elif model_id == 'model5':
-                plot_title_key = "screen3_model5_plot_title_sim1" if m5_scenario_id == 1 else "screen3_model5_plot_title_sim2"
-            st.subheader(tr(plot_title_key))
-            plot_placeholder = st.empty()
+        plot_placeholder = st.empty()
 
     # ==============================================
-    #           PHẦN LOGIC MÔ PHỎNG VÀ VẼ (KHÔNG THAY ĐỔI)
-    #           ... (Giữ nguyên toàn bộ phần logic từ `results = ...` đến cuối hàm)
+    #           LOGIC CHÍNH CỦA TRANG
     # ==============================================
-    results = st.session_state.get('simulation_results', {})
-    highest_step_key = max(results.keys(), key=int) if results else None
-    sim_data = results.get(highest_step_key, {})
     
-    fig = st.session_state.anim_fig
-    ax = st.session_state.anim_ax
+    current_scenario = st.session_state.get('m5_scenario', 1)
+    anim_key = f'anim_init_{model_id}_{current_scenario}'
+    if anim_key not in st.session_state: st.session_state[anim_key] = True
+    if 'anim_frame' not in st.session_state: st.session_state.anim_frame = 0
+    if 'anim_running' not in st.session_state: st.session_state.anim_running = False
     
-    current_frame = st.session_state.anim_frame
-    animation_ended = False
-    ax.clear()
-
+    if model_id == 'model5' and current_scenario == 2:
+        if 'm5s2_results' not in st.session_state:
+            with st.spinner(tr("screen2_info_area_running")):
+                run_and_store_model5_scenario2_results() 
+    
     if st.session_state.get(anim_key, True):
         with info_placeholder.container(): st.info(tr("screen3_waiting_for_data"))
-        ax.text(0.5, 0.5, tr("screen3_waiting_for_data"), ha='center', va='center', fontsize=12)
+        fig, ax = plt.subplots(figsize=(8, 8)); ax.text(0.5, 0.5, tr("screen3_waiting_for_data"), ha='center', va='center')
         ax.set_xticks([]); ax.set_yticks([])
+        plot_placeholder.pyplot(fig)
     else:
-        # --- MODEL 2 ---
-        if model_id == 'model2' and sim_data:
-            t_data = sim_data.get('t_plot'); y_data = sim_data.get('approx_sol_plot')
-            if 'model2_cells' not in st.session_state: st.session_state.model2_cells = [Cell(0, 0, gen=0)]
-            if current_frame >= len(t_data): animation_ended = True; current_frame = len(t_data) - 1
-            
-            if st.session_state.anim_running and not animation_ended:
-                target_n = int(round(y_data[current_frame]))
-                cells = st.session_state.model2_cells
-                if len(cells) < target_n:
-                    existing_pos = {(cell.x, cell.y) for cell in cells}
-                    for _ in range(target_n - len(cells)):
-                        parent = random.choice(cells)
-                        for _ in range(20):
-                            angle = random.uniform(0, 2 * np.pi)
-                            new_x, new_y = parent.x + np.cos(angle) * 1.1, parent.y + np.sin(angle) * 1.1
-                            if not any(np.hypot(new_x - px, new_y - py) < 1.0 for px, py in existing_pos):
-                                cells.append(Cell(new_x, new_y, parent.gen + 1))
-                                existing_pos.add((new_x, new_y))
-                                break
-                st.session_state.model2_cells = cells
-            
-            cells = st.session_state.get('model2_cells', [Cell(0,0)])
-            all_x = [c.x for c in cells]; all_y = [c.y for c in cells]
-            for cell in cells: ax.add_patch(MplCircle((cell.x, cell.y), radius=0.5, color='brown', alpha=0.7))
-            if all_x:
-                max_coord = max(max(np.abs(all_x)), max(np.abs(all_y))) + 2
-                ax.set_xlim(-max_coord, max_coord); ax.set_ylim(-max_coord, max_coord)
-            ax.set_aspect('equal'); ax.axis('off')
-            ax.legend([MplCircle((0,0), 0.1, color='brown')], [tr("screen3_legend_model2_cell")], loc='upper right')
-            
-            c_val = st.session_state.get('last_calculated_c', 'N/A')
-            if isinstance(c_val, (float, int)):
-                c_str = f"{c_val:.4g}"
-            else:
-                c_str = str(c_val)
-			    
-            time_str = f"{t_data[current_frame]:.2f} s"
-			
-            metrics_data_m2 = {
-			    tr('screen3_result_c'): {'value': c_str},
-			    tr('screen3_result_mass'): {'value': len(cells)},
-			    tr('screen3_result_time'): {'value': time_str}
-			}
-			# Gọi hàm helper để hiển thị
-            display_custom_metric(info_placeholder, metrics_data_m2)
+        fig, ax = plt.subplots(figsize=(8, 8), dpi=100)
+        current_frame = st.session_state.anim_frame
+        animation_ended = False
         
-        # --- MODEL 3 (ABM) ---
+        # --- LOGIC CHO MODEL 2 (TĂNG TRƯỞNG TẾ BÀO) ---
+        if model_id == 'model2':
+            results = st.session_state.get('simulation_results', {})
+            highest_step_key = max(results.keys(), key=int) if results else None
+            sim_data = results.get(highest_step_key, {})
+            t_data = sim_data.get('t_plot')
+            y_data = sim_data.get('approx_sol_plot')
+
+            if t_data is None or y_data is None or len(t_data) == 0:
+                animation_ended = True
+                ax.text(0.5, 0.5, tr("msg_no_data_for_dynamic"), ha='center', va='center')
+            else:
+                if 'model2_cells' not in st.session_state: st.session_state.model2_cells = [Cell(0, 0, gen=0)]
+                if current_frame >= len(t_data): 
+                    animation_ended = True
+                    current_frame = len(t_data) - 1
+                
+                if st.session_state.anim_running and not animation_ended:
+                    target_n = int(round(y_data[current_frame]))
+                    cells = st.session_state.model2_cells
+                    if len(cells) < target_n:
+                        existing_pos = {(cell.x, cell.y) for cell in cells}
+                        for _ in range(target_n - len(cells)):
+                            parent = random.choice(cells)
+                            for _ in range(20): # Thử 20 lần để tìm vị trí mới
+                                angle = random.uniform(0, 2 * np.pi)
+                                new_x, new_y = parent.x + np.cos(angle) * 1.1, parent.y + np.sin(angle) * 1.1
+                                if not any(np.hypot(new_x - px, new_y - py) < 1.0 for px, py in existing_pos):
+                                    cells.append(Cell(new_x, new_y, parent.gen + 1))
+                                    existing_pos.add((new_x, new_y))
+                                    break
+                    st.session_state.model2_cells = cells
+                
+                cells = st.session_state.get('model2_cells', [Cell(0,0)])
+                all_x = [c.x for c in cells]; all_y = [c.y for c in cells]
+                for cell in cells: ax.add_patch(MplCircle((cell.x, cell.y), radius=0.5, color='brown', alpha=0.7))
+                if all_x:
+                    max_coord = max(max(np.abs(all_x)), max(np.abs(all_y))) + 2
+                    ax.set_xlim(-max_coord, max_coord); ax.set_ylim(-max_coord, max_coord)
+                ax.set_aspect('equal'); ax.axis('off')
+                ax.legend([MplCircle((0,0), 0.1, color='brown')], [tr("screen3_legend_model2_cell")], loc='upper right')
+                
+                c_val = st.session_state.get('last_calculated_c', 'N/A')
+                c_str = f"{c_val:.4g}" if isinstance(c_val, (float, int)) else str(c_val)
+                time_str = f"{t_data[current_frame]:.2f} s"
+                
+                metrics_data_m2 = {
+                    tr('screen3_result_c'): {'value': c_str},
+                    tr('screen3_result_mass'): {'value': len(cells)},
+                    tr('screen3_result_time'): {'value': time_str}
+                }
+                display_custom_metric(info_placeholder, metrics_data_m2)
+
+        # --- LOGIC CHO MODEL 3 (ABM) ---
         elif model_id == 'model3':
             abm_params = model_data.get("abm_defaults", {})
-            
-            # Khởi tạo instance ABM nếu chưa có
             if 'abm_instance' not in st.session_state:
                 r_val = st.session_state.get('last_calculated_r', 0.0001)
                 ptrans = np.clip(r_val * abm_params.get("r_to_ptrans_factor", 5000), abm_params.get("ptrans_min", 0.01), abm_params.get("ptrans_max", 0.9))
-                # Lấy tổng dân số từ tham số đã xác thực
                 total_pop = int(validated_params['params']['n'] + 1)
                 st.session_state.abm_instance = DiseaseSimulationABM(
-                    total_population=total_pop, 
-                    initial_infected_count_for_abm=1, # Luôn bắt đầu với 1 ca nhiễm
+                    total_population=total_pop, initial_infected_count_for_abm=1,
                     room_dimension=abm_params.get('room_dimension', 10.0), 
-                    contact_radius=abm_params.get('base_contact_radius', 0.5), # Sử dụng base_contact_radius
+                    contact_radius=abm_params.get('base_contact_radius', 0.5),
                     transmission_prob=ptrans, 
                     agent_speed=abm_params.get('base_agent_speed', 0.05)
                 )
             
             abm = st.session_state.abm_instance
-            
-            # Nếu animation đang chạy, thực hiện một bước mô phỏng
             if st.session_state.anim_running:
                 ended_by_logic = abm.step()
                 if ended_by_logic or current_frame >= abm_params.get('max_steps', 400):
                     animation_ended = True
-
-            # --- Phần vẽ đồ thị ---
-            # Xóa trục cũ và thiết lập giới hạn
-            ax.set_xlim(0, abm.room_dimension)
-            ax.set_ylim(0, abm.room_dimension)
-            ax.set_aspect('equal')
-            ax.set_xticks([])
-            ax.set_yticks([])
             
-            # Lấy và vẽ tọa độ các cá thể
+            ax.set_xlim(0, abm.room_dimension); ax.set_ylim(0, abm.room_dimension)
+            ax.set_aspect('equal'); ax.set_xticks([]); ax.set_yticks([])
             s_coords, i_coords = abm.get_display_coords(abm_params['display_max_total'], abm_params['display_sample_size'])
             
-            # Chỉ vẽ nếu có dữ liệu để tránh lỗi
-            if s_coords.shape[0] > 0:
-                ax.scatter(s_coords[:, 0], s_coords[:, 1], c='blue', s=20, label=tr('screen3_legend_abm_susceptible'))
-            if i_coords.shape[0] > 0:
-                ax.scatter(i_coords[:, 0], i_coords[:, 1], c='red', marker='*', s=80, label=tr('screen3_legend_abm_infected'))
-            
-            # Luôn hiển thị legend, kể cả khi một nhóm không còn cá thể nào
+            if s_coords.shape[0] > 0: ax.scatter(s_coords[:, 0], s_coords[:, 1], c='blue', s=20, label=tr('screen3_legend_abm_susceptible'))
+            if i_coords.shape[0] > 0: ax.scatter(i_coords[:, 0], i_coords[:, 1], c='red', marker='*', s=80, label=tr('screen3_legend_abm_infected'))
             ax.legend()
             
-            # --- Phần cập nhật thông tin ---
             stats = abm.get_current_stats()
-            
             metrics_data_m3 = {
                 tr('screen3_total_pop'): {'value': stats['total_population']},
                 tr('screen3_susceptible_pop'): {'value': stats['susceptible_count']},
                 tr('screen3_infected_pop'): {'value': stats['infected_count']},
                 tr('screen3_model3_simulation_time_label'): {'value': stats['time_step']}
             }
-            
-            # Gọi hàm helper để hiển thị thông tin với style mới
             display_custom_metric(info_placeholder, metrics_data_m3)
         
-        # --- MODEL 5 ---
-        elif model_id == 'model5' and sim_data:
-            if m5_scenario_id == 1:
+        # --- LOGIC CHO MODEL 5 ---
+        elif model_id == 'model5':
+            if st.session_state.m5_scenario == 1:
+                results = st.session_state.get('simulation_results', {})
+                highest_step_key = max(results.keys(), key=int) if results else None
+                sim_data = results.get(highest_step_key, {})
                 t_data = sim_data.get('t_plot')
-                if t_data is None or len(t_data) == 0: animation_ended = True
+
+                if t_data is None or len(t_data) == 0:
+                    animation_ended = True; ax.text(0.5, 0.5, tr("msg_no_data_for_dynamic"), ha='center', va='center')
                 else:
                     if current_frame >= len(t_data): animation_ended = True; current_frame = len(t_data) - 1
+                    
                     x_path, y_path = sim_data['approx_sol_plot_all_components']
                     ax.plot(x_path, y_path, 'b--', alpha=0.5, label=tr('screen3_legend_m5s1_path'))
                     ax.plot(x_path[current_frame], y_path[current_frame], 'rP', markersize=12, label=tr('screen3_legend_m5s1_boat'))
+                    
                     d_val = validated_params['params']['x0']
                     ax.axvline(0, color='grey', ls=':'); ax.axvline(d_val, color='grey', ls=':')
                     ax.set_xlabel(tr('screen3_model5_plot_xlabel_sim1')); ax.set_ylabel(tr('screen3_model5_plot_ylabel_sim1'))
                     ax.grid(True); ax.legend(); ax.set_aspect('equal')
                     
-                    metrics_data_m5s1 = {
-					    tr('screen3_m5_boat_speed'): {'value': f"{validated_params['params']['v']:.2f}"},
-					    tr('screen3_m5_water_speed'): {'value': f"{validated_params['params']['u']:.2f}"},
-					    tr('screen3_m5_crossing_time'): {'value': f"{t_data[current_frame]:.2f} s"}
-					}
-					
+                    final_pos_str, reaches_target_str = "...", "..."
                     if animation_ended:
                         final_pos_str = f"({x_path[-1]:.2f}, {y_path[-1]:.2f})"
                         reaches_target_str = tr('answer_yes') if abs(x_path[-1]) < 0.1 else tr('answer_no')
-                        metrics_data_m5s1[tr('screen3_m5_boat_reaches_target')] = {'value': reaches_target_str, 'size_class': 'metric-value-small'}
-                        metrics_data_m5s1[tr('screen3_m5_boat_final_pos')] = {'value': final_pos_str, 'size_class': 'metric-value-small'}
-					
-                    display_custom_metric(info_placeholder, metrics_data_m5s1)
-            
-            elif m5_scenario_id == 2:
-                if 'm5s2_params' not in st.session_state:
-                    st.session_state.m5s2_params = {'vp': 3.0, 've': 2.0, 'xp0': 0.0, 'yp0': 0.0, 'xe0': 10.0, 'ye0': 10.0, 'catch_radius': 0.5}
-                
-                if 'm5s2_results' not in st.session_state:
-                    method_short = validated_params.get('method_short', 'Bashforth')
-                    steps_int = validated_params.get('selected_steps_int', [4])[-1]
-                    solver_map = {
-                        "Bashforth": {2: AB2_system_M5_Sim2_CombinedLogic, 3: AB3_system_M5_Sim2_CombinedLogic, 4: AB4_system_M5_Sim2_CombinedLogic, 5: AB5_system_M5_Sim2_CombinedLogic},
-                        "Moulton": {2: AM2_system_M5_Sim2_CombinedLogic, 3: AM3_system_M5_Sim2_CombinedLogic, 4: AM4_system_M5_Sim2_CombinedLogic}
+                    
+                    metrics_data_m5s1 = {
+                        tr('screen3_m5_boat_speed'): {'value': f"{validated_params['params']['v']:.2f}"},
+                        tr('screen3_m5_water_speed'): {'value': f"{validated_params['params']['u']:.2f}"},
+                        tr('screen3_m5_crossing_time'): {'value': f"{t_data[current_frame]:.2f} s"},
+                        tr('screen3_m5_boat_reaches_target'): {'value': reaches_target_str, 'size_class': 'metric-value-small'},
+                        tr('screen3_m5_boat_final_pos'): {'value': final_pos_str, 'size_class': 'metric-value-small'}
                     }
-                    solver_func = solver_map.get(method_short, {}).get(steps_int)
+                    display_custom_metric(info_placeholder, metrics_data_m5s1)
 
-                    if solver_func:
-                        p = st.session_state.m5s2_params
-                        initial_state = np.array([p['xp0'], p['yp0'], p['xe0'], p['ye0']])
-                        t_end = 2 * np.linalg.norm(initial_state[2:] - initial_state[:2]) / abs(p['vp'] - p['ve']) if abs(p['vp'] - p['ve']) > 1e-6 else 20
-                        t_array = np.linspace(0, t_end, 1000)
-                        st.session_state.m5s2_results = _run_and_cache_m5_sim2(solver_func, t_array, initial_state, p['catch_radius'])
-                    else:
-                        st.session_state.m5s2_results = None
-
+            elif st.session_state.m5_scenario == 2:
                 m5s2_res = st.session_state.get('m5s2_results')
                 if not m5s2_res:
-                    ax.text(0.5, 0.5, "Lỗi tính toán, không có dữ liệu.", ha='center', va='center')
+                    ax.text(0.5, 0.5, tr("screen3_model5_not_implemented_msg"), ha='center', va='center')
                     animation_ended = True
                 else:
-                    t_points = m5s2_res['time_points']
-                    state_hist = m5s2_res['state_history']
-                    is_caught = m5s2_res['caught']
-                    catch_time = m5s2_res['time_of_catch']
+                    t_points, state_hist = m5s2_res['time_points'], m5s2_res['state_history']
+                    is_caught, catch_time = m5s2_res['caught'], m5s2_res['time_of_catch']
                     
                     if current_frame >= len(t_points):
                         animation_ended = True
                         current_frame = len(t_points) - 1
-
-                    pursuer_path = state_hist[:, 0:2]
-                    evader_path = state_hist[:, 2:4]
                     
-                    ax.plot(pursuer_path[:, 0], pursuer_path[:, 1], 'r-', label=tr('screen3_legend_m5s2_pursuer_path'))
-                    ax.plot(evader_path[:, 0], evader_path[:, 1], 'b--', label=tr('screen3_legend_m5s2_evader_path'))
-                    ax.plot(pursuer_path[current_frame, 0], pursuer_path[current_frame, 1], 'rP', markersize=12, label=tr('screen3_legend_m5s2_pursuer'))
-                    ax.plot(evader_path[current_frame, 0], evader_path[current_frame, 1], 'bo', markersize=8, label=tr('screen3_legend_m5s2_evader'))
-
-                    ax.set_xlabel("X"); ax.set_ylabel("Y"); ax.grid(True); ax.legend(); ax.set_aspect('equal')
+                    pursuer_path, evader_path = state_hist[:, 0:2], state_hist[:, 2:4]
                     
-                    current_dist = np.linalg.norm(pursuer_path[current_frame] - evader_path[current_frame])
-                    info_md = f"**{tr('screen3_m5_time')}:** `{t_points[current_frame]:.2f} s`\n\n" \
-                              f"**{tr('screen3_m5_distance')}:** `{current_dist:.2f}`\n\n"
+                    ax.plot(pursuer_path[:, 0], pursuer_path[:, 1], 'r-', label=tr('screen3_legend_m5s2_path_destroyer'))
+                    ax.plot(evader_path[:, 0], evader_path[:, 1], 'b--', label=tr('screen3_legend_m5s2_path_submarine'))
+                    ax.plot(pursuer_path[current_frame, 0], pursuer_path[current_frame, 1], 'rP', markersize=12, label=tr('screen3_legend_m5s2_destroyer'))
+                    ax.plot(evader_path[current_frame, 0], evader_path[current_frame, 1], 'bo', markersize=8, label=tr('screen3_legend_m5s2_submarine'))
+                    
+                    ax.add_patch(MplCircle((evader_path[current_frame, 0], evader_path[current_frame, 1]), st.session_state.m5s2_params['avoidance_radius'], color='blue', fill=False, linestyle=':', alpha=0.7))
+                    ax.add_patch(MplCircle((pursuer_path[current_frame, 0], pursuer_path[current_frame, 1]), st.session_state.m5s2_params['kt_radar_radius'], color='red', fill=False, linestyle=':', alpha=0.5))
+
                     if is_caught and t_points[current_frame] >= catch_time:
-                         info_md += f"**<span style='color:red;'>{tr('screen3_m5_caught_status').format(catch_time)}</span>**"
-                         animation_ended = True
-                    else:
-                         info_md += f"**{tr('screen3_m5_uncaught_status')}**"
-                    info_placeholder.markdown(info_md, unsafe_allow_html=True)
-
-    plot_placeholder.pyplot(fig, clear_figure=False)
-
-    if st.session_state.anim_running:
-        if animation_ended:
-            st.session_state.anim_running = False
-            st.toast(tr("screen3_anim_finished_msg"))
-            st.rerun()
+                        catch_frame_index = np.where(t_points >= catch_time)[0][0]
+                        catch_point = state_hist[catch_frame_index, 0:2]
+                        ax.plot(catch_point[0], catch_point[1], 'gX', markersize=15, label=tr('screen3_legend_m5s2_catch_point'))
+                        animation_ended = True
+                    
+                    ax.set_xlabel(tr("screen3_model5_plot_xlabel_sim2")); ax.set_ylabel(tr("screen3_model5_plot_ylabel_sim2"))
+                    ax.grid(True); ax.legend(); ax.set_aspect('equal')
+                    
+                    status_str, catch_point_str = "...", "..."
+                    if animation_ended:
+                        status_str = tr('answer_yes') if is_caught else tr('answer_no')
+                        if is_caught:
+                            catch_frame_index = np.where(t_points >= catch_time)[0][0]
+                            catch_point = state_hist[catch_frame_index, 0:2]
+                            catch_point_str = f"({catch_point[0]:.2f}, {catch_point[1]:.2f})"
+                    
+                    metrics_data = {
+                        tr('screen3_m5_submarine_speed'): {'value': f"{st.session_state.m5s2_params['v_tn_max']:.2f}"},
+                        tr('screen3_m5_destroyer_speed'): {'value': f"{st.session_state.m5s2_params['v_kt']:.2f}"},
+                        tr('screen3_m5_catch_time'): {'value': f"{t_points[current_frame]:.2f} s"},
+                        tr('screen3_m5_destroyer_catches_submarine'): {'value': status_str, 'size_class': 'metric-value-small'},
+                        tr('screen3_m5_catch_point'): {'value': catch_point_str, 'size_class': 'metric-value-small'}
+                    }
+                    display_custom_metric(info_placeholder, metrics_data)
+        
         else:
+            info_placeholder.info(tr("Vui lòng chọn một mô hình có hỗ trợ mô phỏng động."))
+            ax.text(0.5, 0.5, "Không có mô phỏng động", ha='center', va='center')
+            animation_ended = True
+
+        # --- Cập nhật plot và vòng lặp ---
+        plot_placeholder.pyplot(fig)
+        plt.close(fig) 
+
+        if st.session_state.anim_running and not animation_ended:
             st.session_state.anim_frame += 1
-            time.sleep(max(0.01, 0.05 / speed_multiplier)) 
+            time.sleep(max(0.01, 0.1 / speed_multiplier)) 
             st.rerun()
+        elif animation_ended:
+            st.session_state.anim_running = False
 
 # =========================================================================
 # Highlight: KẾT THÚC CẬP NHẬT VÒNG LẶP ANIMATION
