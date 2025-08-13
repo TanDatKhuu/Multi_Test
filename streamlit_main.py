@@ -2835,6 +2835,7 @@ def show_dynamic_simulation_page():
             html_content += f"<div class='{size_class}'>{value}</div>"
         html_content += "</div>"
         placeholder.markdown(html_content, unsafe_allow_html=True)
+		
     validated_params = st.session_state.get('validated_params', {})
     if not validated_params:
         st.error(tr("msg_no_data_for_dynamic"))
