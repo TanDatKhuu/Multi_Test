@@ -2990,12 +2990,12 @@ def show_dynamic_simulation_page():
 
             # Tạo chuỗi đã định dạng cho c một cách an toàn
             if isinstance(c_val, (float, int)):
-			    c_str = f"{c_val:.4g}"
-			else:
-			    c_str = str(c_val)  # Chuyển thành chuỗi, ví dụ 'N/A'
+                c_str = f"{c_val:.4g}"
+            else:
+                c_str = str(c_val)  # Chuyển thành chuỗi, ví dụ 'N/A'
 			
 			# Hiển thị thông tin bằng biến đã được định dạng sẵn
-			info_placeholder.markdown(f"**{tr('screen3_result_c')}** `{c_str}`\n\n"
+            info_placeholder.markdown(f"**{tr('screen3_result_c')}** `{c_str}`\n\n"
 			                          f"**{tr('screen3_result_mass')}** `{len(cells)}`\n\n"
 			                          f"**{tr('screen3_result_time')}** `{t_data[current_frame]:.2f} s`")
         
