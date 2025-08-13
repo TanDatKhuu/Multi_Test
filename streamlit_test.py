@@ -3217,7 +3217,7 @@ def show_dynamic_simulation_page():
                 # Hàm create_animation_gif sẽ tự điền vào các placeholder nó tạo ra
                 gif_bytes, final_stats = create_animation_gif(model_id, model_data, validated_params, speed_multiplier)
             
-	            st.session_state.generate_gif_request = False # Reset cờ
+                st.session_state.generate_gif_request = False # Reset cờ
 	            if gif_bytes:
 	                st.session_state.generated_gif = gif_bytes
 	                st.session_state.final_anim_stats = final_stats
