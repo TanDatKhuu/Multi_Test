@@ -3174,8 +3174,8 @@ def show_dynamic_simulation_page():
                 index=1,
                 key="gif_speed_selector"
             )
-            # Highlight: Chỉ lưu speed_multiplier vào session_state
-            st.session_state.speed_multiplier = speed_options[selected_speed_label]
+            speed_multiplier = speed_options[selected_speed_label]
+            st.session_state.speed_multiplier = speed_multiplier
 
             # Highlight: Sửa logic của nút bấm
             if st.button(f"🚀 {tr('generate_and_show_button')}", use_container_width=True, type="primary"):
