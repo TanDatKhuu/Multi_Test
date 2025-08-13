@@ -55,6 +55,14 @@ def tr(key):
     return st.session_state.translations.get(key, key)
 	
 def render_navbar():
+	st.markdown("""
+        <style>
+            /* Thay đổi con trỏ chuột cho selectbox ngôn ngữ */
+            div[data-testid="stSelectbox"] > div {
+                cursor: pointer;
+            }
+        </style>
+    """, unsafe_allow_html=True)
     # Sử dụng st.columns để tạo layout cho thanh nav
     col1, col2, col3, col4, col5 = st.columns([3, 1.5, 1.5, 1, 1.5])
 
@@ -2037,6 +2045,11 @@ def show_model_selection_page():
         <style>
         .main { background-color: #E6ECF4; }
         div[data-testid="stAppViewBlockContainer"] { padding-top: 2rem; }
+
+        /* Thay đổi con trỏ chuột cho selectbox ngôn ngữ */
+            div[data-testid="stSelectbox"] > div {
+                cursor: pointer;
+            }
         </style>
     """, unsafe_allow_html=True)
 	# --- NỘI DUNG CHÍNH CỦA TRANG ---
