@@ -2854,13 +2854,13 @@ def show_dynamic_simulation_page():
         # Không cần thay đổi st.session_state.page vì ta muốn ở lại trang này
 
     # --- Bố cục giao diện ---
-    header_cols = st.columns([1, 2, 1])
+    header_cols = st.columns([0.5, 3, 0.5])
     with header_cols[0]:
-        st.button(f"ᐊ {tr('screen3_back_button')}", on_click=navigate_to, args=('simulation',), use_container_width=True)
+        st.button(f"{tr('screen3_back_button')}", on_click=navigate_to, args=('simulation',),type="primary", use_container_width=True)
     with header_cols[1]:
         st.markdown(f"<h1 style='text-align: center; margin: 0;'>{tr('screen3_dyn_only_title')}</h1>", unsafe_allow_html=True)
     with header_cols[2]:
-        st.button(f"ᐊᐊ {tr('screen3_double_back_button')}", on_click=navigate_to, args=('model_selection',), use_container_width=True)
+        st.button(f"{tr('screen3_double_back_button')}", on_click=navigate_to, args=('model_selection',),type="primary", use_container_width=True)
     
     st.divider()
 
