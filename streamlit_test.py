@@ -3168,12 +3168,15 @@ def show_dynamic_simulation_page():
                 index=1,
                 key="gif_speed_selector"
             )
-            speed_multiplier = speed_options[selected_speed_label]
+            # Highlight: Chỉ lưu speed_multiplier vào session_state
+            st.session_state.speed_multiplier = speed_options[selected_speed_label]
 
+            # Highlight: Sửa logic của nút bấm
             if st.button(f"🚀 {tr('generate_and_show_button')}", use_container_width=True, type="primary"):
+                # Chỉ đặt cờ, không rerun
+                st.session_state.generate_gif_request = True
                 if 'generated_gif' in st.session_state:
                     del st.session_state['generated_gif']
-                st.rerun()
         
         if model_id == 'model5':
             with st.container(border=True):
@@ -3201,18 +3204,41 @@ def show_dynamic_simulation_page():
 
     # --- Cột hiển thị chính ---
     with col_display:
-        if 'generated_gif' in st.session_state and st.session_state.generated_gif:
+        # Highlight: Sửa lại logic hiển thị
+        # Ưu tiên kiểm tra cờ yêu cầu tạo GIF trước
+        if st.session_state.get('generate_gif_request', False):
+            with st.spinner(tr("gif_generating_spinner")):
+                # Lấy speed_multiplier từ session_state
+                speed_multiplier = st.session_state.speed_multiplier
+                gif_bytes, final_stats = create_animation_gif(model_id, model_data, validated_params, speed_multiplier)
+                
+                # Reset cờ sau khi hoàn thành
+                st.session_state.generate_gif_request = False
+
+                if gif_bytes:
+                    st.session_state.generated_gif = gif_bytes
+                    st.session_state.final_anim_stats = final_stats
+                    st.rerun() # Rerun để hiển thị GIF
+                else:
+                    st.error(tr("gif_generation_error"))
+                    info_placeholder.error(tr("gif_generation_error"))
+
+        elif 'generated_gif' in st.session_state and st.session_state.generated_gif:
+            # Nếu đã có GIF, hiển thị nó
             st.image(st.session_state.generated_gif)
             final_stats = st.session_state.get('final_anim_stats', {})
             if final_stats:
                 display_custom_metric(info_placeholder, final_stats)
         else:
+            # Trạng thái ban đầu
             plot_placeholder = st.empty()
             with plot_placeholder.container():
                 fig, ax = plt.subplots(figsize=(8,8))
                 ax.text(0.5, 0.5, tr("press_generate_to_see_info"), ha='center', va='center')
                 ax.set_xticks([]); ax.set_yticks([])
                 st.pyplot(fig)
+            with info_placeholder.container():
+                st.info(tr("press_generate_to_see_info")
 
 # =========================================================================
 # Highlight: KẾT THÚC CẬP NHẬT VÒNG LẶP ANIMATION
