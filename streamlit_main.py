@@ -2738,7 +2738,7 @@ class Cell:
         self.gen = gen
 
 # Các hàm Helper cho Model 5 - Kịch bản 2
-@st.cache_data
+@st.cache_data(hash_funcs={np.ndarray: lambda arr: arr.tobytes()})
 def _run_and_cache_m5_sim2(method_func, t_array, initial_state, catch_radius):
     """Chạy mô phỏng Sim2 một lần và trả về kết quả."""
     try:
