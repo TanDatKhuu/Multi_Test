@@ -3042,7 +3042,7 @@ def show_dynamic_simulation_page():
 			    tr('screen3_result_time'): {'value': time_str}
 			}
 			# Gọi hàm helper để hiển thị
-           display_custom_metric(info_placeholder, metrics_data_m2)
+            display_custom_metric(info_placeholder, metrics_data_m2)
         # --- MODEL 3 (ABM) ---
         elif model_id == 'model3':
             abm_params = model_data.get("abm_defaults", {})
@@ -3098,7 +3098,7 @@ def show_dynamic_simulation_page():
 					    metrics_data_m5s1[tr('screen3_m5_boat_reaches_target')] = {'value': reaches_target_str, 'size_class': 'metric-value-small'}
 					    metrics_data_m5s1[tr('screen3_m5_boat_final_pos')] = {'value': final_pos_str, 'size_class': 'metric-value-small'}
 
-                   display_custom_metric(info_placeholder, metrics_data_m5s1)
+                    display_custom_metric(info_placeholder, metrics_data_m5s1)
             
             elif m5_scenario_id == 2:
                 if 'm5s2_params' not in st.session_state:
