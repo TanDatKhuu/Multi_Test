@@ -3093,10 +3093,10 @@ def show_dynamic_simulation_page():
 					}
 					
                     if animation_ended:
-					    final_pos_str = f"({x_path[-1]:.2f}, {y_path[-1]:.2f})"
-					    reaches_target_str = tr('answer_yes') if abs(x_path[-1]) < 0.1 else tr('answer_no')
-					    metrics_data_m5s1[tr('screen3_m5_boat_reaches_target')] = {'value': reaches_target_str, 'size_class': 'metric-value-small'}
-					    metrics_data_m5s1[tr('screen3_m5_boat_final_pos')] = {'value': final_pos_str, 'size_class': 'metric-value-small'}
+                        final_pos_str = f"({x_path[-1]:.2f}, {y_path[-1]:.2f})"
+                        reaches_target_str = tr('answer_yes') if abs(x_path[-1]) < 0.1 else tr('answer_no')
+                        metrics_data_m5s1[tr('screen3_m5_boat_reaches_target')] = {'value': reaches_target_str, 'size_class': 'metric-value-small'}
+                        metrics_data_m5s1[tr('screen3_m5_boat_final_pos')] = {'value': final_pos_str, 'size_class': 'metric-value-small'}
 
                     display_custom_metric(info_placeholder, metrics_data_m5s1)
             
