@@ -2989,7 +2989,7 @@ def show_dynamic_simulation_page():
             c_val = st.session_state.get('last_calculated_c', 'N/A')
 
             # Tạo chuỗi đã định dạng cho c một cách an toàn
-			if isinstance(c_val, (float, int)):
+		    if isinstance(c_val, (float, int)):
 			    c_str = f"{c_val:.4g}"
 			else:
 			    c_str = str(c_val)  # Chuyển thành chuỗi, ví dụ 'N/A'
