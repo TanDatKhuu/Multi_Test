@@ -2987,9 +2987,17 @@ def show_dynamic_simulation_page():
             ax.legend([MplCircle((0,0), 0.1, color='brown')], [tr("screen3_legend_model2_cell")], loc='upper right')
             
             c_val = st.session_state.get('last_calculated_c', 'N/A')
-            info_placeholder.markdown(f"**{tr('screen3_result_c')}** `{c_val:.4g if isinstance(c_val, float) else c_val}`\n\n"
-                                      f"**{tr('screen3_result_mass')}** `{len(cells)}`\n\n"
-                                      f"**{tr('screen3_result_time')}** `{t_data[current_frame]:.2f} s`")
+
+            # Tạo chuỗi đã định dạng cho c một cách an toàn
+			if isinstance(c_val, (float, int)):
+			    c_str = f"{c_val:.4g}"
+			else:
+			    c_str = str(c_val)  # Chuyển thành chuỗi, ví dụ 'N/A'
+			
+			# Hiển thị thông tin bằng biến đã được định dạng sẵn
+			info_placeholder.markdown(f"**{tr('screen3_result_c')}** `{c_str}`\n\n"
+			                          f"**{tr('screen3_result_mass')}** `{len(cells)}`\n\n"
+			                          f"**{tr('screen3_result_time')}** `{t_data[current_frame]:.2f} s`")
         
         # --- MODEL 3 (ABM) ---
         elif model_id == 'model3':
