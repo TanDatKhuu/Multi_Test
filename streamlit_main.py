@@ -2812,12 +2812,12 @@ def _m5_sim2_combined_ode(t, state):
         dy_tn = (v_total_desired[1] / norm_total_tn) * params['v_tn_max']
     return np.array([dx_kt, dy_kt, dx_tn, dy_tn])
 
-# Highlight: Sử dụng cache_data để tính toán Sim2 chỉ một lần
 @st.cache_data
-def _run_and_cache_m5_sim2(_solver_func_name, t_array, initial_state, catch_radius, _params_dict, _traj_params_dict):
-    """Chạy mô phỏng Sim2 một lần và trả về kết quả."""
+def _run_and_cache_m5_sim2(_solver_func_name, t_array, initial_state, catch_radius, _params_dict_json, _traj_params_dict_json):
     solver_map = { "AB2_system_M5_Sim2_CombinedLogic": AB2_system_M5_Sim2_CombinedLogic, "AB3_system_M5_Sim2_CombinedLogic": AB3_system_M5_Sim2_CombinedLogic, "AB4_system_M5_Sim2_CombinedLogic": AB4_system_M5_Sim2_CombinedLogic, "AB5_system_M5_Sim2_CombinedLogic": AB5_system_M5_Sim2_CombinedLogic, "AM2_system_M5_Sim2_CombinedLogic": AM2_system_M5_Sim2_CombinedLogic, "AM3_system_M5_Sim2_CombinedLogic": AM3_system_M5_Sim2_CombinedLogic, "AM4_system_M5_Sim2_CombinedLogic": AM4_system_M5_Sim2_CombinedLogic }
     method_func = solver_map[_solver_func_name]
+    st.session_state.m5s2_params = json.loads(_params_dict_json)
+    st.session_state.m5s2_trajectory_params = json.loads(_traj_params_dict_json)
     try:
         t_points, state_hist, caught, t_catch = method_func(
             f_combined_like=_m5_sim2_combined_ode,
@@ -2831,24 +2831,6 @@ def _run_and_cache_m5_sim2(_solver_func_name, t_array, initial_state, catch_radi
         return None
 
 def show_dynamic_simulation_page():
-    # --- CSS và hàm helper cho giao diện ---
-    st.markdown("""
-    <style>
-    .metric-container { border: 1px solid #e0e0e0; border-radius: 8px; padding: 1rem; margin-bottom: 1rem; background-color: #fafafa; }
-    .metric-label { font-size: 1rem; color: #4a4a4a; margin-bottom: 0.5rem; font-weight: bold; }
-    .metric-value { font-size: 1.75rem; color: #000000; font-weight: 600; line-height: 1.2; }
-    .metric-value-small { font-size: 1.25rem; color: #000000; font-weight: 500; line-height: 1.2; }
-    </style>
-    """, unsafe_allow_html=True)
-
-    def display_custom_metric(placeholder, data_dict):
-        html_content = "<div class='metric-container'>"
-        for label, value_info in data_dict.items():
-            value = value_info['value']; size_class = value_info.get('size_class', 'metric-value')
-            html_content += f"<div class='metric-label'>{label}</div>"; html_content += f"<div class='{size_class}'>{value}</div>"
-        html_content += "</div>"
-        placeholder.markdown(html_content, unsafe_allow_html=True)
-
     # --- Kiểm tra dữ liệu và lấy thông tin model ---
     validated_params = st.session_state.get('validated_params', {})
     if not validated_params:
@@ -2861,11 +2843,10 @@ def show_dynamic_simulation_page():
     
     # --- Khởi tạo trạng thái cho trang ---
     m5_scenario_id = st.session_state.get("m5_scenario", 1)
-    anim_key = f'anim_init_{model_id}_{m5_scenario_id}'
+    anim_key = f'anim_init_{model_id}_{m5_scenario_id}' # Key duy nhất cho mỗi kịch bản
     if 'anim_running' not in st.session_state: st.session_state.anim_running = False
     if 'anim_frame' not in st.session_state: st.session_state.anim_frame = 0
     if anim_key not in st.session_state: st.session_state[anim_key] = True
-    # Highlight: Khởi tạo Figure và Axes một lần và lưu vào state
     if 'anim_fig' not in st.session_state or st.session_state.get(anim_key, True):
         st.session_state.anim_fig = Figure(figsize=(8, 8), dpi=100)
         st.session_state.anim_ax = st.session_state.anim_fig.subplots()
@@ -2896,11 +2877,13 @@ def show_dynamic_simulation_page():
             st.subheader(tr('screen3_settings_group_title'))
             speed_multiplier = st.slider(tr('screen3_speed_label'), 0.1, 5.0, 1.0, 0.1, "%.1fx")
             c1, c2, c3 = st.columns(3)
-            if c1.button(f"▶️ {tr('play_button')}", use_container_width=True, type="primary"):
+            # THAY ĐỔI: Thêm `disabled` vào các nút để tránh người dùng click lung tung
+            is_animating = st.session_state.anim_running
+            if c1.button(f"▶️ {tr('play_button')}", use_container_width=True, type="primary", disabled=is_animating):
                 st.session_state.anim_running = True
                 if st.session_state.get(anim_key, False): st.session_state[anim_key] = False
                 st.rerun()
-            if c2.button(f"⏸️ {tr('pause_button')}", use_container_width=True):
+            if c2.button(f"⏸️ {tr('pause_button')}", use_container_width=True, disabled=not is_animating):
                 st.session_state.anim_running = False; st.rerun()
             if c3.button(f"🔄 {tr('reset_button')}", use_container_width=True, on_click=cleanup_dynamic_sim_state):
                 st.rerun()
@@ -2915,8 +2898,10 @@ def show_dynamic_simulation_page():
                     on_change=cleanup_dynamic_sim_state)
                 st.session_state.m5_scenario = scenario_options[selected_scenario_disp]
 
+        # THAY ĐỔI LỚN: Sử dụng st.metric thay vì HTML tùy chỉnh
         with st.container(border=True):
-            st.subheader(tr('screen3_results_group_title')); info_placeholder = st.empty()
+            st.subheader(tr('screen3_results_group_title')); 
+            info_placeholder_cols = st.columns(2) # Tạo cột để hiển thị thông tin
 
     with col_display:
         with st.container(border=True):
@@ -2929,23 +2914,22 @@ def show_dynamic_simulation_page():
 
     # --- LOGIC MÔ PHỎNG VÀ VẼ ---
     results = st.session_state.get('simulation_results', {}); highest_step_key = max(results.keys(), key=int) if results else None
-    sim_data = results.get(highest_step_key, {})
+    sim_data = results.get(str(highest_step_key), {}) if highest_step_key is not None else {}
     fig, ax = st.session_state.anim_fig, st.session_state.anim_ax
     current_frame = st.session_state.anim_frame
     animation_ended = False
     ax.clear()
 
     if st.session_state.get(anim_key, True):
-        info_placeholder.info(tr("screen3_waiting_for_data"))
+        with info_placeholder_cols[0]: st.info(tr("screen3_waiting_for_data"))
         ax.text(0.5, 0.5, tr("screen3_waiting_for_data"), ha='center', va='center', fontsize=12)
         ax.set_xticks([]); ax.set_yticks([])
     else:
-        # Highlight: Chuyển toàn bộ logic vẽ cho từng model vào đây
+        # LOGIC CHO TỪNG MODEL
         if model_id == 'model2' and sim_data:
             T = sim_data.get('t_plot'); y0 = validated_params.get('params', {}).get('x₀')
             c = st.session_state.get('last_calculated_c')
-            if T is None or y0 is None or c is None:
-                st.error("Thiếu dữ liệu để chạy animation Model 2."); return
+            if T is None or y0 is None or c is None: st.error("Lỗi dữ liệu Model 2."); return
             
             if 'model2_cells' not in st.session_state: st.session_state.model2_cells = [Cell(0, 0)]
             if current_frame >= len(T): animation_ended = True; current_frame = len(T) - 1
@@ -2956,9 +2940,8 @@ def show_dynamic_simulation_page():
                 for _ in range(to_add):
                     parent = random.choice(st.session_state.model2_cells)
                     angle = random.uniform(0, 2 * np.pi); dist = random.uniform(0.6, 0.8)
-                    new_cell = Cell(parent.x + dist * np.cos(angle), parent.y + dist * np.sin(angle), parent.gen + 1)
-                    st.session_state.model2_cells.append(new_cell)
-
+                    st.session_state.model2_cells.append(Cell(parent.x + dist * np.cos(angle), parent.y + dist * np.sin(angle), parent.gen + 1))
+            
             all_x = [c.x for c in st.session_state.model2_cells]; all_y = [c.y for c in st.session_state.model2_cells]
             ax.set_aspect('equal'); ax.axis('off')
             if all_x:
@@ -2966,25 +2949,23 @@ def show_dynamic_simulation_page():
                 ax.set_xlim(-max_coord, max_coord); ax.set_ylim(-max_coord, max_coord)
             for cell in st.session_state.model2_cells: ax.add_patch(MplCircle((cell.x, cell.y), 0.5, color='#8B0000', ec='black', lw=0.3))
             
-            metrics_data = {
-                tr('screen3_result_c'): {'value': f"{c:.6g}"},
-                tr('screen3_result_time'): {'value': f"{T[current_frame]:.3f} s"},
-                tr('screen3_result_mass'): {'value': f"{len(st.session_state.model2_cells)}"}
-            }
-            display_custom_metric(info_placeholder, metrics_data)
+            # THAY ĐỔI: Sử dụng st.metric để hiển thị thông tin
+            with info_placeholder_cols[0]:
+                st.metric(label=tr('screen3_result_c'), value=f"{c:.6g}")
+                st.metric(label=tr('screen3_result_time'), value=f"{T[current_frame]:.3f} s")
+            with info_placeholder_cols[1]:
+                st.metric(label=tr('screen3_result_mass'), value=f"{len(st.session_state.model2_cells)}")
 
         elif model_id == 'model3':
+            abm_defaults = model_data.get("abm_defaults", {})
             if 'abm_instance' not in st.session_state:
                 p = validated_params['params']
-                abm_defaults = model_data.get("abm_defaults", {})
                 r_ode = st.session_state.get('last_calculated_r', 0.0001)
                 ptrans = np.clip(r_ode * abm_defaults.get('r_to_ptrans_factor', 5000), abm_defaults['ptrans_min'], abm_defaults['ptrans_max'])
-                total_pop = int(p.get('n', 10) + 1)
                 st.session_state.abm_instance = DiseaseSimulationABM(
-                    total_population=total_pop, initial_infected_count_for_abm=1,
+                    total_population=int(p.get('n', 10) + 1), initial_infected_count_for_abm=1,
                     room_dimension=abm_defaults['room_dimension'], contact_radius=abm_defaults['base_contact_radius'],
-                    transmission_prob=ptrans, agent_speed=abm_defaults['base_agent_speed']
-                )
+                    transmission_prob=ptrans, agent_speed=abm_defaults['base_agent_speed'])
 
             abm = st.session_state.abm_instance
             if abm.step() or current_frame >= abm_defaults['max_steps']: animation_ended = True
@@ -2996,23 +2977,21 @@ def show_dynamic_simulation_page():
             if i_coords.shape[0] > 0: ax.scatter(i_coords[:, 0], i_coords[:, 1], c='yellow', marker='*', s=70, edgecolors='red')
             
             stats = abm.get_current_stats()
-            metrics_data = {
-                tr('screen3_actual_time'): {'value': f"{stats['time_step'] * abm_defaults['seconds_per_step']:.2f} s"},
-                tr('screen3_total_pop'): {'value': stats['total_population']},
-                tr('screen3_infected_pop'): {'value': stats['infected_count']},
-                tr('screen3_susceptible_pop'): {'value': stats['susceptible_count']}
-            }
-            display_custom_metric(info_placeholder, metrics_data)
-
+            with info_placeholder_cols[0]:
+                st.metric(label=tr('screen3_actual_time'), value=f"{stats['time_step'] * abm_defaults['seconds_per_step']:.2f} s")
+                st.metric(label=tr('screen3_total_pop'), value=stats['total_population'])
+            with info_placeholder_cols[1]:
+                st.metric(label=tr('screen3_infected_pop'), value=stats['infected_count'])
+                st.metric(label=tr('screen3_susceptible_pop'), value=stats['susceptible_count'])
+        
         elif model_id == 'model5' and sim_data:
             if m5_scenario_id == 1:
-                # Logic for Sim 1 (Boat)
                 if 'm5s1_data' not in st.session_state:
                     p = validated_params['params']
                     ode_func = get_model5_ode(p['u'], p['v'])
                     solver_func = AB4_system_M5 # Dùng 1 solver cố định cho anim
                     t_array = np.linspace(p['t₀'], p['t₁'], 200)
-                    x, y = solver_func(ode_func, t_array, p['x0'], p['y0'], p['v'], p['u'], p['x0'])
+                    x, y = solver_func(ode_func, t_array, p['x0'], p['y0'])
                     st.session_state.m5s1_data = {'t': t_array, 'x': x, 'y': y, 'params': p}
                 
                 s1_data = st.session_state.m5s1_data
@@ -3024,18 +3003,17 @@ def show_dynamic_simulation_page():
                 ax.plot(s1_data['x'][current_frame], s1_data['y'][current_frame], marker='$\u2605$', ms=15, color='gold', markeredgecolor='red')
                 ax.set_xlabel(tr("screen3_model5_plot_xlabel_sim1")); ax.set_ylabel(tr("screen3_model5_plot_ylabel_sim1"))
                 ax.grid(True, linestyle=':'); ax.set_aspect('equal', adjustable='box')
-
-                metrics_data = {
-                    tr('screen3_m5_boat_speed'): {'value': f"{s1_data['params']['v']:.2f}"},
-                    tr('screen3_m5_water_speed'): {'value': f"{s1_data['params']['u']:.2f}"},
-                    tr('screen3_m5_crossing_time'): {'value': f"{s1_data['t'][current_frame]:.2f} s"}
-                }
-                display_custom_metric(info_placeholder, metrics_data)
+                
+                with info_placeholder_cols[0]:
+                    st.metric(label=tr('screen3_m5_boat_speed'), value=f"{s1_data['params']['v']:.2f}")
+                    st.metric(label=tr('screen3_m5_water_speed'), value=f"{s1_data['params']['u']:.2f}")
+                with info_placeholder_cols[1]:
+                    st.metric(label=tr('screen3_m5_crossing_time'), value=f"{s1_data['t'][current_frame]:.2f} s")
 
             elif m5_scenario_id == 2:
                 # Logic for Sim 2 (Destroyer)
                 if 'm5s2_results' not in st.session_state:
-                    p = validated_params['params']; v_kt=p.get('v',6.0); v_tn_max=p.get('u',3.0)
+                    p = validated_params.get('params', {}); v_kt=p.get('v',6.0); v_tn_max=p.get('u',3.0)
                     z0_kt = np.array([p.get('x0',0.0), p.get('y0',0.0)]); t_start=p.get('t₀',0.0)
                     INITIAL_DISTANCE_D=30.0; avoidance_radius=INITIAL_DISTANCE_D*0.4
                     st.session_state.m5s2_params = {'v_kt': v_kt, 'v_tn_max': v_tn_max, 'z0_kt': z0_kt, 'initial_dist': INITIAL_DISTANCE_D, 't_start': t_start, 'simulation_duration': 70.0, 'method_short': validated_params.get('method_short','Bashforth'), 'method_steps': validated_params.get('selected_steps_int',[4])[-1], 'avoidance_radius': avoidance_radius, 'kt_radar_radius': avoidance_radius*2.8, 'catch_threshold': 0.75, 'fov_tn_degrees': 120.0, 'avoidance_strength': 1.1, 'min_time_free_turn': 7.0, 'max_angle_free_turn_rad': np.deg2rad(50)}
@@ -3047,7 +3025,6 @@ def show_dynamic_simulation_page():
                         z0_tn_base_at_t0 = _m5s2_z_tn_base(p_s2['t_start'], {"params_x":params_x, "params_y":params_y, "offset_x":0, "offset_y":0})
                         st.session_state.m5s2_trajectory_params = {"offset_x": p_s2['z0_kt'][0]+tn_offset_from_kt[0]-z0_tn_base_at_t0[0], "offset_y": p_s2['z0_kt'][1]+tn_offset_from_kt[1]-z0_tn_base_at_t0[1], "params_x":params_x, "params_y":params_y}
                         st.session_state.z0_tn = _m5s2_z_tn_base(p_s2['t_start'], st.session_state.m5s2_trajectory_params)
-                    
                     p_s2 = st.session_state.m5s2_params
                     solver_func_name = f"{p_s2['method_short']}{p_s2['method_steps']}_system_M5_Sim2_CombinedLogic"
                     initial_state = np.concatenate([p_s2['z0_kt'], st.session_state.z0_tn]); t_end = p_s2['t_start'] + p_s2['simulation_duration']
@@ -3063,35 +3040,32 @@ def show_dynamic_simulation_page():
                     pursuer_path, evader_path = state_hist[:, 0:2], state_hist[:, 2:4]
                     
                     ax.set_facecolor('#AFDDFF'); ax.grid(True, linestyle=':', alpha=0.7)
-                    line_tn, = ax.plot(evader_path[:, 0], evader_path[:, 1], lw=1.5, color="darkorange", linestyle='--', label=tr('screen3_legend_m5s2_path_submarine'))
-                    line_kt, = ax.plot(pursuer_path[:, 0], pursuer_path[:, 1], lw=1.5, color="red", linestyle='-', label=tr('screen3_legend_m5s2_path_destroyer'))
+                    ax.plot(evader_path[:, 0], evader_path[:, 1], lw=1.5, color="darkorange", linestyle='--', label=tr('screen3_legend_m5s2_path_submarine'))
+                    ax.plot(pursuer_path[:, 0], pursuer_path[:, 1], lw=1.5, color="red", linestyle='-', label=tr('screen3_legend_m5s2_path_destroyer'))
                     tn_x, tn_y = evader_path[current_frame, 0], evader_path[current_frame, 1]
                     kt_x, kt_y = pursuer_path[current_frame, 0], pursuer_path[current_frame, 1]
                     ax.plot(tn_x, tn_y, '*', color="darkorange", markeredgecolor='black', markersize=12, label=tr('screen3_legend_m5s2_submarine'))
                     ax.plot(kt_x, kt_y, '*', color="red", markeredgecolor='black', markersize=12, label=tr('screen3_legend_m5s2_destroyer'))
+                    
                     if 'm5s2_view_span' not in st.session_state: st.session_state.m5s2_view_span = max(45.0, st.session_state.m5s2_params['initial_dist'] * 1.6)
                     if any(abs(c) > st.session_state.m5s2_view_span * 0.85 for c in [tn_x,tn_y,kt_x,kt_y]): st.session_state.m5s2_view_span *= 1.3
                     ax.set_xlim(-st.session_state.m5s2_view_span, st.session_state.m5s2_view_span); ax.set_ylim(-st.session_state.m5s2_view_span, st.session_state.m5s2_view_span)
-                    ax.set_aspect('equal', adjustable='box'); ax.set_xlabel(tr("screen3_model5_plot_xlabel_sim2")); ax.set_ylabel(tr("screen3_model5_plot_ylabel_sim2"))
-                    ax.legend(loc='upper right', facecolor='lightyellow')
+                    ax.set_aspect('equal', adjustable='box'); ax.set_xlabel(tr("screen3_model5_plot_xlabel_sim2")); ax.set_ylabel(tr("screen3_model5_plot_ylabel_sim2")); ax.legend()
                     
-                    p_disp = st.session_state.m5s2_params
-                    metrics_data = {
-                        tr('screen3_m5_submarine_speed'): {'value': f"{p_disp['v_tn_max']:.2f}"}, tr('screen3_m5_destroyer_speed'): {'value': f"{p_disp['v_kt']:.2f}"},
-                        tr('screen3_m5_catch_time'): {'value': f"{t_points[current_frame]:.2f} s"}
-                    }
-                    if is_caught and t_points[current_frame] >= catch_time:
-                        metrics_data[tr('screen3_m5_destroyer_catches_submarine')] = {'value': f"<span style='color:red;'>{tr('answer_yes')}</span>", 'size_class': 'metric-value-small'}
-                        metrics_data[tr('screen3_m5_catch_point')] = {'value': f"({state_hist[-1, 0]:.2f}, {state_hist[-1, 1]:.2f})", 'size_class': 'metric-value-small'}
-                        animation_ended = True
-                    else:
-                        metrics_data[tr('screen3_m5_destroyer_catches_submarine')] = {'value': tr('answer_no') if animation_ended else tr('screen3_m5_determining_status'), 'size_class': 'metric-value-small'}
-                    display_custom_metric(info_placeholder, metrics_data)
+                    with info_placeholder_cols[0]:
+                        st.metric(label=tr('screen3_m5_submarine_speed'), value=f"{st.session_state.m5s2_params['v_tn_max']:.2f}")
+                        st.metric(label=tr('screen3_m5_catch_time'), value=f"{t_points[current_frame]:.2f} s")
+                        if is_caught and t_points[current_frame] >= catch_time:
+                            st.metric(label=tr('screen3_m5_catch_point'), value=f"({state_hist[-1, 0]:.2f}, {state_hist[-1, 1]:.2f})")
+                            animation_ended = True
+                    with info_placeholder_cols[1]:
+                        st.metric(label=tr('screen3_m5_destroyer_speed'), value=f"{st.session_state.m5s2_params['v_kt']:.2f}")
+                        st.metric(label=tr('screen3_m5_destroyer_catches_submarine'), value=tr('answer_yes') if is_caught and animation_ended else (tr('answer_no') if not is_caught and animation_ended else tr('screen3_m5_determining_status')))
 
     # --- Hiển thị plot và điều khiển rerun ---
     plot_placeholder.pyplot(fig)
     
-    # Highlight: Đây là vòng lặp animation của Streamlit
+    # Highlight: Đây là vòng lặp animation chính của Streamlit
     if st.session_state.anim_running:
         if animation_ended:
             st.session_state.anim_running = False
@@ -3101,7 +3075,6 @@ def show_dynamic_simulation_page():
             st.session_state.anim_frame += 1
             time.sleep(max(0.01, 0.05 / speed_multiplier))
             st.rerun()
-
 # =========================================================================
 # Highlight: KẾT THÚC CẬP NHẬT VÒNG LẶP ANIMATION
 # =========================================================================
