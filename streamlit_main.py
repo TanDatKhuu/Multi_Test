@@ -2602,6 +2602,11 @@ def show_simulation_page():
         can_run_dynamic = model_data.get("can_run_abm_on_screen3", False) or model_id in ['model2', 'model5']
         if can_run_dynamic:
             if st.button(tr("screen2_goto_screen3_button"), use_container_width=True, type="primary"):
+                # --- SỬA LỖI: Thêm khối code lưu dữ liệu vào session_state ---
+                # Dữ liệu này sẽ được trang mô phỏng động sử dụng
+                st.session_state.dynamic_plot_data = validated_params.copy()
+                
+                # Sau khi lưu dữ liệu, mới chuyển trang
                 st.session_state.page = 'dynamic_simulation'
                 st.rerun()
         
