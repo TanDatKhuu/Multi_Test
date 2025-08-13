@@ -262,6 +262,7 @@
     "speed_fast": "Nhanh",
     "speed_very_fast": "Rất nhanh",
     "generate_and_show_button": "Tạo và Hiển thị Mô phỏng",
+    "gif_combining_frames": "Đang ghép các khung hình thành file GIF...",
     "gif_display_info": "Mô phỏng đang được hiển thị dưới dạng ảnh GIF.",
     "gif_generating_spinner": "Đang render mô phỏng thành GIF, vui lòng chờ...",
     "gif_generation_error": "Đã xảy ra lỗi khi tạo file GIF mô phỏng."
