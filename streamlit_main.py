@@ -3077,16 +3077,25 @@ def show_dynamic_simulation_page():
                         }
                         st.session_state.z0_tn = _m5s2_z_tn_base(p['t_start'], st.session_state.m5s2_trajectory_params)
 
+                     # 4. Chạy mô phỏng và cache kết quả
                     solver_map = { "Bashforth": {2: AB2_system_M5_Sim2_CombinedLogic, 3: AB3_system_M5_Sim2_CombinedLogic, 4: AB4_system_M5_Sim2_CombinedLogic, 5: AB5_system_M5_Sim2_CombinedLogic}, "Moulton": {2: AM2_system_M5_Sim2_CombinedLogic, 3: AM3_system_M5_Sim2_CombinedLogic, 4: AM4_system_M5_Sim2_CombinedLogic} }
                     solver_func = solver_map[st.session_state.m5s2_params['method_short']][st.session_state.m5s2_params['method_steps']]
                     
                     if solver_func:
+                        # Biến `p` được định nghĩa bên trong để đảm bảo an toàn
                         p = st.session_state.m5s2_params
+                        
                         initial_state = np.concatenate([p['z0_kt'], st.session_state.z0_tn])
                         t_end = p['t_start'] + p['simulation_duration']
                         t_array = np.linspace(p['t_start'], t_end, 1500)
+                        
+                        # =========================================================
+                        # >>> THỤT ĐẦU DÒNG CHO 2 KHỐI DƯỚI ĐÂY <<<
+                        
+                        # Vòng lặp for và lệnh chạy mô phỏng ĐÃ ĐƯỢC DI CHUYỂN VÀO TRONG
                         for key in ['m5s2_last_kt_dir', 'm5s2_last_free_turn']:
                             if key in st.session_state: del st.session_state[key]
+                        
                         st.session_state.m5s2_results = _run_and_cache_m5_sim2(solver_func, t_array, initial_state, p['catch_threshold'])
                 
                 m5s2_res = st.session_state.get('m5s2_results')
