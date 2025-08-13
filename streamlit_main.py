@@ -2995,7 +2995,7 @@ def show_dynamic_simulation_page():
         plot_placeholder = st.empty()
     def run_and_store_model5_scenario2_results():
         st.session_state.m5s2_results = {}
-        params_s2 = st.session_state.dynamic_plot_data.get('params', {})
+        params_s2 = st.session_state.validated_params.get('params', {})
         
         V_TN_MAX_SIM = params_s2.get('u', 3.0); R_TN_PARAM_SIM = 2.0
         V_KT_SIM = params_s2.get('v', 6.0); INITIAL_DISTANCE_D_SIM = 30.0
