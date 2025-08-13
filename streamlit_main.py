@@ -3270,7 +3270,7 @@ def show_dynamic_simulation_page():
                     # 4. Chạy mô phỏng và cache kết quả
                     solver_map = { "Bashforth": {2: AB2_system_M5_Sim2_CombinedLogic, 3: AB3_system_M5_Sim2_CombinedLogic, 4: AB4_system_M5_Sim2_CombinedLogic, 5: AB5_system_M5_Sim2_CombinedLogic}, "Moulton": {2: AM2_system_M5_Sim2_CombinedLogic, 3: AM3_system_M5_Sim2_CombinedLogic, 4: AM4_system_M5_Sim2_CombinedLogic} }
                     solver_func = solver_map[st.session_state.m5s2_params['method_short']][st.session_state.m5s2_params['method_steps']]
-                    
+                    p = st.session_state.m5s2_params
                     if solver_func:
                         p = st.session_state.m5s2_params
                         initial_state = np.concatenate([p['z0_kt'], st.session_state.z0_tn])
