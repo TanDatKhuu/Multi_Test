@@ -2487,88 +2487,6 @@ class NumpyEncoder(json.JSONEncoder):
         return json.JSONEncoder.default(self, obj)
 # Highlight: Toàn bộ hàm show_simulation_page được viết lại
 def show_simulation_sidebar():
-    """Vẽ toàn bộ cột điều khiển bên trái (trước đây là st.sidebar)"""
-    if not st.session_state.selected_model_key:
-        return
-
-    model_data = MODELS_DATA[st.session_state.selected_model_key]
-    model_id = model_data.get("id", "")
-    
-    st.title(tr("sidebar_title"))
-    
-    with st.form(key='simulation_form'):
-        st.header(tr('screen2_method_group'))
-        method_options = {tr('screen2_method_ab'): "Bashforth", tr('screen2_method_am'): "Moulton"}
-        selected_method_display = st.radio("method_select", list(method_options.keys()), label_visibility="collapsed", horizontal=True)
-        selected_method_short = method_options[selected_method_display]
-        
-        details_title = tr('screen2_details_group_ab') if selected_method_short == 'Bashforth' else tr('screen2_details_group_am')
-        st.header(details_title)
-
-        step_options = {tr('screen2_step2'): 2, tr('screen2_step3'): 3, tr('screen2_step4'): 4}
-        if selected_method_short == 'Bashforth' and model_id != "model5":
-            step_options[tr('screen2_step5')] = 5
-        
-        selected_steps_display = st.multiselect(
-            tr('screen2_steps_label'), 
-            options=list(step_options.keys()), 
-            default=list(step_options.keys())[2] if len(step_options) > 2 else list(step_options.keys())[0]
-        )
-        selected_steps_int = [step_options[s] for s in selected_steps_display]
-        
-        h_values = ["0.1", "0.05", "0.01", "0.005", "0.001"]
-        selected_h_str = st.radio(tr('screen2_h_label'), options=h_values, index=2, horizontal=True)
-        
-        st.header(tr('screen2_params_group'))
-        param_inputs = {}
-        param_labels_key = f"param_keys_{st.session_state.lang}"
-        all_param_labels = model_data.get(param_labels_key, model_data.get("param_keys_vi", []))
-        internal_keys = model_data.get("internal_param_keys", [])
-        default_values = {'t₀': 0.0, 't₁': 10.0, 'O₀': 1.0, 'k': 0.5, 'x₀': 1.0, 'n': 10.0, 'm': 0.5, 'l': 0.2, 'a': 0.1, 's': 0.25, 'G': 20.0, 'Y0': 100.0, 'dY0': 1.0, 'x0': 10.0, 'y0': 0.0, 'u': 1.0, 'v': 2.0}
-
-        if model_id == "model4":
-            cols_m4 = st.columns(2)
-            for i, key in enumerate(internal_keys):
-                label = tr(f"model4_param_{key.replace('₀','0').replace('₁','1')}")
-                with cols_m4[i % 2]:
-                    param_inputs[key] = st.number_input(label, value=default_values.get(key, 0.0), format="%.4f", key=f"param_{model_id}_{key}")
-        else:
-            for i, key in enumerate(internal_keys):
-                label = all_param_labels[i] if i < len(all_param_labels) else key
-                param_inputs[key] = st.number_input(label, value=default_values.get(key, 1.0), format="%.4f", key=f"param_{model_id}_{key}")
-        
-        selected_component = 'x'
-        if model_id == "model5":
-            comp_options = {tr('model5_component_x'): 'x', tr('model5_component_y'): 'y'}
-            selected_comp_disp = st.radio(tr('model5_select_component'), list(comp_options.keys()), horizontal=True, key=f"comp_{model_id}")
-            selected_component = comp_options[selected_comp_disp]
-        
-        submitted = st.form_submit_button(f"🚀 {tr('screen2_init_button')}", type="primary")
-
-    if st.button(f"🔄 {tr('screen2_refresh_button')}"):
-        st.session_state.simulation_results = {}
-        st.session_state.validated_params = {}
-        st.rerun()
-
-    # --- Logic xử lý form submission ---
-    if submitted:
-        is_valid = True
-        if not selected_steps_int: st.toast(tr('msg_select_step'), icon='⚠️'); is_valid = False
-        if 't₀' in param_inputs and 't₁' in param_inputs and param_inputs['t₁'] <= param_inputs['t₀']: st.toast(tr('msg_t_end_error'), icon='⚠️'); is_valid = False
-        
-        if is_valid:
-            st.session_state.validated_params = {
-                'params': param_inputs, 'method_short': selected_method_short, 
-                'h_target': float(selected_h_str), 'model_id': model_id,
-                'selected_steps_int': selected_steps_int, 'selected_component': selected_component
-            }
-            # Logic tính toán sẽ được chuyển sang hàm main_content
-            st.session_state.run_simulation = True # Đặt cờ để chạy tính toán
-            st.rerun()
-
-# Highlight: Hàm mới cho nội dung chính của trang mô phỏng
-def show_simulation_main_content():
-    """Vẽ khu vực kết quả, đồ thị và các tab"""
     if not st.session_state.selected_model_key:
         st.warning(tr("msg_select_model_first"))
         if st.button(tr("go_back_to_select"), type="primary"):
@@ -2580,46 +2498,120 @@ def show_simulation_main_content():
     model_id = model_data.get("id", "")
     model_name_tr = tr(f"{model_id}_name")
 
+    # --- THANH BÊN (SIDEBAR) CHO CÁC ĐIỀU KHIỂN ---
+    with st.sidebar:
+        # Highlight: Nút quay lại chọn mô hình được đặt ở đây
+        if st.button(f"ᐊᐊ {tr('go_back_to_select')}", key="back_to_model_selection_btn"):
+            st.session_state.page = 'model_selection'
+            st.session_state.simulation_results = {}
+            st.session_state.validated_params = {}
+            st.rerun()
+            
+        st.title(tr('sidebar_title'))
+        
+        with st.form(key='simulation_form'):
+            st.header(tr('screen2_method_group'))
+            method_options = {tr('screen2_method_ab'): "Bashforth", tr('screen2_method_am'): "Moulton"}
+            selected_method_display = st.radio("method_select", list(method_options.keys()), label_visibility="collapsed", horizontal=True)
+            selected_method_short = method_options[selected_method_display]
+            
+            details_title = tr('screen2_details_group_ab') if selected_method_short == 'Bashforth' else tr('screen2_details_group_am')
+            st.header(details_title)
+
+            step_options = {tr('screen2_step2'): 2, tr('screen2_step3'): 3, tr('screen2_step4'): 4}
+            if selected_method_short == 'Bashforth' and model_id != "model5":
+                step_options[tr('screen2_step5')] = 5
+            
+            selected_steps_display = st.multiselect(
+                tr('screen2_steps_label'), 
+                options=list(step_options.keys()), 
+                default=list(step_options.keys())[2] if len(step_options) > 2 else list(step_options.keys())[0]
+            )
+            selected_steps_int = [step_options[s] for s in selected_steps_display]
+            
+            h_values = ["0.1", "0.05", "0.01", "0.005", "0.001"]
+            selected_h_str = st.radio(tr('screen2_h_label'), options=h_values, index=2, horizontal=True)
+            
+            st.header(tr('screen2_params_group'))
+            param_inputs = {}
+            param_labels_key = f"param_keys_{st.session_state.lang}"
+            all_param_labels = model_data.get(param_labels_key, model_data.get("param_keys_vi", []))
+            internal_keys = model_data.get("internal_param_keys", [])
+            default_values = {'t₀': 0.0, 't₁': 10.0, 'O₀': 1.0, 'k': 0.5, 'x₀': 1.0, 'n': 10.0, 'm': 0.5, 'l': 0.2, 'a': 0.1, 's': 0.25, 'G': 20.0, 'Y0': 100.0, 'dY0': 1.0, 'x0': 10.0, 'y0': 0.0, 'u': 1.0, 'v': 2.0}
+
+            if model_id == "model4":
+                cols_m4 = st.columns(2)
+                for i, key in enumerate(internal_keys):
+                    label = tr(f"model4_param_{key.replace('₀','0').replace('₁','1')}")
+                    with cols_m4[i % 2]:
+                        param_inputs[key] = st.number_input(label, value=default_values.get(key, 0.0), format="%.4f", key=f"param_{model_id}_{key}")
+            else:
+                for i, key in enumerate(internal_keys):
+                    label = all_param_labels[i] if i < len(all_param_labels) else key
+                    param_inputs[key] = st.number_input(label, value=default_values.get(key, 1.0), format="%.4f", key=f"param_{model_id}_{key}")
+            
+            selected_component = 'x'
+            if model_id == "model5":
+                comp_options = {tr('model5_component_x'): 'x', tr('model5_component_y'): 'y'}
+                selected_comp_disp = st.radio(tr('model5_select_component'), list(comp_options.keys()), horizontal=True, key=f"comp_{model_id}")
+                selected_component = comp_options[selected_comp_disp]
+            
+            submitted = st.form_submit_button(f"🚀 {tr('screen2_init_button')}", type="primary")
+
+        if st.button(f"🔄 {tr('screen2_refresh_button')}"):
+            st.session_state.simulation_results = {}
+            st.session_state.validated_params = {}
+            st.rerun()
+
+    # --- KHU VỰC HIỂN THỊ CHÍNH ---
     st.header(tr('simulation_results_title'))
     st.subheader(model_name_tr)
 
-    # Chỉ chạy mô phỏng khi có cờ được đặt
-    if st.session_state.get('run_simulation', False):
-        validated_params = st.session_state.validated_params
-        param_inputs = validated_params['params']
-        selected_method_short = validated_params['method_short']
-        selected_steps_int = validated_params['selected_steps_int']
-        selected_h_str = str(validated_params['h_target'])
-        selected_component = validated_params['selected_component']
-
-        with st.spinner(tr('screen2_info_area_running')):
-            for key in ['last_calculated_c', 'last_calculated_r', 'last_calculated_alpha', 'last_calculated_beta']:
-                if key in st.session_state: del st.session_state[key]
-            
-            prep_ok, prep_data, calculated_params = _prepare_simulation_functions(model_data, param_inputs, selected_method_short)
-            
-            if prep_ok:
-                for key, value in calculated_params.items(): st.session_state[f'last_calculated_{key}'] = value
-                ode_func, exact_callable, y0, t_start, t_end = prep_data
-                results_dict = {}
-                for steps in selected_steps_int:
-                    res = _perform_single_simulation(model_data, ode_func, exact_callable, y0, t_start, t_end, selected_method_short, steps, float(selected_h_str), selected_component)
-                    if res: results_dict[steps] = res
-                st.session_state.simulation_results = results_dict
-            else:
-                st.session_state.simulation_results = {}
+    if submitted:
+        is_valid = True
+        if not selected_steps_int:
+            st.toast(tr('msg_select_step'), icon='⚠️')
+            is_valid = False
+        if 't₀' in param_inputs and 't₁' in param_inputs and param_inputs['t₁'] <= param_inputs['t₀']:
+            st.toast(tr('msg_t_end_error'), icon='⚠️')
+            is_valid = False
         
-        st.session_state.run_simulation = False # Reset cờ
+        if is_valid:
+            validated_params = {
+                'params': param_inputs, 'method_short': selected_method_short, 
+                'h_target': float(selected_h_str), 'model_id': model_id,
+                'selected_steps_int': selected_steps_int, 'selected_component': selected_component
+            }
+            st.session_state.validated_params = validated_params # Lưu để các trang khác dùng
+
+            with st.spinner(tr('screen2_info_area_running')):
+                for key in ['last_calculated_c', 'last_calculated_r', 'last_calculated_alpha', 'last_calculated_beta']:
+                    if key in st.session_state: del st.session_state[key]
+                
+                prep_ok, prep_data, calculated_params = _prepare_simulation_functions(model_data, param_inputs, selected_method_short)
+                
+                if prep_ok:
+                    for key, value in calculated_params.items(): st.session_state[f'last_calculated_{key}'] = value
+                    ode_func, exact_callable, y0, t_start, t_end = prep_data
+                    results_dict = {}
+                    for steps in selected_steps_int:
+                        res = _perform_single_simulation(model_data, ode_func, exact_callable, y0, t_start, t_end, selected_method_short, steps, float(selected_h_str), selected_component)
+                        if res: results_dict[steps] = res
+                    st.session_state.simulation_results = results_dict
+                else:
+                    st.session_state.simulation_results = {}
+            st.rerun()
+
     results = st.session_state.get('simulation_results', {})
     if not results:
         st.info(tr('screen2_info_area_init'))
     else:
-        validated_params = st.session_state.validated_params
-        if 'last_calculated_c' in st.session_state and validated_params.get('model_id') == 'model2':
+        validated_params_display = st.session_state.validated_params
+        if 'last_calculated_c' in st.session_state and validated_params_display.get('model_id') == 'model2':
             st.info(f"**{tr('model2_calculated_c_label')}** {st.session_state.last_calculated_c:.6g}")
-        if 'last_calculated_r' in st.session_state and validated_params.get('model_id') == 'model3':
+        if 'last_calculated_r' in st.session_state and validated_params_display.get('model_id') == 'model3':
             st.info(f"**{tr('model3_calculated_r_label')}** {st.session_state.last_calculated_r:.8g}")
-        if 'last_calculated_alpha' in st.session_state and validated_params.get('model_id') == 'model4':
+        if 'last_calculated_alpha' in st.session_state and validated_params_display.get('model_id') == 'model4':
             col_a, col_b = st.columns(2)
             col_a.info(f"**{tr('model4_param_alpha')}:** {st.session_state.last_calculated_alpha:.6g}")
             col_b.info(f"**{tr('model4_param_beta')}:** {st.session_state.last_calculated_beta:.6g}")
@@ -2627,11 +2619,8 @@ def show_simulation_main_content():
         can_run_dynamic = model_data.get("can_run_abm_on_screen3", False) or model_id in ['model2', 'model5']
         if can_run_dynamic:
             if st.button(tr("screen2_goto_screen3_button"), use_container_width=True, type="primary"):
-                # --- SỬA LỖI: Thêm khối code lưu dữ liệu vào session_state ---
-                # Dữ liệu này sẽ được trang mô phỏng động sử dụng
-                st.session_state.dynamic_plot_data = validated_params.copy()
-                
-                # Sau khi lưu dữ liệu, mới chuyển trang
+                # Dòng này vẫn cần thiết để truyền dữ liệu sang trang động
+                st.session_state.dynamic_plot_data = validated_params_display.copy()
                 st.session_state.page = 'dynamic_simulation'
                 st.rerun()
         
