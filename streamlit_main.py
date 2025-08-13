@@ -2943,32 +2943,39 @@ def show_dynamic_simulation_page():
     model_data = MODELS_DATA[st.session_state.selected_model_key]
     model_id = model_data.get("id", "")
     
-    # --- Bố cục giao diện chính ---
-    header_cols = st.columns([1, 4, 1])
-    header_cols[0].button(f"ᐊ {tr('screen3_back_button')}", on_click=navigate_to, args=('simulation',), use_container_width=True)
-    header_cols[1].markdown(f"<h1 style='text-align: center; margin: 0;'>{tr('screen3_dyn_only_title')}</h1>", unsafe_allow_html=True)
+    # --- Bố cục giao diện ---
+    header_cols = st.columns([0.75, 2.5, 0.75])
+    with header_cols[0]:
+        st.button(f"{tr('screen3_back_button')}", on_click=navigate_to, args=('simulation',),type="primary", use_container_width=True)
+    with header_cols[1]:
+        st.markdown(f"<h1 style='text-align: center; margin: 0;'>{tr('screen3_dyn_only_title')}</h1>", unsafe_allow_html=True)
+    with header_cols[2]:
+        st.button(f"{tr('screen3_double_back_button')}", on_click=navigate_to, args=('model_selection',),type="primary", use_container_width=True)
     
+    st.divider()
+
     col_controls, col_display = st.columns([1, 1.8])
 
     with col_controls:
+        # --- KHỐI ĐIỀU KHIỂN CHUNG ---
         with st.container(border=True):
             st.subheader(tr('screen3_settings_group_title'))
-            speed_multiplier = st.slider(tr('screen3_speed_label'), 0.1, 5.0, 1.0, 0.1, "%.1fx")
+            speed_multiplier = st.slider(tr('screen3_speed_label'), min_value=0.1, max_value=5.0, value=1.0, step=0.1, format="%.1fx")
             
-            c1, c2, c3 = st.columns(3)
-            if c1.button(f"▶️ {tr('play_button')}", use_container_width=True, type="primary"):
+            c1, c2, c3 = st.columns([1, 1.25, 1])
+            if c1.button(f"▶️ {tr('play_button')}", use_container_width=True):
                 st.session_state.anim_running = True
-                # Đánh dấu là không cần init lại nữa khi bấm play
-                anim_key = f'anim_init_{model_id}_{st.session_state.get("m5_scenario", 1)}'
                 if st.session_state.get(anim_key, False): 
                     st.session_state[anim_key] = False
                 st.rerun()
 
             if c2.button(f"⏸️ {tr('pause_button')}", use_container_width=True):
                 st.session_state.anim_running = False
-
-            if c3.button(f"🔄 {tr('reset_button')}", use_container_width=True, on_click=reset_animation):
                 st.rerun()
+            
+            # Highlight: Nút Reset giờ sẽ gọi hàm dọn dẹp riêng
+            if c3.button(f"🔄 {tr('reset_button')}", use_container_width=True, on_click=reset_animation):
+                st.rerun() # Rerun sau khi on_click đã dọn dẹp state
 
         if model_id == 'model5':
             with st.container(border=True):
