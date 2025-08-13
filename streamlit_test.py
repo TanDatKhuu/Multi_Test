@@ -2904,6 +2904,8 @@ def create_animation_gif(model_id, model_data, validated_params, speed_multiplie
     Trả về dữ liệu bytes của file GIF và một dictionary chứa thông tin cuối cùng.
     """
     try:
+		progress_bar_placeholder = st.empty()
+        progress_text_placeholder = st.empty()
         frames = []
         fig, ax = plt.subplots(figsize=(8, 8), dpi=90) # DPI thấp hơn để file nhẹ hơn
         final_stats = {} # Dictionary để lưu thông tin cuối cùng
@@ -3087,7 +3089,8 @@ def create_animation_gif(model_id, model_data, validated_params, speed_multiplie
         base_interval = 0.1
         imageio.mimsave(gif_buf, frames, format='gif', duration=base_interval / speed_multiplier, loop=0)
         gif_buf.seek(0)
-        
+        progress_bar_placeholder.empty()
+        progress_text_placeholder.empty()
         return gif_buf.getvalue(), final_stats
 
     except Exception as e:
@@ -3207,21 +3210,21 @@ def show_dynamic_simulation_page():
         # Highlight: Sửa lại logic hiển thị
         # Ưu tiên kiểm tra cờ yêu cầu tạo GIF trước
         if st.session_state.get('generate_gif_request', False):
-            with st.spinner(tr("gif_generating_spinner")):
-                # Lấy speed_multiplier từ session_state
-                speed_multiplier = st.session_state.speed_multiplier
+            # Tạo placeholder cho progress bar ở đây
+            progress_container = st.empty()
+            with progress_container.container():
+                st.write(tr("gif_generating_spinner")) # Văn bản tĩnh
+                # Hàm create_animation_gif sẽ tự điền vào các placeholder nó tạo ra
                 gif_bytes, final_stats = create_animation_gif(model_id, model_data, validated_params, speed_multiplier)
-                
-                # Reset cờ sau khi hoàn thành
-                st.session_state.generate_gif_request = False
-
-                if gif_bytes:
-                    st.session_state.generated_gif = gif_bytes
-                    st.session_state.final_anim_stats = final_stats
-                    st.rerun() # Rerun để hiển thị GIF
-                else:
-                    st.error(tr("gif_generation_error"))
-                    info_placeholder.error(tr("gif_generation_error"))
+            
+            st.session_state.generate_gif_request = False # Reset cờ
+            if gif_bytes:
+                st.session_state.generated_gif = gif_bytes
+                st.session_state.final_anim_stats = final_stats
+                st.rerun()
+            else:
+                st.error(tr("gif_generation_error"))
+                info_placeholder.error(tr("gif_generation_error"))
 
         elif 'generated_gif' in st.session_state and st.session_state.generated_gif:
             # Nếu đã có GIF, hiển thị nó
