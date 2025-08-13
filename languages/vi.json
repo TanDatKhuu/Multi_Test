@@ -234,6 +234,7 @@
     "screen3_m5_destroyer_catches_submarine": "Tàu khu trục có bắt được tàu ngầm không?",
     "screen3_m5_catch_point": "Điểm bắt được (tọa độ):",
     "screen3_m5_catch_time": "Thời gian mô phỏng:",
+    "status_label_m5s2": "Trạng thái",
     "screen3_model5_not_implemented_msg": "Mô phỏng cho kịch bản này chưa được triển khai.",
     "screen3_model2_anim_plot_title": "Mô phỏng động: Sự tăng trưởng tế bào",
     "screen3_abm_anim_plot_title": "Mô phỏng động: Sự lây lan dịch bệnh (ABM)",
