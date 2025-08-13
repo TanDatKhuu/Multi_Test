@@ -55,7 +55,7 @@ def tr(key):
     return st.session_state.translations.get(key, key)
 	
 def render_navbar():
-	st.markdown("""
+    st.markdown("""
         <style>
             /* Thay đổi con trỏ chuột cho selectbox ngôn ngữ */
             div[data-testid="stSelectbox"] > div {
