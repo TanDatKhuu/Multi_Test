@@ -3072,7 +3072,6 @@ def show_dynamic_simulation_page():
 
             # --- Phần vẽ đồ thị ---
             # Xóa trục cũ và thiết lập giới hạn
-            ax.clear()
             ax.set_xlim(0, abm.room_dimension)
             ax.set_ylim(0, abm.room_dimension)
             ax.set_aspect('equal')
