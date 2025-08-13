@@ -3238,7 +3238,7 @@ def show_dynamic_simulation_page():
                 ax.set_xticks([]); ax.set_yticks([])
                 st.pyplot(fig)
             with info_placeholder.container():
-                st.info(tr("press_generate_to_see_info")
+                st.info(tr("press_generate_to_see_info"))
 
 # =========================================================================
 # Highlight: KẾT THÚC CẬP NHẬT VÒNG LẶP ANIMATION
