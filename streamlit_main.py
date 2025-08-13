@@ -57,13 +57,21 @@ def tr(key):
 def render_navbar():
     st.markdown("""
         <style>
-            /* Nhắm vào selectbox có key là 'lang_selector_nav' */
-            div[data-testid="stSelectbox"] [key="lang_selector_nav"] {
-                cursor: pointer;
+            /* Tìm đến cột chứa selectbox ngôn ngữ */
+            div.st-emotion-cache-1jicfl2.e1f1d6gn3 > div:nth-child(5) > div > div > div[data-testid="stSelectbox"] {
+                position: relative; /* Cần thiết để lớp phủ hoạt động */
             }
-            /* Cần thêm cả phần tử bên trong nó để đảm bảo hoạt động trên mọi trình duyệt */
-            div[data-testid="stSelectbox"] [key="lang_selector_nav"] > div {
-                cursor: pointer;
+
+            /* Tạo lớp phủ trong suốt */
+            div.st-emotion-cache-1jicfl2.e1f1d6gn3 > div:nth-child(5) > div > div > div[data-testid="stSelectbox"]::before {
+                content: '';
+                position: absolute;
+                left: 0;
+                right: 0;
+                top: 0;
+                bottom: 0;
+                cursor: pointer; /* Áp dụng con trỏ hình bàn tay cho lớp phủ */
+                z-index: 1; /* Đảm bảo lớp phủ nằm trên cùng */
             }
         </style>
     """, unsafe_allow_html=True)
