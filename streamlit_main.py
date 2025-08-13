@@ -3221,18 +3221,16 @@ def show_dynamic_simulation_page():
                 # Khối này sẽ chạy một lần duy nhất sau khi Reset hoặc chuyển kịch bản
                 if 'm5s2_results' not in st.session_state:
                     
-                    # 1. Lấy tham số gốc từ Screen 2 (giống hệt PySide6)
+                    # 1. Lấy và thiết lập tham số mô phỏng từ Screen 2 (giống hệt PySide6)
                     s2_params = validated_params.get('params', {})
                     if not s2_params:
                         st.error("Lỗi: Không tìm thấy tham số đã xác thực từ Screen 2.")
-                        return # Dừng thực thi nếu không có tham số
+                        return 
                     
-                    # 2. Thiết lập các tham số mô phỏng dựa trên tham số gốc
                     v_kt = s2_params.get('v', 6.0)       # Vận tốc tàu khu trục = v
                     v_tn_max = s2_params.get('u', 3.0)   # Vận tốc tàu ngầm = u
                     z0_kt = np.array([s2_params.get('x0', 0.0), s2_params.get('y0', 0.0)])
                     t_start = s2_params.get('t₀', 0.0)
-
                     INITIAL_DISTANCE_D = 30.0
                     avoidance_radius = INITIAL_DISTANCE_D * 0.40
                     
@@ -3249,13 +3247,12 @@ def show_dynamic_simulation_page():
                         'max_angle_free_turn_rad': np.deg2rad(50)
                     }
 
-                    # 3. Tạo quỹ đạo ngẫu nhiên cho tàu ngầm (chỉ một lần)
+                    # 2. Tạo quỹ đạo ngẫu nhiên cho tàu ngầm (chỉ một lần)
                     if 'm5s2_trajectory_params' not in st.session_state:
                         p = st.session_state.m5s2_params
                         R_TN = 2.0; OMEGA_TN = p['v_tn_max'] / R_TN if R_TN > 1e-6 else 0.1
                         params_x = [{"amp": random.uniform(R_TN*6, R_TN*12), "freq": random.uniform(OMEGA_TN*0.015, OMEGA_TN*0.07), "phase": random.uniform(0, 2*np.pi), "type": 'sin'}]
                         params_y = [{"amp": random.uniform(R_TN*5, R_TN*10), "freq": random.uniform(OMEGA_TN*0.02, OMEGA_TN*0.08), "phase": random.uniform(0, 2*np.pi), "type": 'cos'}]
-                        
                         random_angle = random.uniform(0, 2 * np.pi)
                         tn_offset_from_kt = p['initial_dist'] * np.array([np.cos(random_angle), np.sin(random_angle)])
                         z0_tn_base_at_t0 = _m5s2_z_tn_base(p['t_start'], {"params_x": params_x, "params_y": params_y, "offset_x": 0, "offset_y": 0})
@@ -3267,10 +3264,10 @@ def show_dynamic_simulation_page():
                         }
                         st.session_state.z0_tn = _m5s2_z_tn_base(p['t_start'], st.session_state.m5s2_trajectory_params)
 
-                    # 4. Chạy mô phỏng và cache kết quả
+                    # 3. Chạy mô phỏng và cache kết quả
                     solver_map = { "Bashforth": {2: AB2_system_M5_Sim2_CombinedLogic, 3: AB3_system_M5_Sim2_CombinedLogic, 4: AB4_system_M5_Sim2_CombinedLogic, 5: AB5_system_M5_Sim2_CombinedLogic}, "Moulton": {2: AM2_system_M5_Sim2_CombinedLogic, 3: AM3_system_M5_Sim2_CombinedLogic, 4: AM4_system_M5_Sim2_CombinedLogic} }
                     solver_func = solver_map[st.session_state.m5s2_params['method_short']][st.session_state.m5s2_params['method_steps']]
-                    p = st.session_state.m5s2_params
+                    
                     if solver_func:
                         p = st.session_state.m5s2_params
                         initial_state = np.concatenate([p['z0_kt'], st.session_state.z0_tn])
@@ -3282,7 +3279,7 @@ def show_dynamic_simulation_page():
                         
                         st.session_state.m5s2_results = _run_and_cache_m5_sim2(solver_func, t_array, initial_state, p['catch_threshold'])
 
-                # 5. Vẽ đồ thị và hiển thị thông tin từ kết quả đã có
+                # 4. Vẽ đồ thị và hiển thị thông tin từ kết quả đã có
                 m5s2_res = st.session_state.get('m5s2_results')
                 if not m5s2_res:
                     ax.text(0.5, 0.5, "Lỗi tính toán, không có dữ liệu.", ha='center', va='center')
@@ -3290,27 +3287,63 @@ def show_dynamic_simulation_page():
                 else:
                     t_points = m5s2_res['time_points']; state_hist = m5s2_res['state_history']
                     is_caught = m5s2_res['caught']; catch_time = m5s2_res['time_of_catch']
+                    p_disp = st.session_state.m5s2_params
                     
                     if current_frame >= len(t_points):
                         animation_ended = True; current_frame = len(t_points) - 1
 
                     pursuer_path = state_hist[:, 0:2]; evader_path = state_hist[:, 2:4]
                     
-                    ax.plot(pursuer_path[:, 0], pursuer_path[:, 1], 'r-', label=tr('screen3_legend_m5s2_path_destroyer'))
-                    ax.plot(evader_path[:, 0], evader_path[:, 1], 'b--', label=tr('screen3_legend_m5s2_path_submarine'))
-                    ax.plot(pursuer_path[current_frame, 0], pursuer_path[current_frame, 1], 'rP', markersize=12, label=tr('screen3_legend_m5s2_destroyer'))
-                    ax.plot(evader_path[current_frame, 0], evader_path[current_frame, 1], 'bo', markersize=8, label=tr('screen3_legend_m5s2_submarine'))
-
-                    ax.set_xlabel("X"); ax.set_ylabel("Y"); ax.grid(True); ax.legend(); ax.set_aspect('equal')
+                    # --- NÂNG CẤP PHẦN VẼ ĐỒ HỌA ---
+                    ax.set_facecolor('#AFDDFF') # Màu nền xanh dương nhạt
+                    ax.grid(True, linestyle=':', alpha=0.7, zorder=-1)
                     
-                    p_disp = st.session_state.m5s2_params
+                    # Vẽ quỹ đạo
+                    line_tn, = ax.plot(evader_path[:, 0], evader_path[:, 1], lw=1.5, color="darkorange", linestyle='--', label=tr('screen3_legend_m5s2_path_submarine'), zorder=2)
+                    line_kt, = ax.plot(pursuer_path[:, 0], pursuer_path[:, 1], lw=1.5, color="red", linestyle='-', label=tr('screen3_legend_m5s2_path_destroyer'), zorder=2)
+                    
+                    # Lấy vị trí hiện tại
+                    tn_x, tn_y = evader_path[current_frame, 0], evader_path[current_frame, 1]
+                    kt_x, kt_y = pursuer_path[current_frame, 0], pursuer_path[current_frame, 1]
+
+                    # Vẽ marker đối tượng (ngôi sao có viền)
+                    point_tn, = ax.plot(tn_x, tn_y, '*', color="darkorange", markeredgecolor='black', markersize=12, label=tr('screen3_legend_m5s2_submarine'), zorder=4)
+                    point_kt, = ax.plot(kt_x, kt_y, '*', color="red", markeredgecolor='black', markersize=12, label=tr('screen3_legend_m5s2_destroyer'), zorder=4)
+
+                    # Vẽ vòng tròn Radar
+                    radar_kt_circle = MplCircle((kt_x, kt_y), p_disp['kt_radar_radius'], color='red', fill=False, linestyle=':', alpha=0.8, zorder=3)
+                    ax.add_artist(radar_kt_circle)
+                    radar_tn_circle = MplCircle((tn_x, tn_y), p_disp['avoidance_radius'], color='darkorange', fill=False, linestyle=':', alpha=0.9, zorder=3)
+                    ax.add_artist(radar_tn_circle)
+                    
+                    # Logic tự động zoom
+                    if 'm5s2_view_span' not in st.session_state:
+                        st.session_state.m5s2_view_span = max(45.0, p_disp['initial_dist'] * 1.6)
+                    
+                    boundary_check = st.session_state.m5s2_view_span * 0.85
+                    if abs(tn_x) > boundary_check or abs(tn_y) > boundary_check or abs(kt_x) > boundary_check or abs(kt_y) > boundary_check:
+                        st.session_state.m5s2_view_span *= 1.3
+                    
+                    ax.set_xlim(-st.session_state.m5s2_view_span, st.session_state.m5s2_view_span)
+                    ax.set_ylim(-st.session_state.m5s2_view_span, st.session_state.m5s2_view_span)
+                    ax.set_aspect('equal', adjustable='box')
+                    ax.set_xlabel(tr("screen3_model5_plot_xlabel_sim2")); ax.set_ylabel(tr("screen3_model5_plot_ylabel_sim2"))
+
+                    # Tạo Chú thích (Legend) tùy chỉnh
+                    proxy_radar_kt = Line2D([0], [0], linestyle=':', color='red', label=tr("screen3_legend_m5s2_kt_radar_radius"))
+                    proxy_radar_tn = Line2D([0], [0], linestyle=':', color='darkorange', label=tr("screen3_legend_m5s2_tn_avoid_radius"))
+                    
+                    handles = [line_tn, line_kt, point_tn, point_kt, proxy_radar_tn, proxy_radar_kt]
+                    ax.legend(handles=handles, loc='upper right', facecolor='lightyellow', edgecolor='black', framealpha=0.9)
+                    
+                    # --- HIỂN THỊ THÔNG TIN (giống hệt PySide6) ---
                     z0_tn_disp = st.session_state.z0_tn
                     
                     metrics_data_m5s2 = {
-                        tr('screen3_m5_destroyer_speed'): {'value': f"{p_disp['v_kt']:.2f}"},
                         tr('screen3_m5_submarine_speed'): {'value': f"{p_disp['v_tn_max']:.2f}"},
-                        tr('screen3_m5_start_point_destroyer'): {'value': f"({p_disp['z0_kt'][0]:.2f}, {p_disp['z0_kt'][1]:.2f})", 'size_class': 'metric-value-small'},
+                        tr('screen3_m5_destroyer_speed'): {'value': f"{p_disp['v_kt']:.2f}"},
                         tr('screen3_m5_start_point_submarine'): {'value': f"({z0_tn_disp[0]:.2f}, {z0_tn_disp[1]:.2f})", 'size_class': 'metric-value-small'},
+                        tr('screen3_m5_start_point_destroyer'): {'value': f"({p_disp['z0_kt'][0]:.2f}, {p_disp['z0_kt'][1]:.2f})", 'size_class': 'metric-value-small'},
                         tr('screen3_m5_catch_time'): {'value': f"{t_points[current_frame]:.2f} s"}
                     }
                     
@@ -3323,7 +3356,7 @@ def show_dynamic_simulation_page():
                     else:
                          status_html = tr('answer_no') if animation_ended else tr('screen3_m5_determining_status')
                          metrics_data_m5s2[tr('screen3_m5_destroyer_catches_submarine')] = {'value': status_html, 'size_class': 'metric-value-small'}
-                         metrics_data_m5s2[tr('screen3_m5_catch_point')] = {'value': "N/A", 'size_class': 'metric-value-small'}
+                         metrics_data_m5s2[tr('screen3_m5_catch_point')] = {'value': tr('screen3_m5_determining_status'), 'size_class': 'metric-value-small'}
 
                     display_custom_metric(info_placeholder, metrics_data_m5s2)
 
