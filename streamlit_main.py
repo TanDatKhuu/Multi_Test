@@ -2735,8 +2735,64 @@ class Cell:
         self.x = x
         self.y = y
         self.gen = gen
-        self.last_division = -100
-		
+
+# Highlight: Thêm một hàm helper để chạy và cache kết quả của Model 5 - Sim 2
+# Điều này ngăn việc tính toán lại ở mỗi khung hình của animation
+@st.cache_data
+def _run_and_cache_m5_sim2(method_func, t_array, initial_state, catch_radius):
+    """Chạy mô phỏng Sim2 một lần và trả về kết quả."""
+    print(f"Running M5 Sim2 with {method_func.__name__}...")
+    try:
+        t_points, state_hist, caught, t_catch = method_func(
+            f_combined_like=_m5_sim2_combined_ode,
+            t_array_full_potential=t_array,
+            initial_state_combined=initial_state,
+            catch_dist_threshold=catch_radius
+        )
+        return {
+            "time_points": t_points,
+            "state_history": state_hist,
+            "caught": caught,
+            "time_of_catch": t_catch
+        }
+    except Exception as e:
+        st.error(f"Lỗi khi chạy mô phỏng M5 Sim 2: {e}")
+        return None
+
+# Highlight: Hàm ODE kết hợp cho Model 5, Sim 2 (Pursuit-Evasion)
+def _m5_sim2_combined_ode(t, state):
+    """
+    Hàm ODE cho bài toán đuổi bắt.
+    state = [xp, yp, xe, ye] (Pursuer x, y, Evader x, y)
+    """
+    xp, yp, xe, ye = state[0], state[1], state[2], state[3]
+    
+    # Lấy vận tốc từ session_state (đã được đặt trong UI)
+    vp = st.session_state.m5s2_params['vp']
+    ve = st.session_state.m5s2_params['ve']
+
+    # Logic cho Evader (E): Chạy thẳng theo hướng định trước (ví dụ: góc 45 độ)
+    angle_e = np.deg2rad(45) 
+    dxe_dt = ve * np.cos(angle_e)
+    dye_dt = ve * np.sin(angle_e)
+
+    # Logic for Pursuer (P): "Pure Pursuit" - luôn hướng về phía Evader
+    dist_x = xe - xp
+    dist_y = ye - yp
+    distance = np.sqrt(dist_x**2 + dist_y**2)
+    
+    if distance < 1e-6: # Tránh chia cho 0
+        dxp_dt = 0
+        dyp_dt = 0
+    else:
+        dxp_dt = vp * dist_x / distance
+        dyp_dt = vp * dist_y / distance
+
+    return np.array([dxp_dt, dyp_dt, dxe_dt, dye_dt])
+
+# =================================================================================
+# Highlight: HÀM show_dynamic_simulation_page ĐÃ ĐƯỢC VIẾT LẠI HOÀN CHỈNH
+# =================================================================================
 def show_dynamic_simulation_page():
     # --- Phần kiểm tra dữ liệu và lấy thông tin model ---
     validated_params = st.session_state.get('validated_params', {})
@@ -2750,35 +2806,35 @@ def show_dynamic_simulation_page():
     model_id = model_data.get("id", "")
     
     # --- Khởi tạo trạng thái cho trang này ---
-    anim_key = f'anim_init_{model_id}_{st.session_state.get("m5_scenario", 1)}'
+    # Key động để reset khi đổi kịch bản
+    m5_scenario_id = st.session_state.get("m5_scenario", 1)
+    anim_key = f'anim_init_{model_id}_{m5_scenario_id}'
+    
+    # Khởi tạo các biến session state cần thiết
     if 'anim_running' not in st.session_state: st.session_state.anim_running = False
     if 'anim_frame' not in st.session_state: st.session_state.anim_frame = 0
     if anim_key not in st.session_state: st.session_state[anim_key] = True
     
     if 'anim_fig' not in st.session_state or st.session_state.get(anim_key, True):
-        st.session_state.anim_fig = Figure(figsize=(8, 8), dpi=75)
+        st.session_state.anim_fig = Figure(figsize=(8, 8), dpi=100)
         st.session_state.anim_ax = st.session_state.anim_fig.subplots()
 
     # ==============================================
     #           PHẦN GIAO DIỆN
     # ==============================================
     st.markdown(f"""
-        <style>
-            .page-header {{
-                display: flex; justify-content: space-between; align-items: center; width: 100%;
-            }}
-            .page-header h1 {{ font-size: 2.25rem; color: #0F172A; margin: 0; }}
-            .header-button {{
-                display: inline-block; padding: 0.5rem 1rem; border: 1px solid #E2E8F0;
-                border-radius: 0.5rem; background-color: white; color: #334155;
-                text-decoration: none; font-weight: 500; transition: all 0.2s;
-            }}
-            .header-button:hover {{ background-color: #F8FAFC; border-color: #CBD5E1; }}
-        </style>
-        <div class="page-header">
-            <a href="?page=simulation" target="_self" class="header-button">ᐊ {tr('screen3_back_button')}</a>
-            <h1>{tr('screen3_dyn_only_title')}</h1>
-            <a href="?page=model_selection" target="_self" class="header-button">ᐊᐊ {tr('screen3_double_back_button')}</a>
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+            <a href="?page=simulation" target="_self" style="text-decoration: none;">
+                <button style="padding: 0.5em 1em; border-radius: 0.5rem; background-color: #f0f2f6; border: 1px solid #ccc; cursor: pointer;">
+                    ᐊ {tr('screen3_back_button')}
+                </button>
+            </a>
+            <h1 style="margin: 0;">{tr('screen3_dyn_only_title')}</h1>
+             <a href="?page=model_selection" target="_self" style="text-decoration: none;">
+                <button style="padding: 0.5em 1em; border-radius: 0.5rem; background-color: #f0f2f6; border: 1px solid #ccc; cursor: pointer;">
+                    ᐊᐊ {tr('screen3_double_back_button')}
+                </button>
+            </a>
         </div>
     """, unsafe_allow_html=True)
     st.divider()
@@ -2786,53 +2842,98 @@ def show_dynamic_simulation_page():
     col_controls, col_display = st.columns([1, 1.8])
 
     with col_controls:
+        # --- KHỐI ĐIỀU KHIỂN CHUNG ---
         with st.container(border=True):
             st.subheader(tr('screen3_settings_group_title'))
             speed_multiplier = st.slider(tr('screen3_speed_label'), min_value=0.1, max_value=5.0, value=1.0, step=0.1, format="%.1fx")
             
             c1, c2, c3 = st.columns(3)
+            # Nút Play: Bắt đầu animation và đánh dấu là không cần init lại
             if c1.button('▶️ Play', use_container_width=True, type="primary"):
                 st.session_state.anim_running = True
-                if st.session_state.get(anim_key, False): st.session_state[anim_key] = False
+                if st.session_state.get(anim_key, False): 
+                    st.session_state[anim_key] = False
                 st.rerun()
+            # Nút Pause: Dừng animation
             if c2.button('⏸️ Pause', use_container_width=True):
                 st.session_state.anim_running = False
                 st.rerun()
+            # Nút Reset: Dọn dẹp state để bắt đầu lại từ đầu
             if c3.button('🔄 Reset', use_container_width=True):
                 st.session_state.anim_running = False
                 st.session_state.anim_frame = 0
                 st.session_state[anim_key] = True
-                if 'abm_instance' in st.session_state: del st.session_state['abm_instance']
-                if 'model2_cells' in st.session_state: del st.session_state['model2_cells']
-                if 'm5s2_results' in st.session_state: del st.session_state['m5s2_results']
+                # Xóa các state cụ thể của từng model
+                for key in ['abm_instance', 'model2_cells', 'm5s2_results', 'm5s2_params']:
+                    if key in st.session_state:
+                        del st.session_state[key]
                 st.rerun()
 
+        # --- KHỐI CÀI ĐẶT RIÊNG CHO TỪNG MODEL ---
         if model_id == 'model5':
             with st.container(border=True):
                 if 'm5_scenario' not in st.session_state: st.session_state.m5_scenario = 1
                 scenario_options = {tr("screen3_sim1_name_m5"): 1, tr("screen3_sim2_name_m5"): 2}
+                
+                # Callback để reset khi đổi kịch bản
                 def on_scenario_change():
-                    st.session_state.anim_running = False; st.session_state.anim_frame = 0
-                    st.session_state['anim_init_model5_1'] = True; st.session_state['anim_init_model5_2'] = True
-                selected_scenario_disp = st.radio(tr("screen3_sim_list_group_title"), options=scenario_options.keys(), index=st.session_state.m5_scenario - 1, key="m5_scenario_selector", on_change=on_scenario_change)
+                    st.session_state.anim_running = False
+                    st.session_state.anim_frame = 0
+                    st.session_state['anim_init_model5_1'] = True
+                    st.session_state['anim_init_model5_2'] = True
+                
+                selected_scenario_disp = st.radio(
+                    tr("screen3_sim_list_group_title"), 
+                    options=scenario_options.keys(), 
+                    index=st.session_state.m5_scenario - 1, 
+                    key="m5_scenario_selector", 
+                    on_change=on_scenario_change
+                )
                 st.session_state.m5_scenario = scenario_options[selected_scenario_disp]
 
+                # Highlight: Thêm UI cho tham số của Sim 2
+                if st.session_state.m5_scenario == 2:
+                    st.markdown(f"**{tr('screen3_m5_sim2_params_title')}**")
+                    # Dùng form để nhóm các tham số
+                    with st.form("m5s2_params_form"):
+                        vp = st.number_input(tr('screen3_m5_pursuer_speed'), min_value=0.1, value=3.0, step=0.1)
+                        ve = st.number_input(tr('screen3_m5_evader_speed'), min_value=0.1, value=2.0, step=0.1)
+                        xp0 = st.number_input(tr('screen3_m5_pursuer_x0'), value=0.0)
+                        yp0 = st.number_input(tr('screen3_m5_pursuer_y0'), value=0.0)
+                        xe0 = st.number_input(tr('screen3_m5_evader_x0'), value=10.0)
+                        ye0 = st.number_input(tr('screen3_m5_evader_y0'), value=10.0)
+                        catch_radius = st.number_input(tr('screen3_m5_catch_radius'), min_value=0.1, value=0.5, step=0.1)
+                        
+                        param_submitted = st.form_submit_button(tr("screen3_m5_apply_params"))
+                        if param_submitted:
+                            st.session_state.m5s2_params = {
+                                'vp': vp, 've': ve, 'xp0': xp0, 'yp0': yp0,
+                                'xe0': xe0, 'ye0': ye0, 'catch_radius': catch_radius
+                            }
+                            # Reset để áp dụng tham số mới
+                            st.session_state[anim_key] = True
+                            st.session_state.anim_frame = 0
+                            st.rerun()
+
+        # --- KHỐI HIỂN THỊ KẾT QUẢ ---
         with st.container(border=True):
             st.subheader(tr('screen3_results_group_title'))
             info_placeholder = st.empty()
 
     with col_display:
         with st.container(border=True):
+            # Chọn tiêu đề phù hợp
             plot_title_key = ""
             if model_id == 'model2': plot_title_key = "screen3_model2_anim_plot_title"
             elif model_id == 'model3': plot_title_key = "screen3_abm_anim_plot_title"
             elif model_id == 'model5':
-                plot_title_key = "screen3_model5_plot_title_sim1" if st.session_state.m5_scenario == 1 else "screen3_model5_plot_title_sim2"
+                plot_title_key = "screen3_model5_plot_title_sim1" if m5_scenario_id == 1 else "screen3_model5_plot_title_sim2"
+            
             st.subheader(tr(plot_title_key))
             plot_placeholder = st.empty()
 
     # ==============================================
-    #           PHẦN LOGIC
+    #           PHẦN LOGIC MÔ PHỎNG VÀ VẼ
     # ==============================================
     results = st.session_state.get('simulation_results', {})
     highest_step_key = max(results.keys(), key=int) if results else None
@@ -2845,12 +2946,15 @@ def show_dynamic_simulation_page():
     animation_ended = False
     ax.clear()
 
+    # Nếu cần khởi tạo, hiển thị thông báo và chờ
     if st.session_state.get(anim_key, True):
         with info_placeholder.container(): st.info(tr("screen3_waiting_for_data"))
-        ax.text(0.5, 0.5, tr("screen3_waiting_for_data"), ha='center', va='center')
+        ax.text(0.5, 0.5, tr("screen3_waiting_for_data"), ha='center', va='center', fontsize=12)
         ax.set_xticks([]); ax.set_yticks([])
+    
+    # Nếu đã sẵn sàng để chạy animation
     else:
-        # --- MODEL 2 ---
+        # --- LOGIC CHO MODEL 2 ---
         if model_id == 'model2' and sim_data:
             t_data = sim_data.get('t_plot'); y_data = sim_data.get('approx_sol_plot')
             if 'model2_cells' not in st.session_state: st.session_state.model2_cells = [Cell(0, 0, gen=0)]
@@ -2860,40 +2964,34 @@ def show_dynamic_simulation_page():
                 target_n = int(round(y_data[current_frame]))
                 cells = st.session_state.model2_cells
                 if len(cells) < target_n:
-                    positions = [(cell.x, cell.y) for cell in cells]
+                    # Tối ưu hóa việc tìm vị trí mới
+                    existing_pos = {(cell.x, cell.y) for cell in cells}
                     for _ in range(target_n - len(cells)):
                         parent = random.choice(cells)
-                        for _ in range(20):
+                        for _ in range(20): # Thử 20 lần để tìm vị trí
                             angle = random.uniform(0, 2 * np.pi)
                             new_x, new_y = parent.x + np.cos(angle) * 1.1, parent.y + np.sin(angle) * 1.1
-                            if not any(np.hypot(new_x - px, new_y - py) < 1.0 for px, py in positions):
-                                cells.append(Cell(new_x, new_y, parent.gen + 1)); positions.append((new_x, new_y)); break
+                            if not any(np.hypot(new_x - px, new_y - py) < 1.0 for px, py in existing_pos):
+                                cells.append(Cell(new_x, new_y, parent.gen + 1))
+                                existing_pos.add((new_x, new_y))
+                                break
                 st.session_state.model2_cells = cells
             
             cells = st.session_state.get('model2_cells', [Cell(0,0)])
             all_x = [c.x for c in cells]; all_y = [c.y for c in cells]
+            for cell in cells: ax.add_patch(MplCircle((cell.x, cell.y), radius=0.5, color='brown', alpha=0.7))
             if all_x:
                 max_coord = max(max(np.abs(all_x)), max(np.abs(all_y))) + 2
                 ax.set_xlim(-max_coord, max_coord); ax.set_ylim(-max_coord, max_coord)
-            proxy_legend = MplCircle((0,0), 0.1, color='brown', label=tr("screen3_legend_model2_cell"))
-            ax.legend(handles=[proxy_legend], loc='upper right')
-            for cell in cells: ax.add_patch(MplCircle((cell.x, cell.y), radius=0.5, color='brown', alpha=0.7))
             ax.set_aspect('equal'); ax.axis('off')
+            ax.legend([MplCircle((0,0), 0.1, color='brown')], [tr("screen3_legend_model2_cell")], loc='upper right')
             
             c_val = st.session_state.get('last_calculated_c', 'N/A')
-            c_str = f"{c_val:.4g}" if isinstance(c_val, float) else c_val
-            time_str = f"{t_data[current_frame]:.2f} s"
-            info_text = f"""
-            **{tr('screen3_result_c')}**
-            ### {c_str}
-            **{tr('screen3_result_mass')}**
-            ### {len(cells)}
-            **{tr('screen3_result_time')}**
-            ### {time_str}
-            """
-            info_placeholder.markdown(info_text)
-
-        # --- MODEL 3 (ABM) ---
+            info_placeholder.markdown(f"**{tr('screen3_result_c')}** `{c_val:.4g if isinstance(c_val, float) else c_val}`\n\n"
+                                      f"**{tr('screen3_result_mass')}** `{len(cells)}`\n\n"
+                                      f"**{tr('screen3_result_time')}** `{t_data[current_frame]:.2f} s`")
+        
+        # --- LOGIC CHO MODEL 3 (ABM) ---
         elif model_id == 'model3':
             abm_params = model_data.get("abm_defaults", {})
             if 'abm_instance' not in st.session_state:
@@ -2906,31 +3004,25 @@ def show_dynamic_simulation_page():
             if st.session_state.anim_running:
                 ended_by_logic = abm.step()
                 if ended_by_logic or current_frame >= abm_params.get('max_steps', 400):
-                    animation_ended = True; st.toast("Mô phỏng ABM kết thúc!")
+                    animation_ended = True
 
             ax.set_xlim(0, abm.room_dimension); ax.set_ylim(0, abm.room_dimension)
             ax.set_aspect('equal'); ax.set_xticks([]); ax.set_yticks([])
             s_coords, i_coords = abm.get_display_coords(abm_params['display_max_total'], abm_params['display_sample_size'])
-            ax.scatter(s_coords[:, 0], s_coords[:, 1], c='blue', label=tr('screen3_legend_abm_susceptible'))
+            ax.scatter(s_coords[:, 0], s_coords[:, 1], c='blue', s=20, label=tr('screen3_legend_abm_susceptible'))
             ax.scatter(i_coords[:, 0], i_coords[:, 1], c='red', marker='*', s=80, label=tr('screen3_legend_abm_infected'))
             ax.legend()
             
             stats = abm.get_current_stats()
-            info_text = f"""
-            **{tr('screen3_total_pop')}**
-            ### {stats['total_population']}
-            **{tr('screen3_susceptible_pop')}**
-            ### {stats['susceptible_count']}
-            **{tr('screen3_infected_pop')}**
-            ### {stats['infected_count']}
-            **{tr('screen3_model3_simulation_time_label')}**
-            ### {stats['time_step']}
-            """
-            info_placeholder.markdown(info_text)
-            
-        # --- MODEL 5 ---
+            info_placeholder.markdown(f"**{tr('screen3_total_pop')}** `{stats['total_population']}`\n\n"
+                                      f"**{tr('screen3_susceptible_pop')}** `{stats['susceptible_count']}`\n\n"
+                                      f"**{tr('screen3_infected_pop')}** `{stats['infected_count']}`\n\n"
+                                      f"**{tr('screen3_model3_simulation_time_label')}** `{stats['time_step']}`")
+        
+        # --- LOGIC CHO MODEL 5 ---
         elif model_id == 'model5' and sim_data:
-            if st.session_state.m5_scenario == 1:
+            # KỊCH BẢN 1: Thuyền qua sông
+            if m5_scenario_id == 1:
                 t_data = sim_data.get('t_plot')
                 if t_data is None or len(t_data) == 0: animation_ended = True
                 else:
@@ -2953,22 +3045,88 @@ def show_dynamic_simulation_page():
                             st.metric(label=tr('screen3_m5_boat_reaches_target'), value=reaches_target_str)
                             st.metric(label=tr('screen3_m5_boat_final_pos'), value=final_pos_str)
             
-            elif st.session_state.m5_scenario == 2:
-                ax.text(0.5, 0.5, tr('screen3_model5_not_implemented_msg'), ha='center', va='center')
-                animation_ended = True
-                with info_placeholder.container(): st.info(tr('screen3_model5_not_implemented_msg'))
+            # Highlight: KỊCH BẢN 2: Đuổi bắt (đã được triển khai)
+            elif m5_scenario_id == 2:
+                if 'm5s2_params' not in st.session_state:
+                    # Đặt giá trị mặc định nếu chưa có
+                    st.session_state.m5s2_params = {'vp': 3.0, 've': 2.0, 'xp0': 0.0, 'yp0': 0.0, 'xe0': 10.0, 'ye0': 10.0, 'catch_radius': 0.5}
+                
+                if 'm5s2_results' not in st.session_state:
+                    # Chọn solver từ trang trước
+                    method_short = validated_params.get('method_short', 'Bashforth')
+                    steps_int = validated_params.get('selected_steps_int', [4])[-1] # Lấy bậc cao nhất
+                    solver_map = {
+                        "Bashforth": {2: AB2_system_M5_Sim2_CombinedLogic, 3: AB3_system_M5_Sim2_CombinedLogic, 4: AB4_system_M5_Sim2_CombinedLogic, 5: AB5_system_M5_Sim2_CombinedLogic},
+                        "Moulton": {2: AM2_system_M5_Sim2_CombinedLogic, 3: AM3_system_M5_Sim2_CombinedLogic, 4: AM4_system_M5_Sim2_CombinedLogic}
+                    }
+                    solver_func = solver_map.get(method_short, {}).get(steps_int)
 
+                    if solver_func:
+                        p = st.session_state.m5s2_params
+                        initial_state = np.array([p['xp0'], p['yp0'], p['xe0'], p['ye0']])
+                        t_end = 2 * np.linalg.norm(initial_state[2:] - initial_state[:2]) / abs(p['vp'] - p['ve']) if abs(p['vp'] - p['ve']) > 1e-6 else 20
+                        t_array = np.linspace(0, t_end, 1000)
+                        
+                        # Chạy và cache kết quả
+                        st.session_state.m5s2_results = _run_and_cache_m5_sim2(solver_func, t_array, initial_state, p['catch_radius'])
+                    else:
+                        st.session_state.m5s2_results = None
+
+                # Bắt đầu vẽ từ kết quả đã có
+                m5s2_res = st.session_state.get('m5s2_results')
+                if not m5s2_res:
+                    ax.text(0.5, 0.5, "Lỗi tính toán, không có dữ liệu.", ha='center', va='center')
+                    animation_ended = True
+                else:
+                    t_points = m5s2_res['time_points']
+                    state_hist = m5s2_res['state_history']
+                    is_caught = m5s2_res['caught']
+                    catch_time = m5s2_res['time_of_catch']
+                    
+                    if current_frame >= len(t_points):
+                        animation_ended = True
+                        current_frame = len(t_points) - 1
+
+                    pursuer_path = state_hist[:, 0:2]
+                    evader_path = state_hist[:, 2:4]
+                    
+                    # Vẽ quỹ đạo
+                    ax.plot(pursuer_path[:, 0], pursuer_path[:, 1], 'r-', label=tr('screen3_legend_m5s2_pursuer_path'))
+                    ax.plot(evader_path[:, 0], evader_path[:, 1], 'b--', label=tr('screen3_legend_m5s2_evader_path'))
+                    
+                    # Vẽ vị trí hiện tại
+                    ax.plot(pursuer_path[current_frame, 0], pursuer_path[current_frame, 1], 'rP', markersize=12, label=tr('screen3_legend_m5s2_pursuer'))
+                    ax.plot(evader_path[current_frame, 0], evader_path[current_frame, 1], 'bo', markersize=8, label=tr('screen3_legend_m5s2_evader'))
+
+                    ax.set_xlabel("X"); ax.set_ylabel("Y"); ax.grid(True); ax.legend(); ax.set_aspect('equal')
+                    
+                    # Cập nhật info panel
+                    current_dist = np.linalg.norm(pursuer_path[current_frame] - evader_path[current_frame])
+                    info_md = f"**{tr('screen3_m5_time')}:** `{t_points[current_frame]:.2f} s`\n\n" \
+                              f"**{tr('screen3_m5_distance')}:** `{current_dist:.2f}`\n\n"
+                    if is_caught and t_points[current_frame] >= catch_time:
+                         info_md += f"**<span style='color:red;'>{tr('screen3_m5_caught_status').format(catch_time)}</span>**"
+                         animation_ended = True # Dừng anim khi đã bắt được
+                    else:
+                         info_md += f"**{tr('screen3_m5_uncaught_status')}**"
+                    info_placeholder.markdown(info_md, unsafe_allow_html=True)
+
+
+    # Hiển thị plot đã vẽ
     plot_placeholder.pyplot(fig, clear_figure=False)
 
-    # --- ĐIỀU KHIỂN RERUN ---
+    # ==============================================
+    #           ĐIỀU KHIỂN RERUN CHO ANIMATION
+    # ==============================================
     if st.session_state.anim_running:
         if animation_ended:
             st.session_state.anim_running = False
-            st.toast("Animation finished!")
-            st.rerun()
+            st.toast(tr("screen3_anim_finished_msg"))
+            st.rerun() # Rerun một lần cuối để cập nhật trạng thái UI
         else:
             st.session_state.anim_frame += 1
-            time.sleep(max(0.000005, 0.00001 / speed_multiplier)) 
+            # Highlight: Điều chỉnh time.sleep để mượt hơn
+            time.sleep(max(0.01, 0.05 / speed_multiplier)) 
             st.rerun()
 
 # =========================================================================
