@@ -3211,7 +3211,7 @@ def show_dynamic_simulation_page():
     </style>
     """, unsafe_allow_html=True)
 
-	def _cleanup_and_navigate(destination_page):
+    def _cleanup_and_navigate(destination_page):
         """Dọn dẹp state của trang hiện tại và điều hướng đến trang mới."""
         # 1. Dọn dẹp tất cả state liên quan đến mô phỏng động
         keys_to_delete = [
