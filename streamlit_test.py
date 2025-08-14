@@ -3023,11 +3023,7 @@ def create_animation_gif(lang_code, model_id, model_data, validated_params, spee
     translations = load_language_file(lang_code)
     def _tr(key):
         return translations.get(key, key)
-	"""
-    Chạy mô phỏng, render tất cả các frame thành một file GIF, và hiển thị thanh tiến trình.
-    Trả về dữ liệu bytes của file GIF và một dictionary chứa thông tin cuối cùng.
-    """
-    # Tạo placeholder cho thanh tiến trình và văn bản trong khu vực chính
+
     progress_container = st.empty()
     with progress_container.container():
         progress_bar = st.progress(0)
