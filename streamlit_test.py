@@ -2483,11 +2483,26 @@ def show_simulation_page():
     model_name_tr = tr(f"{model_id}_name")
     # --- THANH BÊN (SIDEBAR) CHO CÁC ĐIỀU KHIỂN ---
     with st.sidebar:
-        if st.button(f"{tr('screen2_back_button')}",type = "primary"):
-            st.session_state.page = 'model_selection'
+        # Tạo một hàm dọn dẹp riêng cho trang này
+        def _cleanup_and_go_to_model_selection():
+            """Dọn dẹp state của trang simulation và quay về trang chọn mô hình."""
+            # 1. Xóa kết quả mô phỏng và các tham số đã xác thực
             st.session_state.simulation_results = {}
             st.session_state.validated_params = {}
+
+            # 2. Xóa các tham số được tính toán tự động (c, r, alpha, beta)
+            keys_to_clear = [k for k in st.session_state if k.startswith('last_calculated_')]
+            for key in keys_to_clear:
+                if key in st.session_state:
+                    del st.session_state[key]
+            
+            # 3. Chuyển trang và rerun
+            st.session_state.page = 'model_selection'
             st.rerun()
+
+        # Nút Quay lại bây giờ gọi hàm dọn dẹp
+        if st.button(f"{tr('screen2_back_button')}", type="primary"):
+            _cleanup_and_go_to_model_selection()
         
         st.title(tr("sidebar_title"))
         
