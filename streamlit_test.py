@@ -3227,26 +3227,26 @@ def show_dynamic_simulation_page():
     """, unsafe_allow_html=True)
 
     def _cleanup_and_navigate(destination_page):
-        """Dọn dẹp state của trang hiện tại và điều hướng đến trang mới."""
-        # 1. Dọn dẹp tất cả state liên quan đến mô phỏng động
-        keys_to_delete = [
+        """Dọn dẹp state của (các) trang liên quan và điều hướng đến trang mới."""
+        # 1. Luôn dọn dẹp state của trang mô phỏng động (trang hiện tại)
+        dynamic_keys_to_delete = [
             k for k in st.session_state 
             if k.startswith('anim_') or k.startswith('m5s') or k.startswith('gif_') 
             or k == 'abm_instance' or k == 'model2_cells' or k == 'generated_gif'
             or k == 'final_anim_stats' or k == 'generate_gif_request'
         ]
-        for key in keys_to_delete:
+        for key in dynamic_keys_to_delete:
             if key in st.session_state:
                 del st.session_state[key]
         
-        # 2. Nếu quay lại trang mô phỏng tĩnh, dọn dẹp cả state của trang đó
-        if destination_page == 'simulation':
-            st.session_state.simulation_results = {}
-            st.session_state.validated_params = {}
-            keys_to_clear_s2 = [k for k in st.session_state if k.startswith('last_calculated_')]
-            for key in keys_to_clear_s2:
-                if key in st.session_state:
-                    del st.session_state[key]
+        # 2. Luôn dọn dẹp state của trang mô phỏng tĩnh, vì nó là "trang mẹ"
+        #    của trang mô phỏng động.
+        st.session_state.simulation_results = {}
+        st.session_state.validated_params = {}
+        static_keys_to_clear = [k for k in st.session_state if k.startswith('last_calculated_')]
+        for key in static_keys_to_clear:
+            if key in st.session_state:
+                del st.session_state[key]
 
         # 3. Đặt trang mới và rerun để áp dụng thay đổi ngay lập tức
         st.session_state.page = destination_page
