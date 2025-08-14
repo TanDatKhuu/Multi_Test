@@ -3211,6 +3211,32 @@ def show_dynamic_simulation_page():
     </style>
     """, unsafe_allow_html=True)
 
+	def _cleanup_and_navigate(destination_page):
+        """Dọn dẹp state của trang hiện tại và điều hướng đến trang mới."""
+        # 1. Dọn dẹp tất cả state liên quan đến mô phỏng động
+        keys_to_delete = [
+            k for k in st.session_state 
+            if k.startswith('anim_') or k.startswith('m5s') or k.startswith('gif_') 
+            or k == 'abm_instance' or k == 'model2_cells' or k == 'generated_gif'
+            or k == 'final_anim_stats' or k == 'generate_gif_request'
+        ]
+        for key in keys_to_delete:
+            if key in st.session_state:
+                del st.session_state[key]
+        
+        # 2. Nếu quay lại trang mô phỏng tĩnh, dọn dẹp cả state của trang đó
+        if destination_page == 'simulation':
+            st.session_state.simulation_results = {}
+            st.session_state.validated_params = {}
+            keys_to_clear_s2 = [k for k in st.session_state if k.startswith('last_calculated_')]
+            for key in keys_to_clear_s2:
+                if key in st.session_state:
+                    del st.session_state[key]
+
+        # 3. Đặt trang mới và rerun để áp dụng thay đổi ngay lập tức
+        st.session_state.page = destination_page
+        st.rerun()
+		
     def display_custom_metric(placeholder, data_dict):
         html_content = "<div class='metric-container'>"
         for label, value_info in data_dict.items():
@@ -3219,40 +3245,11 @@ def show_dynamic_simulation_page():
         html_content += "</div>"
         placeholder.markdown(html_content, unsafe_allow_html=True)
 
-    def cleanup_dynamic_sim_state():
-        keys_to_delete = [
-            k for k in st.session_state 
-            if k.startswith('anim_') or k.startswith('m5s') or k.startswith('gif_') # <<< SỬA LẠI
-            or k == 'abm_instance' or k == 'model2_cells' or k == 'generated_gif'
-        ]
-        for key in keys_to_delete:
-            if key in st.session_state:
-                del st.session_state[key]
-        st.session_state.anim_running = False
-
-    def navigate_to(page_name):
-        # Bước 1: Dọn dẹp state của trang mô phỏng động (giữ nguyên)
-        cleanup_dynamic_sim_state()
-
-        # --- PHẦN THÊM MỚI ---
-        # Bước 2: Nếu đích đến là trang mô phỏng tĩnh, hãy dọn dẹp cả state của nó
-        if page_name == 'simulation':
-            st.session_state.simulation_results = {}
-            st.session_state.validated_params = {}
-            # Dọn dẹp luôn các thông báo về tham số đã tính toán (c, r, alpha, beta)
-            keys_to_clear = [k for k in st.session_state if k.startswith('last_calculated_')]
-            for key in keys_to_clear:
-                del st.session_state[key]
-        # --- KẾT THÚC PHẦN THÊM MỚI ---
-
-        # Bước 3: Chuyển trang như bình thường
-        st.session_state.page = page_name
-
     # --- Kiểm tra dữ liệu đầu vào ---
     validated_params = st.session_state.get('validated_params', {})
     if not validated_params or 'model_id' not in validated_params:
         st.error(tr("msg_no_data_for_dynamic"))
-        if st.button(tr('screen3_back_button')): navigate_to('simulation')
+        if st.button(tr('screen3_back_button')): _cleanup_and_navigate('simulation')
         return
 
     model_id = validated_params.get("model_id")
@@ -3262,8 +3259,10 @@ def show_dynamic_simulation_page():
     header_cols = st.columns([1.5, 4, 1.5])
     with header_cols[0]:
         back_cols = st.columns(2)
-        back_cols[0].button(f"ᐊ {tr('screen3_back_button')}", on_click=navigate_to, args=('simulation',), use_container_width=True, help=tr("screen3_dyn_back_tooltip"), disabled=is_processing)
-        back_cols[1].button(f"ᐊᐊ {tr('screen3_double_back_button')}", on_click=navigate_to, args=('model_selection',), use_container_width=True, disabled=is_processing)
+        if back_cols[0].button(f"ᐊ {tr('screen3_back_button')}", use_container_width=True, help=tr("screen3_dyn_back_tooltip"), disabled=is_processing):
+            _cleanup_and_navigate('simulation')
+        if back_cols[1].button(f"ᐊᐊ {tr('screen3_double_back_button')}", use_container_width=True, disabled=is_processing):
+            _cleanup_and_navigate('model_selection')
     header_cols[1].markdown(f"<h1 style='text-align: center; margin: 0;'>{tr('screen3_dyn_only_title')}</h1>", unsafe_allow_html=True)
     
     col_controls, col_display = st.columns([1, 1.8])
@@ -3301,12 +3300,18 @@ def show_dynamic_simulation_page():
             with st.container(border=True):
                 if 'm5_scenario' not in st.session_state: st.session_state.m5_scenario = 1
                 scenario_options = {tr("screen3_sim1_name_m5"): 1, tr("screen3_sim2_name_m5"): 2}
+                def on_scenario_change():
+                    # Hàm này sẽ được gọi KHI người dùng chọn radio button mới
+                    keys_to_delete = [k for k in st.session_state if k.startswith('m5s') or k == 'generated_gif' or k == 'final_anim_stats']
+                    for k in keys_to_delete:
+                        if k in st.session_state:
+                            del st.session_state[k]
                 selected_scenario_disp = st.radio(
                     tr("screen3_sim_list_group_title"), 
                     options=scenario_options.keys(), 
                     index=st.session_state.m5_scenario - 1, 
                     key="m5_scenario_selector",
-                    on_change=cleanup_dynamic_sim_state,
+                    on_change=on_scenario_change,
 					disabled=is_processing
                 )
                 st.session_state.m5_scenario = scenario_options[selected_scenario_disp]
