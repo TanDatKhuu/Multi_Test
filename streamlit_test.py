@@ -3220,7 +3220,11 @@ def show_dynamic_simulation_page():
         placeholder.markdown(html_content, unsafe_allow_html=True)
 
     def cleanup_dynamic_sim_state():
-        keys_to_delete = [k for k in st.session_state if k.startswith('anim_') or k.startswith('m5s') or k == 'abm_instance' or k == 'model2_cells' or k == 'generated_gif']
+        keys_to_delete = [
+            k for k in st.session_state 
+            if k.startswith('anim_') or k.startswith('m5s') or k.startswith('gif_') # <<< SỬA LẠI
+            or k == 'abm_instance' or k == 'model2_cells' or k == 'generated_gif'
+        ]
         for key in keys_to_delete:
             if key in st.session_state:
                 del st.session_state[key]
@@ -3253,13 +3257,13 @@ def show_dynamic_simulation_page():
 
     model_id = validated_params.get("model_id")
     model_data = MODELS_DATA.get(st.session_state.get("selected_model_key"))
-    
+    is_processing = st.session_state.get('gif_is_processing', False)
     # --- Bố cục giao diện chính ---
     header_cols = st.columns([1.5, 4, 1.5])
     with header_cols[0]:
         back_cols = st.columns(2)
-        back_cols[0].button(f"ᐊ {tr('screen3_back_button')}", on_click=navigate_to, args=('simulation',), use_container_width=True, help=tr("screen3_dyn_back_tooltip"))
-        back_cols[1].button(f"ᐊᐊ {tr('screen3_double_back_button')}", on_click=navigate_to, args=('model_selection',), use_container_width=True)
+        back_cols[0].button(f"ᐊ {tr('screen3_back_button')}", on_click=navigate_to, args=('simulation',), use_container_width=True, help=tr("screen3_dyn_back_tooltip"), disabled=is_processing)
+        back_cols[1].button(f"ᐊᐊ {tr('screen3_double_back_button')}", on_click=navigate_to, args=('model_selection',), use_container_width=True, disabled=is_processing)
     header_cols[1].markdown(f"<h1 style='text-align: center; margin: 0;'>{tr('screen3_dyn_only_title')}</h1>", unsafe_allow_html=True)
     
     col_controls, col_display = st.columns([1, 1.8])
@@ -3279,17 +3283,19 @@ def show_dynamic_simulation_page():
                 tr("screen3_speed_label"),
                 options=speed_options.keys(),
                 index=1,
-                key="gif_speed_selector"
+                key="gif_speed_selector",
+				disabled=is_processing
             )
             speed_multiplier = speed_options[selected_speed_label]
             st.session_state.speed_multiplier = speed_multiplier
 
             # Highlight: Sửa logic của nút bấm
-            if st.button(f"🚀 {tr('generate_and_show_button')}", use_container_width=True, type="primary"):
+            if st.button(f"🚀 {tr('generate_and_show_button')}", use_container_width=True, type="primary", disabled=is_processing):
                 # Chỉ đặt cờ, không rerun
                 st.session_state.generate_gif_request = True
                 if 'generated_gif' in st.session_state:
                     del st.session_state['generated_gif']
+				st.rerun()
         
         if model_id == 'model5':
             with st.container(border=True):
@@ -3300,7 +3306,8 @@ def show_dynamic_simulation_page():
                     options=scenario_options.keys(), 
                     index=st.session_state.m5_scenario - 1, 
                     key="m5_scenario_selector",
-                    on_change=cleanup_dynamic_sim_state
+                    on_change=cleanup_dynamic_sim_state,
+					disabled=is_processing
                 )
                 st.session_state.m5_scenario = scenario_options[selected_scenario_disp]
 
@@ -3325,6 +3332,7 @@ def show_dynamic_simulation_page():
             gif_bytes, final_stats = create_animation_gif(model_id, model_data, validated_params, speed_multiplier)
             
             st.session_state.generate_gif_request = False # Reset cờ
+			st.session_state.gif_is_processing = False
             if gif_bytes:
                 st.session_state.generated_gif = gif_bytes
                 st.session_state.final_anim_stats = final_stats
@@ -3332,6 +3340,7 @@ def show_dynamic_simulation_page():
             else:
                 st.error(tr("gif_generation_error"))
                 info_placeholder.error(tr("gif_generation_error"))
+				st.rerun()
 
         elif 'generated_gif' in st.session_state and st.session_state.generated_gif:
             # Nếu đã có GIF, hiển thị nó
