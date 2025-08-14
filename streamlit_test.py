@@ -3008,8 +3008,22 @@ def run_and_store_model5_scenario2_results():
 	        _traj_params_dict_json=traj_params_json
 	    )
 	
-def create_animation_gif(model_id, model_data, validated_params, speed_multiplier):
-    """
+def create_animation_gif(lang_code, model_id, model_data, validated_params, speed_multiplier):
+    # --- CÀI ĐẶT FONT VÀ HÀM DỊCH NGÔN NGỮ CỤC BỘ ---
+    # Highlight: Thiết lập font tiếng Việt cho matplotlib
+    font_path = os.path.join(base_path, "fonts", "DejaVuSans.ttf")
+    font_prop = None
+    if os.path.exists(font_path):
+        from matplotlib.font_manager import FontProperties
+        font_prop = FontProperties(fname=font_path)
+        plt.rcParams['font.family'] = font_prop.get_name()
+        plt.rcParams['axes.unicode_minus'] = False # Sửa lỗi hiển thị dấu trừ
+    
+    # Highlight: Tạo hàm dịch cục bộ để không phụ thuộc vào st.session_state
+    translations = load_language_file(lang_code)
+    def _tr(key):
+        return translations.get(key, key)
+	"""
     Chạy mô phỏng, render tất cả các frame thành một file GIF, và hiển thị thanh tiến trình.
     Trả về dữ liệu bytes của file GIF và một dictionary chứa thông tin cuối cùng.
     """
@@ -3349,7 +3363,13 @@ def show_dynamic_simulation_page():
         if st.session_state.get('generate_gif_request', False):
             speed_multiplier = st.session_state.get('speed_multiplier', 1.0)
             # Hàm create_animation_gif sẽ tự điền vào các placeholder nó tạo ra
-            gif_bytes, final_stats = create_animation_gif(model_id, model_data, validated_params, speed_multiplier)
+            gif_bytes, final_stats = gif_bytes, final_stats = create_animation_gif(
+                st.session_state.lang, # Truyền mã ngôn ngữ hiện tại
+                model_id, 
+                model_data, 
+                validated_params, 
+                speed_multiplier
+            )
             
             st.session_state.generate_gif_request = False # Reset cờ
             st.session_state.gif_is_processing = False
