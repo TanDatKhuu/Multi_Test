@@ -3227,7 +3227,21 @@ def show_dynamic_simulation_page():
         st.session_state.anim_running = False
 
     def navigate_to(page_name):
+        # Bước 1: Dọn dẹp state của trang mô phỏng động (giữ nguyên)
         cleanup_dynamic_sim_state()
+
+        # --- PHẦN THÊM MỚI ---
+        # Bước 2: Nếu đích đến là trang mô phỏng tĩnh, hãy dọn dẹp cả state của nó
+        if page_name == 'simulation':
+            st.session_state.simulation_results = {}
+            st.session_state.validated_params = {}
+            # Dọn dẹp luôn các thông báo về tham số đã tính toán (c, r, alpha, beta)
+            keys_to_clear = [k for k in st.session_state if k.startswith('last_calculated_')]
+            for key in keys_to_clear:
+                del st.session_state[key]
+        # --- KẾT THÚC PHẦN THÊM MỚI ---
+
+        # Bước 3: Chuyển trang như bình thường
         st.session_state.page = page_name
 
     # --- Kiểm tra dữ liệu đầu vào ---
