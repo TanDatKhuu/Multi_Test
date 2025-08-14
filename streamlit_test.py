@@ -3295,7 +3295,7 @@ def show_dynamic_simulation_page():
                 st.session_state.generate_gif_request = True
                 if 'generated_gif' in st.session_state:
                     del st.session_state['generated_gif']
-				st.rerun()
+                st.rerun()
         
         if model_id == 'model5':
             with st.container(border=True):
