@@ -2796,9 +2796,14 @@ def _m5s2_get_smarter_avoidance_info(z_tn, z_kt, v_base_tn_dir, radius_avoid, v_
 
 def _m5_sim2_combined_ode(t, state):
     z_kt = state[0:2]; z_tn = state[2:4]
-    params = st.session_state.m5s2_params; traj_params = st.session_state.m5s2_trajectory_params
-    dx_kt, dy_kt = 0.0, 0.0; distance_kt_tn = np.linalg.norm(z_tn - z_kt)
-    if 'm5s2_last_kt_dir' not in st.session_state: st.session_state.m5s2_last_kt_dir = np.array([1.0, 0.0])
+    params = st.session_state.m5s2_params
+    traj_params = st.session_state.m5s2_trajectory_params
+    
+    # --- Logic Tàu khu trục (pursuer) - GIỮ NGUYÊN ---
+    dx_kt, dy_kt = 0.0, 0.0
+    distance_kt_tn = np.linalg.norm(z_tn - z_kt)
+    if 'm5s2_last_kt_dir' not in st.session_state: 
+        st.session_state.m5s2_last_kt_dir = np.array([1.0, 0.0])
     if 0 < distance_kt_tn < params['kt_radar_radius']:
         if distance_kt_tn > params['catch_threshold'] / 2.0:
             dir_to_tn = (z_tn - z_kt) / distance_kt_tn
@@ -2807,13 +2812,21 @@ def _m5_sim2_combined_ode(t, state):
     elif distance_kt_tn > params['catch_threshold'] / 2.0:
         dx_kt = (params['v_kt'] * 0.5) * st.session_state.m5s2_last_kt_dir[0]
         dy_kt = (params['v_kt'] * 0.5) * st.session_state.m5s2_last_kt_dir[1]
+
+    # --- Logic Tàu ngầm (target) - ĐÃ SỬA LỖI ---
     v_base_tn = _m5s2_get_base_submarine_velocity(t, traj_params, params['v_tn_max'])
     norm_v_base = np.linalg.norm(v_base_tn)
     v_base_dir = v_base_tn / norm_v_base if norm_v_base > 1e-6 else np.array([0.0, 0.0])
+    
     v_avoid, is_avoiding = _m5s2_get_smarter_avoidance_info(z_tn, z_kt, v_base_dir, params['avoidance_radius'], params['v_tn_max'], params['avoidance_strength'], params['fov_tn_degrees'])
-    if is_avoiding: v_total_desired = 0.2 * v_base_tn + 0.8 * v_avoid
+    
+    if is_avoiding: 
+        # Trộn lẫn vận tốc né và vận tốc cơ sở (như PySide6)
+        v_total_desired = 0.2 * v_base_tn + 0.8 * v_avoid
     else:
-        if 'm5s2_last_free_turn' not in st.session_state: st.session_state.m5s2_last_free_turn = t - params['min_time_free_turn'] * 2
+        # Logic rẽ ngẫu nhiên khi không né
+        if 'm5s2_last_free_turn' not in st.session_state: 
+            st.session_state.m5s2_last_free_turn = t - params['min_time_free_turn'] * 2
         v_final = v_base_tn
         if (t - st.session_state.m5s2_last_free_turn) >= params['min_time_free_turn'] and norm_v_base > 1e-6:
             angle = random.uniform(-params['max_angle_free_turn_rad'], params['max_angle_free_turn_rad'])
@@ -2821,19 +2834,24 @@ def _m5_sim2_combined_ode(t, state):
             v_final = np.dot(rot_matrix, v_base_tn)
             st.session_state.m5s2_last_free_turn = t
         v_total_desired = v_final
+    
+    # === SỬA LỖI QUAN TRỌNG NHẤT Ở ĐÂY ===
+    # Giới hạn tốc độ tối đa nhưng vẫn giữ hướng và độ lớn tương đối
     norm_total_tn = np.linalg.norm(v_total_desired)
-    if norm_total_tn < 1e-9: dx_tn, dy_tn = 0.0, 0.0
+    if norm_total_tn > params['v_tn_max']:
+        # Nếu vận tốc tính ra lớn hơn mức cho phép, chỉ co lại về v_tn_max
+        dx_tn = v_total_desired[0] * (params['v_tn_max'] / norm_total_tn)
+        dy_tn = v_total_desired[1] * (params['v_tn_max'] / norm_total_tn)
     else:
-        dx_tn = (v_total_desired[0] / norm_total_tn) * params['v_tn_max']
-        dy_tn = (v_total_desired[1] / norm_total_tn) * params['v_tn_max']
+        # Nếu vận tốc tính ra nhỏ hơn hoặc bằng, SỬ DỤNG NÓ TRỰC TIẾP
+        # Đây là điểm mấu chốt để hành vi né (chạy chậm lại) có hiệu lực
+        dx_tn = v_total_desired[0]
+        dy_tn = v_total_desired[1]
+    
     return np.array([dx_kt, dy_kt, dx_tn, dy_tn])
 
 @st.cache_data
 def _run_and_cache_m5_sim2(_solver_func_name, t_array, initial_state, catch_radius, _params_dict_json, _traj_params_dict_json):
-    """
-    Hàm được cache để chạy mô phỏng nặng.
-    Tất cả các tham số cần thiết phải được truyền vào, không dựa vào st.session_state.
-    """
     solver_map = { 
         "AB2_system_M5_Sim2_CombinedLogic": AB2_system_M5_Sim2_CombinedLogic, "AB3_system_M5_Sim2_CombinedLogic": AB3_system_M5_Sim2_CombinedLogic, 
         "AB4_system_M5_Sim2_CombinedLogic": AB4_system_M5_Sim2_CombinedLogic, "AB5_system_M5_Sim2_CombinedLogic": AB5_system_M5_Sim2_CombinedLogic, 
@@ -2842,11 +2860,9 @@ def _run_and_cache_m5_sim2(_solver_func_name, t_array, initial_state, catch_radi
     }
     method_func = solver_map[_solver_func_name]
     
-    # Giải mã JSON để lấy lại các dictionary tham số
     params = json.loads(_params_dict_json)
     traj_params = json.loads(_traj_params_dict_json)
 
-    # Khởi tạo các biến trạng thái cục bộ, không dùng session_state
     local_last_kt_dir = np.array([1.0, 0.0])
     local_last_free_turn = params['t_start'] - params['min_time_free_turn'] * 2
 
@@ -2855,7 +2871,7 @@ def _run_and_cache_m5_sim2(_solver_func_name, t_array, initial_state, catch_radi
         
         z_kt, z_tn = current_state[0:2], current_state[2:4]
         
-        # Logic Tàu khu trục (pursuer)
+        # Logic Tàu khu trục (pursuer) - GIỮ NGUYÊN
         dx_kt, dy_kt = 0.0, 0.0
         dist = np.linalg.norm(z_tn - z_kt)
         if 0 < dist < params['kt_radar_radius']:
@@ -2867,7 +2883,7 @@ def _run_and_cache_m5_sim2(_solver_func_name, t_array, initial_state, catch_radi
             dx_kt = (params['v_kt'] * 0.5) * local_last_kt_dir[0]
             dy_kt = (params['v_kt'] * 0.5) * local_last_kt_dir[1]
 
-        # Logic Tàu ngầm (target)
+        # Logic Tàu ngầm (target) - ĐÃ SỬA LỖI
         v_base = _m5s2_get_base_submarine_velocity(t, traj_params, params['v_tn_max'])
         v_base_norm = np.linalg.norm(v_base)
         v_base_dir = v_base / v_base_norm if v_base_norm > 1e-6 else np.array([0.0, 0.0])
@@ -2885,25 +2901,26 @@ def _run_and_cache_m5_sim2(_solver_func_name, t_array, initial_state, catch_radi
                 local_last_free_turn = t
             v_total_desired = v_final
         
+        # === SỬA LỖI QUAN TRỌNG Ở ĐÂY ===
         norm_total_tn = np.linalg.norm(v_total_desired)
-        if norm_total_tn < 1e-9: 
-            dx_tn, dy_tn = 0.0, 0.0
+        if norm_total_tn > params['v_tn_max']:
+            dx_tn = v_total_desired[0] * (params['v_tn_max'] / norm_total_tn)
+            dy_tn = v_total_desired[1] * (params['v_tn_max'] / norm_total_tn)
         else:
-            dx_tn = (v_total_desired[0] / norm_total_tn) * params['v_tn_max']
-            dy_tn = (v_total_desired[1] / norm_total_tn) * params['v_tn_max']
+            dx_tn = v_total_desired[0]
+            dy_tn = v_total_desired[1]
             
         return np.array([dx_kt, dy_kt, dx_tn, dy_tn])
 
     try:
         t_points, state_hist, caught, t_catch = method_func(
-            f_combined_like=f_combined_for_solver_cached, # Sử dụng hàm cục bộ
+            f_combined_like=f_combined_for_solver_cached,
             t_array_full_potential=t_array,
             initial_state_combined=initial_state,
             catch_dist_threshold=catch_radius
         )
         return { "time_points": t_points, "state_history": state_hist, "caught": caught, "time_of_catch": t_catch }
     except Exception as e:
-        # st.error sẽ không hoạt động trong hàm cache, nên ta chỉ print ra console
         print(f"Lỗi khi chạy mô phỏng M5 Sim 2 trong cache: {e}")
         return None
 
@@ -3198,11 +3215,14 @@ def create_animation_gif(lang_code, model_id, model_data, validated_params, spee
                     all_y = np.concatenate([pursuer_path[:, 1], evader_path[:, 1]])
                     x_min, x_max = all_x.min(), all_x.max()
                     y_min, y_max = all_y.min(), all_y.max()
+                    center_x = (x_max + x_min) / 2
+                    center_y = (y_max + y_min) / 2
                     x_range = x_max - x_min
                     y_range = y_max - y_min
-                    padding = max(x_range, y_range) * 0.1 # Thêm 10% padding
-                    ax.set_xlim(x_min - padding, x_max + padding)
-                    ax.set_ylim(y_min - padding, y_max + padding)
+		            max_range = max(x_range,y_range)
+                    padding = (max_range / 2) * 1.15 # Thêm 10% padding
+                    ax.set_xlim(center_x - padding, center_x + padding)
+                    ax.set_ylim(center_y - padding, center_y + padding)
 
                     # Dừng animation nếu bắt được
                     if is_caught and t_points[frame_idx] >= catch_time:
