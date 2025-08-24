@@ -3017,84 +3017,66 @@ def run_and_store_model5_scenario2_results():
         _traj_params_dict_json=traj_params_json
     )
 	
-def create_animation_gif(lang_code, model_id, model_data, validated_params, speed_multiplier):
+@st.cache_data
+def create_animation_gif(_lang_code, _model_id, _model_data_json, _validated_params_json, _speed_multiplier, _m5_scenario):
+    """
+    Tạo hoạt ảnh GIF cho mô phỏng.
+    Hàm này được cache để tối ưu hiệu năng. Tất cả các tham số đầu vào phải
+    là các kiểu dữ liệu cơ bản (str, int, float) hoặc chuỗi JSON.
+    Nó không thể tương tác trực tiếp với các widget của Streamlit.
+    """
     # --- CÀI ĐẶT FONT VÀ HÀM DỊCH NGÔN NGỮ CỤC BỘ ---
-    # Highlight: Thiết lập font tiếng Việt cho matplotlib
     font_path = os.path.join(base_path, "fonts", "DejaVuSans.ttf")
-    font_prop = None
     if os.path.exists(font_path):
         from matplotlib.font_manager import FontProperties
         font_prop = FontProperties(fname=font_path)
         plt.rcParams['font.family'] = font_prop.get_name()
-        plt.rcParams['axes.unicode_minus'] = False # Sửa lỗi hiển thị dấu trừ
+        plt.rcParams['axes.unicode_minus'] = False
     
-    # Highlight: Tạo hàm dịch cục bộ để không phụ thuộc vào st.session_state
-    translations = load_language_file(lang_code)
+    translations = load_language_file(_lang_code)
     def _tr(key):
         return translations.get(key, key)
 
-    progress_container = st.empty()
-    with progress_container.container():
-        progress_bar = st.progress(0)
-        progress_text = st.empty()
+    # Deserializing JSON inputs for caching
+    model_data = json.loads(_model_data_json)
+    validated_params = json.loads(_validated_params_json)
+
+    # <<< TỐI ƯU 1: GIẢM KHỐI LƯỢNG CÔNG VIỆC >>>
+    TARGET_DURATION_SECONDS = 15
+    TARGET_FPS = 20
+    total_frames = TARGET_DURATION_SECONDS * TARGET_FPS
 
     gif_buf = io.BytesIO()
-    with imageio.get_writer(gif_buf, mode='I', format='gif', duration=0.1 / speed_multiplier, loop=0) as writer:
+    frame_duration = 1.0 / TARGET_FPS
+    with imageio.get_writer(gif_buf, mode='I', format='gif', duration=frame_duration, loop=0) as writer:
         try:
-            fig, ax = plt.subplots(figsize=(8, 8), dpi=80) # Giảm DPI để frame nhẹ hơn
+            fig, ax = plt.subplots(figsize=(7, 7), dpi=90)
             final_stats = {}
 
-            # --- Lấy dữ liệu mô phỏng cần thiết ---
+            # Lấy dữ liệu mô phỏng
             sim_data = {}
-            if model_id == 'model5' and st.session_state.m5_scenario == 2:
-                if 'm5s2_results' not in st.session_state:
-                    run_and_store_model5_scenario2_results()
-                sim_data = st.session_state.get('m5s2_results', {})
-            else:
+            if _model_id == 'model5' and _m5_scenario == 2:
+                sim_data = st.session_state.get('m5s2_reference_trajectory', {})
+            elif _model_id == 'model3':
+                pass # Logic ABM sẽ được xử lý riêng
+            else: # Model 2, Model 5 Sim 1
                 results = st.session_state.get('simulation_results', {})
                 highest_step_key = max(results.keys(), key=int) if results else None
-                sim_data = results.get(highest_step_key, {})
+                sim_data = results.get(str(highest_step_key), {})
 
-            if not sim_data: return None, {}
-
-            # --- Xác định số lượng frame tối đa ---
-            num_frames = 0
-            if model_id == 'model2': num_frames = len(sim_data.get('t_plot', []))
-            elif model_id == 'model3': num_frames = model_data.get("abm_defaults", {}).get("max_steps", 400)
-            elif model_id == 'model5' and st.session_state.m5_scenario == 1: num_frames = len(sim_data.get('t_plot', []))
-            elif model_id == 'model5' and st.session_state.m5_scenario == 2: num_frames = len(sim_data.get('time_points', []))
-            
-            if num_frames == 0: return None, {}
-            
-            # --- Khởi tạo đối tượng mô phỏng (nếu cần) ---
-            abm_instance = None
-            if model_id == 'model3':
-                abm_params = model_data.get("abm_defaults", {})
-                r_val = st.session_state.get('last_calculated_r', 0.0001)
-                ptrans = np.clip(r_val * abm_params.get("r_to_ptrans_factor", 5000), abm_params.get("ptrans_min", 0.01), abm_params.get("ptrans_max", 0.9))
-                total_pop = int(validated_params['params']['n'] + 1)
-                abm_instance = DiseaseSimulationABM(
-                    total_population=total_pop, initial_infected_count_for_abm=1,
-                    room_dimension=abm_params.get('room_dimension', 10.0), 
-                    contact_radius=abm_params.get('base_contact_radius', 0.5),
-                    transmission_prob=ptrans, 
-                    agent_speed=abm_params.get('base_agent_speed', 0.05)
-                )
-            model2_cells = [Cell(0, 0, gen=0)] if model_id == 'model2' else []
-
-            # --- Vòng lặp tạo từng frame ---
-            for frame_idx in range(num_frames):
-                # Cập nhật thanh tiến trình
-                progress_percent = (frame_idx + 1) / num_frames
-                progress_bar.progress(progress_percent)
-                progress_text.text(f"{tr('gif_generating_spinner')} ({frame_idx + 1}/{num_frames})")
-
-                ax.clear()
+            # --- MODEL 2: TĂNG TRƯỞNG TẾ BÀO (LOGIC CHƯA TỐI ƯU VẼ) ---
+            if _model_id == 'model2':
+                if not sim_data or 't_plot' not in sim_data: return None, {}
+                t_data = np.array(sim_data['t_plot'])
+                y_data = np.array(sim_data['approx_sol_plot'])
+                num_data_points = len(t_data)
+                model2_cells = [Cell(0, 0, gen=0)]
                 
-                # --- MODEL 2: TĂNG TRƯỞNG TẾ BÀO ---
-                if model_id == 'model2':
-                    t_data, y_data = sim_data['t_plot'], sim_data['approx_sol_plot']
-                    target_n = int(round(y_data[frame_idx]))
+                for frame_idx in range(total_frames):
+                    data_idx = int(frame_idx / total_frames * (num_data_points - 1))
+                    ax.clear()
+                    
+                    target_n = int(round(y_data[data_idx]))
                     if len(model2_cells) < target_n:
                         existing_pos = {(cell.x, cell.y) for cell in model2_cells}
                         for _ in range(target_n - len(model2_cells)):
@@ -3112,174 +3094,165 @@ def create_animation_gif(lang_code, model_id, model_data, validated_params, spee
                         max_coord = max(max(np.abs(all_x)), max(np.abs(all_y))) + 2
                         ax.set_xlim(-max_coord, max_coord); ax.set_ylim(-max_coord, max_coord)
                     ax.set_aspect('equal'); ax.axis('off')
-                    ax.legend([MplCircle((0,0), 0.1, color='brown')], [tr("screen3_legend_model2_cell")], loc='upper right')
-                    ax.set_title(tr("screen3_model2_anim_plot_title") + f"\nTime: {t_data[frame_idx]:.2f}s | Cells: {len(model2_cells)}")
+                    ax.legend([MplCircle((0,0), 0.1, color='brown')], [_tr("screen3_legend_model2_cell")], loc='upper right')
+                    ax.set_title(f"{_tr('screen3_model2_anim_plot_title')}\nTime: {t_data[data_idx]:.2f}s | Cells: {len(model2_cells)}")
 
-                # --- MODEL 3: ABM DỊCH BỆNH ---
-                elif model_id == 'model3':
+                    fig.canvas.draw()
+                    frame_buf_inner = io.BytesIO(); fig.savefig(frame_buf_inner, format='png', bbox_inches='tight'); frame_buf_inner.seek(0)
+                    writer.append_data(imageio.imread(frame_buf_inner)); frame_buf_inner.close()
+                
+                final_stats = {
+                    _tr('screen3_result_c'): {'value': f"{st.session_state.get('last_calculated_c', 'N/A'):.4g}"},
+                    _tr('screen3_result_mass'): {'value': len(model2_cells)},
+                    _tr('screen3_result_time'): {'value': f"{t_data[-1]:.2f} s"}
+                }
+
+            # --- MODEL 3: ABM DỊCH BỆNH ---
+            elif _model_id == 'model3':
+                abm_params = model_data.get("abm_defaults", {})
+                r_val = st.session_state.get('last_calculated_r', 0.0001)
+                ptrans = np.clip(r_val * abm_params.get("r_to_ptrans_factor", 5000), abm_params.get("ptrans_min", 0.01), abm_params.get("ptrans_max", 0.9))
+                total_pop = int(validated_params['params']['n'] + 1)
+                abm_instance = DiseaseSimulationABM(
+                    total_population=total_pop, initial_infected_count_for_abm=1,
+                    room_dimension=abm_params.get('room_dimension', 10.0), 
+                    contact_radius=abm_params.get('base_contact_radius', 0.5),
+                    transmission_prob=ptrans, 
+                    agent_speed=abm_params.get('base_agent_speed', 0.05)
+                )
+                max_abm_frames = min(total_frames, abm_params.get("max_steps", 400))
+                for frame_idx in range(max_abm_frames):
+                    ax.clear()
                     ended_by_logic = abm_instance.step()
+                    s_coords, i_coords = abm_instance.get_display_coords(abm_params['display_max_total'], abm_params['display_sample_size'])
+                    if s_coords.shape[0] > 0: ax.scatter(s_coords[:, 0], s_coords[:, 1], c='blue', s=20, label=_tr('screen3_legend_abm_susceptible'))
+                    if i_coords.shape[0] > 0: ax.scatter(i_coords[:, 0], i_coords[:, 1], c='red', marker='*', s=80, label=_tr('screen3_legend_abm_infected'))
                     ax.set_xlim(0, abm_instance.room_dimension); ax.set_ylim(0, abm_instance.room_dimension)
                     ax.set_aspect('equal'); ax.set_xticks([]); ax.set_yticks([])
-                    abm_params = model_data.get("abm_defaults", {})
-                    s_coords, i_coords = abm_instance.get_display_coords(abm_params['display_max_total'], abm_params['display_sample_size'])
-                    if s_coords.shape[0] > 0: ax.scatter(s_coords[:, 0], s_coords[:, 1], c='blue', s=20, label=tr('screen3_legend_abm_susceptible'))
-                    if i_coords.shape[0] > 0: ax.scatter(i_coords[:, 0], i_coords[:, 1], c='red', marker='*', s=80, label=tr('screen3_legend_abm_infected'))
                     ax.legend()
                     stats = abm_instance.get_current_stats()
-                    ax.set_title(tr("screen3_abm_anim_plot_title") + f"\nStep: {stats['time_step']} | Infected: {stats['infected_count']}")
+                    ax.set_title(f"{_tr('screen3_abm_anim_plot_title')}\nStep: {stats['time_step']} | Infected: {stats['infected_count']}")
+
+                    fig.canvas.draw()
+                    frame_buf_inner = io.BytesIO(); fig.savefig(frame_buf_inner, format='png', bbox_inches='tight'); frame_buf_inner.seek(0)
+                    writer.append_data(imageio.imread(frame_buf_inner)); frame_buf_inner.close()
                     if ended_by_logic: break
-
-                # --- MODEL 5.1: CON THUYỀN ---
-                elif model_id == 'model5' and st.session_state.m5_scenario == 1:
-                    t_data = sim_data.get('t_plot')
-                    x_path, y_path = sim_data['approx_sol_plot_all_components']
-                    ax.plot(x_path, y_path, 'b--', alpha=0.5, label=tr('screen3_legend_m5s1_path'))
-                    ax.plot(x_path[frame_idx], y_path[frame_idx], 'rP', markersize=12, label=tr('screen3_legend_m5s1_boat'))
-                    d_val = validated_params['params']['x0']
-                    ax.axvline(0, color='grey', ls=':'); ax.axvline(d_val, color='grey', ls=':')
-                    ax.set_xlabel(tr('screen3_model5_plot_xlabel_sim1')); ax.set_ylabel(tr('screen3_model5_plot_ylabel_sim1'))
-                    ax.grid(True); ax.legend(); ax.set_aspect('equal')
-                    ax.set_title(tr("screen3_model5_plot_title_sim1") + f"\nTime: {t_data[frame_idx]:.2f}s")
                 
-                # --- MODEL 5.2: TÀU KHU TRỤC ---
-                elif model_id == 'model5' and st.session_state.m5_scenario == 2:
-                    t_points, state_hist = sim_data['time_points'], sim_data['state_history']
-                    is_caught, catch_time = sim_data['caught'], sim_data['time_of_catch']
-                    
-                    # Lấy dữ liệu quỹ đạo
-                    pursuer_path, evader_path = state_hist[:, 0:2], state_hist[:, 2:4]
-                    
-                    # Lấy tọa độ hiện tại tại frame này
-                    pursuer_pos = pursuer_path[frame_idx]
-                    evader_pos = evader_path[frame_idx]
-
-                    # Lấy các tham số radar đã được lưu trong session_state
-                    m5s2_params = st.session_state.get('m5s2_params', {})
-                    kt_radar_radius = m5s2_params.get('kt_radar_radius', 30.0) # Lấy giá trị hoặc dùng default
-                    tn_avoid_radius = m5s2_params.get('avoidance_radius', 12.0) # Lấy giá trị hoặc dùng default
-
-                    # === BẮT ĐẦU SỬA ĐỔI ===
-
-                    # 1. Vẽ quỹ đạo (vẽ trước để các đối tượng khác nổi lên trên)
-                    ax.plot(pursuer_path[:, 0], pursuer_path[:, 1], 'r-', label=tr('screen3_legend_m5s2_path_destroyer'), zorder=1)
-                    ax.plot(evader_path[:, 0], evader_path[:, 1], 'b--', label=tr('screen3_legend_m5s2_path_submarine'), zorder=1)
-
-                    # 2. Vẽ các vòng tròn radar (sử dụng matplotlib.patches.Circle)
-                    # Vòng radar của Tàu khu trục (màu đỏ)
-                    kt_radar_circle = MplCircle(pursuer_pos, kt_radar_radius, 
-                                                color='red', fill=False, 
-                                                linestyle=':', alpha=0.6, zorder=2)
-                    ax.add_patch(kt_radar_circle)
-
-                    # Vòng radar né tránh của Tàu ngầm (màu xanh dương hoặc cam cho nổi bật)
-                    tn_avoid_circle = MplCircle(evader_pos, tn_avoid_radius, 
-                                                color='darkorange', fill=False, 
-                                                linestyle=':', alpha=0.8, zorder=2)
-                    ax.add_patch(tn_avoid_circle)
-
-                    # 3. Vẽ vị trí hiện tại của hai tàu (vẽ sau cùng để nổi lên trên hết)
-                    ax.plot(pursuer_pos[0], pursuer_pos[1], 'rP', markersize=12, label=tr('screen3_legend_m5s2_destroyer'), zorder=4)
-                    ax.plot(evader_pos[0], evader_pos[1], 'bo', markersize=8, label=tr('screen3_legend_m5s2_submarine'), zorder=4)
-                    
-                    # Logic vẽ điểm bắt được (giữ nguyên)
-                    if is_caught and t_points[frame_idx] >= catch_time:
-                        # Tìm frame chính xác nơi bắt được
-                        catch_frame_idx = np.where(t_points >= catch_time)[0][0]
-                        catch_point = state_hist[catch_frame_idx, 0:2]
-                        ax.plot(catch_point[0], catch_point[1], 'gX', markersize=15, label=tr('screen3_legend_m5s2_catch_point'), zorder=5)
-                    
-                    # Cài đặt đồ thị (giữ nguyên)
-                    ax.set_xlabel(tr("screen3_model5_plot_xlabel_sim2"))
-                    ax.set_ylabel(tr("screen3_model5_plot_ylabel_sim2"))
-                    
-                    # === TẠO CHÚ THÍCH (LEGEND) MỘT CÁCH CHUYÊN NGHIỆP ===
-                    # Tạo các đối tượng "giả" để hiển thị trong legend
-                    legend_handles = [
-                        Line2D([0], [0], color='r', lw=2, label=tr('screen3_legend_m5s2_path_destroyer')),
-                        Line2D([0], [0], color='b', lw=2, linestyle='--', label=tr('screen3_legend_m5s2_path_submarine')),
-                        Line2D([0], [0], marker='P', color='w', markerfacecolor='r', markersize=10, label=tr('screen3_legend_m5s2_destroyer')),
-                        Line2D([0], [0], marker='o', color='w', markerfacecolor='b', markersize=8, label=tr('screen3_legend_m5s2_submarine')),
-                        Line2D([0], [0], linestyle=':', color='r', lw=1, label=f"{tr('screen3_legend_m5s2_kt_radar_radius')} ({kt_radar_radius:.1f}m)"),
-                        Line2D([0], [0], linestyle=':', color='darkorange', lw=1, label=f"{tr('screen3_legend_m5s2_tn_avoid_radius')} ({tn_avoid_radius:.1f}m)")
-                    ]
-                    if is_caught:
-                        legend_handles.append(Line2D([0], [0], marker='X', color='w', markerfacecolor='g', markersize=10, label=tr('screen3_legend_m5s2_catch_point')))
-                    
-                    ax.legend(handles=legend_handles, loc='upper right', fontsize='small')
-                    ax.grid(True)
-                    ax.set_aspect('equal')
-                    ax.set_title(tr("screen3_model5_plot_title_sim2") + f"\nTime: {t_points[frame_idx]:.2f}s")
-                    
-                    # Điều chỉnh giới hạn đồ thị một cách linh hoạt (tùy chọn nhưng nên có)
-                    all_x = np.concatenate([pursuer_path[:, 0], evader_path[:, 0]])
-                    all_y = np.concatenate([pursuer_path[:, 1], evader_path[:, 1]])
-                    x_min, x_max = all_x.min(), all_x.max()
-                    y_min, y_max = all_y.min(), all_y.max()
-                    center_x = (x_max + x_min) / 2
-                    center_y = (y_max + y_min) / 2
-                    x_range = x_max - x_min
-                    y_range = y_max - y_min
-                    max_range = max(x_range,y_range)
-                    padding = (max_range / 2) * 1.15 # Thêm 10% padding
-                    ax.set_xlim(center_x - padding, center_x + padding)
-                    ax.set_ylim(center_y - padding, center_y + padding)
-
-                    # Dừng animation nếu bắt được
-                    if is_caught and t_points[frame_idx] >= catch_time:
-                        break # Dừng vòng lặp for frame_idx
-                
-                # --- Ghi frame vào GIF ---
-                fig.canvas.draw()
-                frame_buf = io.BytesIO()
-                fig.savefig(frame_buf, format='png', bbox_inches='tight')
-                frame_buf.seek(0)
-                writer.append_data(imageio.imread(frame_buf))
-                frame_buf.close()
-
-            plt.close(fig)
-
-            # --- Tạo thông tin cuối cùng (final_stats) ---
-            if model_id == 'model2':
-                c_val = st.session_state.get('last_calculated_c', 'N/A')
-                final_stats = {
-                    tr('screen3_result_c'): {'value': f"{c_val:.4g}" if isinstance(c_val, float) else "N/A"},
-                    tr('screen3_result_mass'): {'value': len(model2_cells)},
-                    tr('screen3_result_time'): {'value': f"{sim_data['t_plot'][-1]:.2f} s"}
-                }
-            elif model_id == 'model3':
                 stats = abm_instance.get_current_stats()
                 final_stats = {
-                    tr('screen3_total_pop'): {'value': stats['total_population']},
-                    tr('screen3_susceptible_pop'): {'value': stats['susceptible_count']},
-                    tr('screen3_infected_pop'): {'value': stats['infected_count']},
-                    tr('screen3_model3_simulation_time_label'): {'value': stats['time_step']}
+                    _tr('screen3_total_pop'): {'value': stats['total_population']},
+                    _tr('screen3_susceptible_pop'): {'value': stats['susceptible_count']},
+                    _tr('screen3_infected_pop'): {'value': stats['infected_count']},
+                    _tr('screen3_model3_simulation_time_label'): {'value': stats['time_step']}
                 }
-            elif model_id == 'model5' and st.session_state.m5_scenario == 1:
+
+            # --- MODEL 5.1: CON THUYỀN ---
+            elif _model_id == 'model5' and _m5_scenario == 1:
+                if not sim_data or 't_plot' not in sim_data: return None, {}
+                t_data = np.array(sim_data.get('t_plot'))
                 x_path, y_path = sim_data['approx_sol_plot_all_components']
+                num_data_points = len(t_data)
+                d_val = validated_params['params']['x0']
+
+                for frame_idx in range(total_frames):
+                    data_idx = int(frame_idx / total_frames * (num_data_points - 1))
+                    ax.clear()
+                    ax.plot(x_path, y_path, 'b--', alpha=0.5, label=_tr('screen3_legend_m5s1_path'))
+                    ax.plot(x_path[data_idx], y_path[data_idx], 'rP', markersize=12, label=_tr('screen3_legend_m5s1_boat'))
+                    ax.axvline(0, color='grey', ls=':'); ax.axvline(d_val, color='grey', ls=':')
+                    ax.set_xlabel(_tr('screen3_model5_plot_xlabel_sim1')); ax.set_ylabel(_tr('screen3_model5_plot_ylabel_sim1'))
+                    ax.grid(True); ax.legend(); ax.set_aspect('equal')
+                    ax.set_title(f"{_tr('screen3_model5_plot_title_sim1')}\nTime: {t_data[data_idx]:.2f}s")
+                    
+                    fig.canvas.draw()
+                    frame_buf_inner = io.BytesIO(); fig.savefig(frame_buf_inner, format='png', bbox_inches='tight'); frame_buf_inner.seek(0)
+                    writer.append_data(imageio.imread(frame_buf_inner)); frame_buf_inner.close()
+
                 final_stats = {
-                    tr('screen3_m5_boat_speed'): {'value': f"{validated_params['params']['v']:.2f}"},
-                    tr('screen3_m5_water_speed'): {'value': f"{validated_params['params']['u']:.2f}"},
-                    tr('screen3_m5_crossing_time'): {'value': f"{sim_data['t_plot'][-1]:.2f} s"},
-                    tr('screen3_m5_boat_reaches_target'): {'value': tr('answer_yes') if abs(x_path[-1]) < 0.1 else tr('answer_no'), 'size_class': 'metric-value-small'},
-                    tr('screen3_m5_boat_final_pos'): {'value': f"({x_path[-1]:.2f}, {y_path[-1]:.2f})", 'size_class': 'metric-value-small'}
+                    _tr('screen3_m5_boat_speed'): {'value': f"{validated_params['params']['v']:.2f}"},
+                    _tr('screen3_m5_water_speed'): {'value': f"{validated_params['params']['u']:.2f}"},
+                    _tr('screen3_m5_crossing_time'): {'value': f"{t_data[-1]:.2f} s"},
+                    _tr('screen3_m5_boat_reaches_target'): {'value': _tr('answer_yes') if abs(x_path[-1]) < 0.1 else _tr('answer_no'), 'size_class': 'metric-value-small'},
+                    _tr('screen3_m5_boat_final_pos'): {'value': f"({x_path[-1]:.2f}, {y_path[-1]:.2f})", 'size_class': 'metric-value-small'}
                 }
-            elif model_id == 'model5' and st.session_state.m5_scenario == 2:
-                is_caught, catch_time = sim_data['caught'], sim_data['time_of_catch']
-                status_str = tr('answer_yes') if is_caught else tr('answer_no')
-                catch_point_str = "N/A"
+            
+            # --- MODEL 5.2: TÀU KHU TRỤC (ĐÃ TỐI ƯU HÓA HOÀN TOÀN) ---
+            elif _model_id == 'model5' and _m5_scenario == 2:
+                if not sim_data or 'time_points' not in sim_data: return None, {}
+                t_points = np.array(sim_data['time_points'])
+                pursuer_path = np.array(sim_data['kt_path'])
+                evader_path = np.array(sim_data['tn_path'])
+                m5s2_params = sim_data.get('params', {})
+                kt_radar_radius = m5s2_params.get('kt_radar_radius', 30.0)
+                tn_avoid_radius = m5s2_params.get('avoidance_radius', 12.0)
+                is_caught = sim_data.get('caught', False)
+                
+                num_data_points = len(t_points)
+                if num_data_points < 2: return None, {}
+
+                # Vẽ các đối tượng tĩnh MỘT LẦN DUY NHẤT
+                ax.plot(pursuer_path[:, 0], pursuer_path[:, 1], 'r-', zorder=1)
+                ax.plot(evader_path[:, 0], evader_path[:, 1], 'b--', zorder=1)
+                
+                # Tạo các đối tượng động MỘT LẦN DUY NHẤT
+                kt_radar_circle = MplCircle((0,0), kt_radar_radius, color='red', fill=False, linestyle=':', alpha=0.6, zorder=2)
+                tn_avoid_circle = MplCircle((0,0), tn_avoid_radius, color='darkorange', fill=False, linestyle=':', alpha=0.8, zorder=2)
+                ax.add_patch(kt_radar_circle)
+                ax.add_patch(tn_avoid_circle)
+                point_pursuer, = ax.plot([], [], 'rP', markersize=12, zorder=4)
+                point_evader, = ax.plot([], [], 'bo', markersize=8, zorder=4)
+                
+                # Cài đặt đồ thị (chỉ 1 lần)
+                all_x = np.concatenate([pursuer_path[:, 0], evader_path[:, 0]])
+                all_y = np.concatenate([pursuer_path[:, 1], evader_path[:, 1]])
+                center_x = (all_x.max()+all_x.min())/2; center_y = (all_y.max()+all_y.min())/2
+                max_range = max(all_x.max()-all_x.min(), all_y.max()-all_y.min())
+                half_size = (max_range/2) * 1.15
+                ax.set_xlim(center_x - half_size, center_x + half_size)
+                ax.set_ylim(center_y - half_size, center_y + half_size)
+                ax.set_aspect('equal')
+                ax.grid(True)
+
+                # Chú thích (chỉ 1 lần)
+                legend_handles = [
+                    Line2D([0], [0], color='r', lw=2, label=_tr('screen3_legend_m5s2_path_destroyer')),
+                    Line2D([0], [0], color='b', lw=2, linestyle='--', label=_tr('screen3_legend_m5s2_path_submarine')),
+                    Line2D([0], [0], marker='P', color='w', markerfacecolor='r', markersize=10, label=_tr('screen3_legend_m5s2_destroyer')),
+                    Line2D([0], [0], marker='o', color='w', markerfacecolor='b', markersize=8, label=_tr('screen3_legend_m5s2_submarine')),
+                    Line2D([0], [0], linestyle=':', color='r', lw=1, label=f"{_tr('screen3_legend_m5s2_kt_radar_radius')} ({kt_radar_radius:.1f}m)"),
+                    Line2D([0], [0], linestyle=':', color='darkorange', lw=1, label=f"{_tr('screen3_legend_m5s2_tn_avoid_radius')} ({tn_avoid_radius:.1f}m)")
+                ]
                 if is_caught:
-                    catch_frame_idx = np.where(sim_data['time_points'] >= catch_time)[0][0]
-                    catch_point = sim_data['state_history'][catch_frame_idx, 0:2]
-                    catch_point_str = f"({catch_point[0]:.2f}, {catch_point[1]:.2f})"
+                    ax.plot(pursuer_path[-1, 0], pursuer_path[-1, 1], 'gX', markersize=15, zorder=5)
+                    legend_handles.append(Line2D([0], [0], marker='X', color='w', markerfacecolor='g', markersize=10, label=_tr('screen3_legend_m5s2_catch_point')))
+                ax.legend(handles=legend_handles, loc='upper right', fontsize='small')
+
+                # Vòng lặp TỐI ƯU HÓA
+                for frame_idx in range(total_frames):
+                    data_idx = int(frame_idx / total_frames * (num_data_points - 1))
+                    
+                    # CẬP NHẬT các đối tượng đã có, KHÔNG TẠO MỚI
+                    kt_radar_circle.set_center(pursuer_path[data_idx])
+                    tn_avoid_circle.set_center(evader_path[data_idx])
+                    point_pursuer.set_data([pursuer_path[data_idx, 0]], [pursuer_path[data_idx, 1]])
+                    point_evader.set_data([evader_path[data_idx, 0]], [evader_path[data_idx, 1]])
+                    ax.set_title(f"{_tr('screen3_model5_plot_title_sim2')}\nTime: {t_points[data_idx]:.2f}s")
+                    
+                    # Ghi frame vào GIF
+                    fig.canvas.draw()
+                    frame_buf_inner = io.BytesIO()
+                    fig.savefig(frame_buf_inner, format='png', bbox_inches='tight')
+                    frame_buf_inner.seek(0)
+                    writer.append_data(imageio.imread(frame_buf_inner))
+                    frame_buf_inner.close()
+
                 final_stats = {
-                    tr('screen3_m5_submarine_speed'): {'value': f"{st.session_state.m5s2_params['v_tn_max']:.2f}"},
-                    tr('screen3_m5_destroyer_speed'): {'value': f"{st.session_state.m5s2_params['v_kt']:.2f}"},
-                    tr('screen3_m5_catch_time'): {'value': f"{sim_data['time_points'][-1]:.2f} s"},
-                    tr('screen3_m5_destroyer_catches_submarine'): {'value': status_str, 'size_class': 'metric-value-small'},
-                    tr('screen3_m5_catch_point'): {'value': catch_point_str, 'size_class': 'metric-value-small'}
+                    _tr('screen3_m5_submarine_speed'): {'value': f"{m5s2_params.get('v_tn_max', 'N/A'):.2f}"},
+                    _tr('screen3_m5_destroyer_speed'): {'value': f"{m5s2_params.get('v_kt', 'N/A'):.2f}"},
+                    _tr('screen3_m5_catch_time'): {'value': f"{t_points[-1]:.2f} s"},
+                    _tr('screen3_m5_destroyer_catches_submarine'): {'value': _tr('answer_yes') if is_caught else _tr('answer_no'), 'size_class': 'metric-value-small'},
+                    _tr('screen3_m5_catch_point'): {'value': f"({pursuer_path[-1, 0]:.2f}, {pursuer_path[-1, 1]:.2f})" if is_caught else "N/A", 'size_class': 'metric-value-small'}
                 }
-            else:
-                final_stats = {}
 
         except Exception as e:
             print(f"Lỗi trong quá trình tạo frame GIF: {e}")
@@ -3289,13 +3262,11 @@ def create_animation_gif(lang_code, model_id, model_data, validated_params, spee
                 plt.close(fig)
             return None, {}
 
-    # Sau khi xong, xóa placeholder của thanh tiến trình
-    progress_container.empty()
-
-    # Tạo GIF
+    plt.close(fig)
     gif_buf.seek(0)
     return gif_buf.getvalue(), final_stats
-	
+
+
 def show_dynamic_simulation_page():
     # --- CSS và các hàm nội bộ ---
     st.markdown("""
@@ -3431,26 +3402,43 @@ def show_dynamic_simulation_page():
         # Highlight: Sửa lại logic hiển thị
         # Ưu tiên kiểm tra cờ yêu cầu tạo GIF trước
         if st.session_state.get('generate_gif_request', False):
-            speed_multiplier = st.session_state.get('speed_multiplier', 1.0)
-            # Hàm create_animation_gif sẽ tự điền vào các placeholder nó tạo ra
-            gif_bytes, final_stats = gif_bytes, final_stats = create_animation_gif(
-                st.session_state.lang, # Truyền mã ngôn ngữ hiện tại
-                model_id, 
-                model_data, 
-                validated_params, 
-                speed_multiplier
+            st.session_state.generate_gif_request = False
+			if model_id == 'model5' and st.session_state.get('m5_scenario') == 2:
+                with st.spinner("Đang chạy mô phỏng logic phức tạp..."):
+                    prep_ok, _, _ = _prepare_simulation_functions(model_data, validated_params['params'], validated_params['method_short'])
+                    if not prep_ok:
+                        st.error("Không thể chạy mô phỏng tham chiếu cho kịch bản 2.")
+                        st.session_state.gif_is_processing = False # Unlock UI
+                        return
+            progress_bar = st.progress(0, text="Đang render GIF, vui lòng chờ...")
+            
+            # Chuyển các dict thành chuỗi JSON để có thể cache
+            # Dùng json.dumps với NumpyEncoder nếu cần
+            model_data_for_cache = {k: v for k, v in model_data.items() if not callable(v)}
+            model_data_json = json.dumps(model_data_for_cache)
+            validated_params_json = json.dumps(validated_params)
+            
+            # Gọi hàm đã được cache
+            gif_bytes, final_stats = create_animation_gif(
+                st.session_state.lang,
+                model_id,
+                model_data_json,
+                validated_params_json,
+                st.session_state.get('speed_multiplier', 1.0),
+                st.session_state.get('m5_scenario', 1)
             )
             
-            st.session_state.generate_gif_request = False # Reset cờ
-            st.session_state.gif_is_processing = False
+            progress_bar.progress(1.0, text="Hoàn thành!") # Cập nhật khi xong
+            time.sleep(1) # Chờ 1 giây để người dùng thấy chữ "Hoàn thành"
+            progress_bar.empty() # Xóa thanh tiến trình
+
             if gif_bytes:
                 st.session_state.generated_gif = gif_bytes
                 st.session_state.final_anim_stats = final_stats
-                st.rerun()
             else:
                 st.error(tr("gif_generation_error"))
                 info_placeholder.error(tr("gif_generation_error"))
-                st.rerun()
+            st.rerun()
 
         elif 'generated_gif' in st.session_state and st.session_state.generated_gif:
             # Nếu đã có GIF, hiển thị nó
