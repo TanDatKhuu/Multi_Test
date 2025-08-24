@@ -3018,7 +3018,7 @@ def run_and_store_model5_scenario2_results():
     )
 	
 @st.cache_data
-def create_animation_gif(_lang_code, _model_id, _model_data_json, _validated_params_json, _speed_multiplier, _m5_scenario):
+def create_animation_gif(_lang_code, _model_id, _model_data_json, _validated_params_json, _speed_multiplier, _m5_scenario, _m5s2_ref_traj_json):
     """
     Tạo hoạt ảnh GIF cho mô phỏng.
     Hàm này được cache để tối ưu hiệu năng. Tất cả các tham số đầu vào phải
@@ -3056,7 +3056,8 @@ def create_animation_gif(_lang_code, _model_id, _model_data_json, _validated_par
             # Lấy dữ liệu mô phỏng
             sim_data = {}
             if _model_id == 'model5' and _m5_scenario == 2:
-                sim_data = st.session_state.get('m5s2_reference_trajectory', {})
+                if _m5s2_ref_traj_json and _m5s2_ref_traj_json != "{}":
+                    sim_data = json.loads(_m5s2_ref_traj_json)
             elif _model_id == 'model3':
                 pass # Logic ABM sẽ được xử lý riêng
             else: # Model 2, Model 5 Sim 1
@@ -3403,6 +3404,7 @@ def show_dynamic_simulation_page():
         # Ưu tiên kiểm tra cờ yêu cầu tạo GIF trước
         if st.session_state.get('generate_gif_request', False):
             st.session_state.generate_gif_request = False
+            m5s2_ref_traj_json = "{}"
             if model_id == 'model5' and st.session_state.get('m5_scenario') == 2:
                 with st.spinner("Đang chạy mô phỏng logic phức tạp..."):
                     prep_ok, _, _ = _prepare_simulation_functions(model_data, validated_params['params'], validated_params['method_short'])
@@ -3410,27 +3412,26 @@ def show_dynamic_simulation_page():
                         st.error("Không thể chạy mô phỏng tham chiếu cho kịch bản 2.")
                         st.session_state.gif_is_processing = False # Unlock UI
                         return
-            progress_bar = st.progress(0, text="Đang render GIF, vui lòng chờ...")
+                    ref_data = st.session_state.get('m5s2_reference_trajectory', {})
+                    if ref_data:
+                        m5s2_ref_traj_json = json.dumps(ref_data, cls=NumpyEncoder)
             
-            # Chuyển các dict thành chuỗi JSON để có thể cache
-            # Dùng json.dumps với NumpyEncoder nếu cần
-            model_data_for_cache = {k: v for k, v in model_data.items() if not callable(v)}
-            model_data_json = json.dumps(model_data_for_cache)
-            validated_params_json = json.dumps(validated_params)
-            
-            # Gọi hàm đã được cache
-            gif_bytes, final_stats = create_animation_gif(
-                st.session_state.lang,
-                model_id,
-                model_data_json,
-                validated_params_json,
-                st.session_state.get('speed_multiplier', 1.0),
-                st.session_state.get('m5_scenario', 1)
-            )
-            
-            progress_bar.progress(1.0, text="Hoàn thành!") # Cập nhật khi xong
-            time.sleep(1) # Chờ 1 giây để người dùng thấy chữ "Hoàn thành"
-            progress_bar.empty() # Xóa thanh tiến trình
+            # --- RENDER GIF ---
+            with st.spinner(tr('gif_generating_spinner')):
+                model_data_for_cache = {k: v for k, v in model_data.items() if not callable(v)}
+                model_data_json = json.dumps(model_data_for_cache)
+                validated_params_json = json.dumps(validated_params)
+                
+                # Gọi hàm cache với tham số JSON mới
+                gif_bytes, final_stats = create_animation_gif(
+                    st.session_state.lang,
+                    model_id,
+                    model_data_json,
+                    validated_params_json,
+                    st.session_state.get('speed_multiplier', 1.0),
+                    st.session_state.get('m5_scenario', 1),
+                    m5s2_ref_traj_json  # <<< TRUYỀN DỮ LIỆU THAM CHIẾU VÀO ĐÂY
+                )
 
             if gif_bytes:
                 st.session_state.generated_gif = gif_bytes
@@ -3441,16 +3442,15 @@ def show_dynamic_simulation_page():
             st.rerun()
 
         elif 'generated_gif' in st.session_state and st.session_state.generated_gif:
-            # Nếu đã có GIF, hiển thị nó
             st.image(st.session_state.generated_gif)
             final_stats = st.session_state.get('final_anim_stats', {})
             if final_stats:
                 display_custom_metric(info_placeholder, final_stats)
         else:
-            # Trạng thái ban đầu
             plot_placeholder = st.empty()
             with plot_placeholder.container():
                 fig, ax = plt.subplots(figsize=(8,8))
+                # Sửa lại key dịch cho chính xác
                 ax.text(0.5, 0.5, tr("press_generate_to_see_info"), ha='center', va='center')
                 ax.set_xticks([]); ax.set_yticks([])
                 st.pyplot(fig)
