@@ -3344,7 +3344,7 @@ def show_dynamic_simulation_page():
         if model_id == 'model5':
             with st.container(border=True):
                 if 'm5_scenario' not in st.session_state: st.session_state.m5_scenario = 1
-                scenario_options = {_tr("screen3_sim1_name_m5"): 1, _tr("screen3_sim2_name_m5"): 2}
+                scenario_options = {tr("screen3_sim1_name_m5"): 1, tr("screen3_sim2_name_m5"): 2}
                 def on_scenario_change():
                     keys_to_delete = [k for k in st.session_state if k.startswith('m5s') or k == 'generated_gif' or k == 'final_anim_stats']
                     for k in keys_to_delete:
