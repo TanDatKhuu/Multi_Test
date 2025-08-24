@@ -3125,7 +3125,7 @@ def create_animation_gif(lang_code, model_id, model_data, validated_params, spee
                     ax.set_title(tr("screen3_model5_plot_title_sim1") + f"\nTime: {t_data[frame_idx]:.2f}s")
                 
                 # --- MODEL 5.2: TÀU KHU TRỤC ---
-               elif model_id == 'model5' and st.session_state.m5_scenario == 2:
+                elif model_id == 'model5' and st.session_state.m5_scenario == 2:
                     t_points, state_hist = sim_data['time_points'], sim_data['state_history']
                     is_caught, catch_time = sim_data['caught'], sim_data['time_of_catch']
                     
