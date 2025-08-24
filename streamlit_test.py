@@ -3018,12 +3018,10 @@ def run_and_store_model5_scenario2_results():
     )
 	
 @st.cache_data
-def create_animation_gif(_lang_code, _model_id, _model_data_json, _validated_params_json, _speed_multiplier, _m5_scenario, _m5s2_ref_traj_json):
+def create_animation_gif(_lang_code, _model_id, _model_data_json, _validated_params_json, _speed_multiplier, _m5_scenario, _m5s2_ref_traj_json, _sim_results_json, _last_calc_r_json):
     """
-    Tạo hoạt ảnh GIF cho mô phỏng.
-    Hàm này được cache để tối ưu hiệu năng. Tất cả các tham số đầu vào phải
-    là các kiểu dữ liệu cơ bản (str, int, float) hoặc chuỗi JSON.
-    Nó không thể tương tác trực tiếp với các widget của Streamlit.
+    Tạo hoạt ảnh GIF cho mô phỏng. Hàm này HOÀN TOÀN THUẦN KHIẾT.
+    Nó chỉ phụ thuộc vào các tham số đầu vào, không truy cập st.session_state.
     """
     # --- CÀI ĐẶT FONT VÀ HÀM DỊCH NGÔN NGỮ CỤC BỘ ---
     font_path = os.path.join(base_path, "fonts", "DejaVuSans.ttf")
@@ -3037,15 +3035,15 @@ def create_animation_gif(_lang_code, _model_id, _model_data_json, _validated_par
     def _tr(key):
         return translations.get(key, key)
 
-    # Deserializing JSON inputs for caching
+    # --- Deserializing JSON inputs ---
     model_data = json.loads(_model_data_json)
     validated_params = json.loads(_validated_params_json)
+    last_calc_values = json.loads(_last_calc_r_json) # For model 3
 
-    # <<< TỐI ƯU 1: GIẢM KHỐI LƯỢNG CÔNG VIỆC >>>
+    # --- Cài đặt GIF ---
     TARGET_DURATION_SECONDS = 15
     TARGET_FPS = 20
     total_frames = TARGET_DURATION_SECONDS * TARGET_FPS
-
     gif_buf = io.BytesIO()
     frame_duration = 1.0 / TARGET_FPS
     with imageio.get_writer(gif_buf, mode='I', format='gif', duration=frame_duration, loop=0) as writer:
@@ -3053,30 +3051,30 @@ def create_animation_gif(_lang_code, _model_id, _model_data_json, _validated_par
             fig, ax = plt.subplots(figsize=(7, 7), dpi=90)
             final_stats = {}
 
-            # Lấy dữ liệu mô phỏng
+            # --- Lấy dữ liệu mô phỏng từ tham số đầu vào ---
             sim_data = {}
             if _model_id == 'model5' and _m5_scenario == 2:
                 if _m5s2_ref_traj_json and _m5s2_ref_traj_json != "{}":
                     sim_data = json.loads(_m5s2_ref_traj_json)
-            elif _model_id == 'model3':
-                pass # Logic ABM sẽ được xử lý riêng
-            else: # Model 2, Model 5 Sim 1
-                results = st.session_state.get('simulation_results', {})
+            elif _model_id != 'model3':
+                results = json.loads(_sim_results_json) if _sim_results_json else {}
                 highest_step_key = max(results.keys(), key=int) if results else None
-                sim_data = results.get(str(highest_step_key), {})
+                if highest_step_key:
+                    sim_data = results.get(str(highest_step_key), {})
 
-            # --- MODEL 2: TĂNG TRƯỞNG TẾ BÀO (LOGIC CHƯA TỐI ƯU VẼ) ---
+            # --- MODEL 2: TĂNG TRƯỞNG TẾ BÀO ---
             if _model_id == 'model2':
+                # (Logic cho Model 2 giữ nguyên, nó đã đọc từ sim_data)
                 if not sim_data or 't_plot' not in sim_data: return None, {}
                 t_data = np.array(sim_data['t_plot'])
                 y_data = np.array(sim_data['approx_sol_plot'])
                 num_data_points = len(t_data)
                 model2_cells = [Cell(0, 0, gen=0)]
-                
+                last_calculated_c = validated_params.get('last_calculated_c', 'N/A')
+
                 for frame_idx in range(total_frames):
                     data_idx = int(frame_idx / total_frames * (num_data_points - 1))
                     ax.clear()
-                    
                     target_n = int(round(y_data[data_idx]))
                     if len(model2_cells) < target_n:
                         existing_pos = {(cell.x, cell.y) for cell in model2_cells}
@@ -3098,12 +3096,11 @@ def create_animation_gif(_lang_code, _model_id, _model_data_json, _validated_par
                     ax.legend([MplCircle((0,0), 0.1, color='brown')], [_tr("screen3_legend_model2_cell")], loc='upper right')
                     ax.set_title(f"{_tr('screen3_model2_anim_plot_title')}\nTime: {t_data[data_idx]:.2f}s | Cells: {len(model2_cells)}")
 
-                    fig.canvas.draw()
-                    frame_buf_inner = io.BytesIO(); fig.savefig(frame_buf_inner, format='png', bbox_inches='tight'); frame_buf_inner.seek(0)
+                    fig.canvas.draw(); frame_buf_inner = io.BytesIO(); fig.savefig(frame_buf_inner, format='png', bbox_inches='tight'); frame_buf_inner.seek(0)
                     writer.append_data(imageio.imread(frame_buf_inner)); frame_buf_inner.close()
                 
                 final_stats = {
-                    _tr('screen3_result_c'): {'value': f"{st.session_state.get('last_calculated_c', 'N/A'):.4g}"},
+                    _tr('screen3_result_c'): {'value': f"{last_calculated_c:.4g}" if isinstance(last_calculated_c, float) else "N/A"},
                     _tr('screen3_result_mass'): {'value': len(model2_cells)},
                     _tr('screen3_result_time'): {'value': f"{t_data[-1]:.2f} s"}
                 }
@@ -3111,7 +3108,7 @@ def create_animation_gif(_lang_code, _model_id, _model_data_json, _validated_par
             # --- MODEL 3: ABM DỊCH BỆNH ---
             elif _model_id == 'model3':
                 abm_params = model_data.get("abm_defaults", {})
-                r_val = st.session_state.get('last_calculated_r', 0.0001)
+                r_val = last_calc_values.get('r', 0.0001) # <<< Đọc 'r' từ tham số
                 ptrans = np.clip(r_val * abm_params.get("r_to_ptrans_factor", 5000), abm_params.get("ptrans_min", 0.01), abm_params.get("ptrans_max", 0.9))
                 total_pop = int(validated_params['params']['n'] + 1)
                 abm_instance = DiseaseSimulationABM(
@@ -3134,8 +3131,7 @@ def create_animation_gif(_lang_code, _model_id, _model_data_json, _validated_par
                     stats = abm_instance.get_current_stats()
                     ax.set_title(f"{_tr('screen3_abm_anim_plot_title')}\nStep: {stats['time_step']} | Infected: {stats['infected_count']}")
 
-                    fig.canvas.draw()
-                    frame_buf_inner = io.BytesIO(); fig.savefig(frame_buf_inner, format='png', bbox_inches='tight'); frame_buf_inner.seek(0)
+                    fig.canvas.draw(); frame_buf_inner = io.BytesIO(); fig.savefig(frame_buf_inner, format='png', bbox_inches='tight'); frame_buf_inner.seek(0)
                     writer.append_data(imageio.imread(frame_buf_inner)); frame_buf_inner.close()
                     if ended_by_logic: break
                 
@@ -3165,8 +3161,7 @@ def create_animation_gif(_lang_code, _model_id, _model_data_json, _validated_par
                     ax.grid(True); ax.legend(); ax.set_aspect('equal')
                     ax.set_title(f"{_tr('screen3_model5_plot_title_sim1')}\nTime: {t_data[data_idx]:.2f}s")
                     
-                    fig.canvas.draw()
-                    frame_buf_inner = io.BytesIO(); fig.savefig(frame_buf_inner, format='png', bbox_inches='tight'); frame_buf_inner.seek(0)
+                    fig.canvas.draw(); frame_buf_inner = io.BytesIO(); fig.savefig(frame_buf_inner, format='png', bbox_inches='tight'); frame_buf_inner.seek(0)
                     writer.append_data(imageio.imread(frame_buf_inner)); frame_buf_inner.close()
 
                 final_stats = {
@@ -3177,8 +3172,9 @@ def create_animation_gif(_lang_code, _model_id, _model_data_json, _validated_par
                     _tr('screen3_m5_boat_final_pos'): {'value': f"({x_path[-1]:.2f}, {y_path[-1]:.2f})", 'size_class': 'metric-value-small'}
                 }
             
-            # --- MODEL 5.2: TÀU KHU TRỤC (ĐÃ TỐI ƯU HÓA HOÀN TOÀN) ---
+            # --- MODEL 5.2: TÀU KHU TRỤC (LOGIC TỐI ƯU HÓA) ---
             elif _model_id == 'model5' and _m5_scenario == 2:
+                # (Logic bên trong khối này giữ nguyên, vì nó đã đọc từ sim_data)
                 if not sim_data or 'time_points' not in sim_data: return None, {}
                 t_points = np.array(sim_data['time_points'])
                 pursuer_path = np.array(sim_data['kt_path'])
@@ -3191,11 +3187,9 @@ def create_animation_gif(_lang_code, _model_id, _model_data_json, _validated_par
                 num_data_points = len(t_points)
                 if num_data_points < 2: return None, {}
 
-                # Vẽ các đối tượng tĩnh MỘT LẦN DUY NHẤT
                 ax.plot(pursuer_path[:, 0], pursuer_path[:, 1], 'r-', zorder=1)
                 ax.plot(evader_path[:, 0], evader_path[:, 1], 'b--', zorder=1)
                 
-                # Tạo các đối tượng động MỘT LẦN DUY NHẤT
                 kt_radar_circle = MplCircle((0,0), kt_radar_radius, color='red', fill=False, linestyle=':', alpha=0.6, zorder=2)
                 tn_avoid_circle = MplCircle((0,0), tn_avoid_radius, color='darkorange', fill=False, linestyle=':', alpha=0.8, zorder=2)
                 ax.add_patch(kt_radar_circle)
@@ -3203,18 +3197,16 @@ def create_animation_gif(_lang_code, _model_id, _model_data_json, _validated_par
                 point_pursuer, = ax.plot([], [], 'rP', markersize=12, zorder=4)
                 point_evader, = ax.plot([], [], 'bo', markersize=8, zorder=4)
                 
-                # Cài đặt đồ thị (chỉ 1 lần)
                 all_x = np.concatenate([pursuer_path[:, 0], evader_path[:, 0]])
                 all_y = np.concatenate([pursuer_path[:, 1], evader_path[:, 1]])
                 center_x = (all_x.max()+all_x.min())/2; center_y = (all_y.max()+all_y.min())/2
-                max_range = max(all_x.max()-all_x.min(), all_y.max()-all_y.min())
+                max_range = max(all_x.max()-all_x.min(), all_y.max()-all_y.min(), 1.0)
                 half_size = (max_range/2) * 1.15
                 ax.set_xlim(center_x - half_size, center_x + half_size)
                 ax.set_ylim(center_y - half_size, center_y + half_size)
                 ax.set_aspect('equal')
                 ax.grid(True)
 
-                # Chú thích (chỉ 1 lần)
                 legend_handles = [
                     Line2D([0], [0], color='r', lw=2, label=_tr('screen3_legend_m5s2_path_destroyer')),
                     Line2D([0], [0], color='b', lw=2, linestyle='--', label=_tr('screen3_legend_m5s2_path_submarine')),
@@ -3228,24 +3220,17 @@ def create_animation_gif(_lang_code, _model_id, _model_data_json, _validated_par
                     legend_handles.append(Line2D([0], [0], marker='X', color='w', markerfacecolor='g', markersize=10, label=_tr('screen3_legend_m5s2_catch_point')))
                 ax.legend(handles=legend_handles, loc='upper right', fontsize='small')
 
-                # Vòng lặp TỐI ƯU HÓA
                 for frame_idx in range(total_frames):
                     data_idx = int(frame_idx / total_frames * (num_data_points - 1))
                     
-                    # CẬP NHẬT các đối tượng đã có, KHÔNG TẠO MỚI
                     kt_radar_circle.set_center(pursuer_path[data_idx])
                     tn_avoid_circle.set_center(evader_path[data_idx])
                     point_pursuer.set_data([pursuer_path[data_idx, 0]], [pursuer_path[data_idx, 1]])
                     point_evader.set_data([evader_path[data_idx, 0]], [evader_path[data_idx, 1]])
                     ax.set_title(f"{_tr('screen3_model5_plot_title_sim2')}\nTime: {t_points[data_idx]:.2f}s")
                     
-                    # Ghi frame vào GIF
-                    fig.canvas.draw()
-                    frame_buf_inner = io.BytesIO()
-                    fig.savefig(frame_buf_inner, format='png', bbox_inches='tight')
-                    frame_buf_inner.seek(0)
-                    writer.append_data(imageio.imread(frame_buf_inner))
-                    frame_buf_inner.close()
+                    fig.canvas.draw(); frame_buf_inner = io.BytesIO(); fig.savefig(frame_buf_inner, format='png', bbox_inches='tight'); frame_buf_inner.seek(0)
+                    writer.append_data(imageio.imread(frame_buf_inner)); frame_buf_inner.close()
 
                 final_stats = {
                     _tr('screen3_m5_submarine_speed'): {'value': f"{m5s2_params.get('v_tn_max', 'N/A'):.2f}"},
@@ -3283,8 +3268,6 @@ def show_dynamic_simulation_page():
     """, unsafe_allow_html=True)
 
     def _cleanup_and_navigate(destination_page):
-        """Dọn dẹp state của (các) trang liên quan và điều hướng đến trang mới."""
-        # 1. Luôn dọn dẹp state của trang mô phỏng động (trang hiện tại)
         dynamic_keys_to_delete = [
             k for k in st.session_state 
             if k.startswith('anim_') or k.startswith('m5s') or k.startswith('gif_') 
@@ -3295,8 +3278,6 @@ def show_dynamic_simulation_page():
             if key in st.session_state:
                 del st.session_state[key]
         
-        # 2. Luôn dọn dẹp state của trang mô phỏng tĩnh, vì nó là "trang mẹ"
-        #    của trang mô phỏng động.
         st.session_state.simulation_results = {}
         st.session_state.validated_params = {}
         static_keys_to_clear = [k for k in st.session_state if k.startswith('last_calculated_')]
@@ -3304,10 +3285,9 @@ def show_dynamic_simulation_page():
             if key in st.session_state:
                 del st.session_state[key]
 
-        # 3. Đặt trang mới và rerun để áp dụng thay đổi ngay lập tức
         st.session_state.page = destination_page
         st.rerun()
-		
+        
     def display_custom_metric(placeholder, data_dict):
         html_content = "<div class='metric-container'>"
         for label, value_info in data_dict.items():
@@ -3326,6 +3306,7 @@ def show_dynamic_simulation_page():
     model_id = validated_params.get("model_id")
     model_data = MODELS_DATA.get(st.session_state.get("selected_model_key"))
     is_processing = st.session_state.get('gif_is_processing', False)
+    
     # --- Bố cục giao diện chính ---
     header_cols = st.columns([1.5, 4, 1.5])
     with header_cols[0]:
@@ -3344,24 +3325,17 @@ def show_dynamic_simulation_page():
             st.subheader(tr('screen3_settings_group_title'))
             
             speed_options = {
-                tr("speed_slow"): 0.5,
-                tr("speed_normal"): 1.0,
-                tr("speed_fast"): 2.0,
-                tr("speed_very_fast"): 4.0
+                tr("speed_slow"): 0.5, tr("speed_normal"): 1.0,
+                tr("speed_fast"): 2.0, tr("speed_very_fast"): 4.0
             }
             selected_speed_label = st.selectbox(
-                tr("screen3_speed_label"),
-                options=speed_options.keys(),
-                index=1,
-                key="gif_speed_selector",
-				disabled=is_processing
+                tr("screen3_speed_label"), options=speed_options.keys(),
+                index=1, key="gif_speed_selector", disabled=is_processing
             )
             speed_multiplier = speed_options[selected_speed_label]
             st.session_state.speed_multiplier = speed_multiplier
 
-            # Highlight: Sửa logic của nút bấm
             if st.button(f"🚀 {tr('generate_and_show_button')}", use_container_width=True, type="primary", disabled=is_processing):
-                # Chỉ đặt cờ, không rerun
                 st.session_state.generate_gif_request = True
                 if 'generated_gif' in st.session_state:
                     del st.session_state['generated_gif']
@@ -3370,20 +3344,16 @@ def show_dynamic_simulation_page():
         if model_id == 'model5':
             with st.container(border=True):
                 if 'm5_scenario' not in st.session_state: st.session_state.m5_scenario = 1
-                scenario_options = {tr("screen3_sim1_name_m5"): 1, tr("screen3_sim2_name_m5"): 2}
+                scenario_options = {_tr("screen3_sim1_name_m5"): 1, _tr("screen3_sim2_name_m5"): 2}
                 def on_scenario_change():
-                    # Hàm này sẽ được gọi KHI người dùng chọn radio button mới
                     keys_to_delete = [k for k in st.session_state if k.startswith('m5s') or k == 'generated_gif' or k == 'final_anim_stats']
                     for k in keys_to_delete:
                         if k in st.session_state:
                             del st.session_state[k]
                 selected_scenario_disp = st.radio(
-                    tr("screen3_sim_list_group_title"), 
-                    options=scenario_options.keys(), 
-                    index=st.session_state.m5_scenario - 1, 
-                    key="m5_scenario_selector",
-                    on_change=on_scenario_change,
-					disabled=is_processing
+                    tr("screen3_sim_list_group_title"), options=scenario_options.keys(), 
+                    index=st.session_state.m5_scenario - 1, key="m5_scenario_selector",
+                    on_change=on_scenario_change, disabled=is_processing
                 )
                 st.session_state.m5_scenario = scenario_options[selected_scenario_disp]
 
@@ -3400,29 +3370,40 @@ def show_dynamic_simulation_page():
 
     # --- Cột hiển thị chính ---
     with col_display:
-        # Highlight: Sửa lại logic hiển thị
-        # Ưu tiên kiểm tra cờ yêu cầu tạo GIF trước
         if st.session_state.get('generate_gif_request', False):
-            st.session_state.generate_gif_request = False
+            st.session_state.generate_gif_request = False 
+
+            # <<< SỬA LỖI: CHUẨN BỊ TOÀN BỘ DỮ LIỆU CẦN THIẾT BÊN NGOÀI HÀM CACHE >>>
             m5s2_ref_traj_json = "{}"
+            sim_results_json = "{}"
+            last_calc_r_json = "{}"
+            
+            # 1. Chuẩn bị dữ liệu cho Model 5, Kịch bản 2
             if model_id == 'model5' and st.session_state.get('m5_scenario') == 2:
-                with st.spinner("Đang chạy mô phỏng logic phức tạp..."):
+                with st.spinner("Đang chạy mô phỏng logic phức tạp để tạo dữ liệu tham chiếu..."):
                     prep_ok, _, _ = _prepare_simulation_functions(model_data, validated_params['params'], validated_params['method_short'])
                     if not prep_ok:
                         st.error("Không thể chạy mô phỏng tham chiếu cho kịch bản 2.")
-                        st.session_state.gif_is_processing = False # Unlock UI
-                        return
+                        return 
                     ref_data = st.session_state.get('m5s2_reference_trajectory', {})
                     if ref_data:
                         m5s2_ref_traj_json = json.dumps(ref_data, cls=NumpyEncoder)
             
-            # --- RENDER GIF ---
+            # 2. Chuẩn bị dữ liệu cho các model khác (2, 3, 5.1)
+            else:
+                results = st.session_state.get('simulation_results', {})
+                sim_results_json = json.dumps(results, cls=NumpyEncoder)
+            
+            # 3. Chuẩn bị các giá trị tính toán riêng lẻ (ví dụ: 'r' cho Model 3)
+            if model_id == 'model3':
+                last_calc_r_json = json.dumps({'r': st.session_state.get('last_calculated_r')})
+
+            # 4. Render GIF với tất cả dữ liệu đã được chuẩn bị
             with st.spinner(tr('gif_generating_spinner')):
                 model_data_for_cache = {k: v for k, v in model_data.items() if not callable(v)}
                 model_data_json = json.dumps(model_data_for_cache)
                 validated_params_json = json.dumps(validated_params)
                 
-                # Gọi hàm cache với tham số JSON mới
                 gif_bytes, final_stats = create_animation_gif(
                     st.session_state.lang,
                     model_id,
@@ -3430,7 +3411,9 @@ def show_dynamic_simulation_page():
                     validated_params_json,
                     st.session_state.get('speed_multiplier', 1.0),
                     st.session_state.get('m5_scenario', 1),
-                    m5s2_ref_traj_json  # <<< TRUYỀN DỮ LIỆU THAM CHIẾU VÀO ĐÂY
+                    m5s2_ref_traj_json,
+                    sim_results_json, # <<< THAM SỐ MỚI
+                    last_calc_r_json  # <<< THAM SỐ MỚI
                 )
 
             if gif_bytes:
@@ -3450,7 +3433,6 @@ def show_dynamic_simulation_page():
             plot_placeholder = st.empty()
             with plot_placeholder.container():
                 fig, ax = plt.subplots(figsize=(8,8))
-                # Sửa lại key dịch cho chính xác
                 ax.text(0.5, 0.5, tr("press_generate_to_see_info"), ha='center', va='center')
                 ax.set_xticks([]); ax.set_yticks([])
                 st.pyplot(fig)
