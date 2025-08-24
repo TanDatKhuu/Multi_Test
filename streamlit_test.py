@@ -3219,7 +3219,7 @@ def create_animation_gif(lang_code, model_id, model_data, validated_params, spee
                     center_y = (y_max + y_min) / 2
                     x_range = x_max - x_min
                     y_range = y_max - y_min
-		            max_range = max(x_range,y_range)
+                    max_range = max(x_range,y_range)
                     padding = (max_range / 2) * 1.15 # Thêm 10% padding
                     ax.set_xlim(center_x - padding, center_x + padding)
                     ax.set_ylim(center_y - padding, center_y + padding)
