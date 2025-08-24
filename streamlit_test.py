@@ -2481,32 +2481,26 @@ def show_simulation_page():
     model_data = MODELS_DATA[st.session_state.selected_model_key]
     model_id = model_data.get("id", "")
     model_name_tr = tr(f"{model_id}_name")
-    # --- THANH BÊN (SIDEBAR) CHO CÁC ĐIỀU KHIỂN ---
+    
+    # --- THANH BÊN (SIDEBAR) ---
     with st.sidebar:
-        # Tạo một hàm dọn dẹp riêng cho trang này
         def _cleanup_and_go_to_model_selection():
-            """Dọn dẹp state của trang simulation và quay về trang chọn mô hình."""
-            # 1. Xóa kết quả mô phỏng và các tham số đã xác thực
             st.session_state.simulation_results = {}
             st.session_state.validated_params = {}
-
-            # 2. Xóa các tham số được tính toán tự động (c, r, alpha, beta)
             keys_to_clear = [k for k in st.session_state if k.startswith('last_calculated_')]
             for key in keys_to_clear:
                 if key in st.session_state:
                     del st.session_state[key]
-            
-            # 3. Chuyển trang và rerun
             st.session_state.page = 'model_selection'
             st.rerun()
 
-        # Nút Quay lại bây giờ gọi hàm dọn dẹp
         if st.button(f"{tr('screen2_back_button')}", type="primary"):
             _cleanup_and_go_to_model_selection()
         
         st.title(tr("sidebar_title"))
         
         with st.form(key='simulation_form'):
+            # ... (giữ nguyên toàn bộ phần form giống code của bạn)
             st.header(tr('screen2_method_group'))
             method_options = {tr('screen2_method_ab'): "Bashforth", tr('screen2_method_am'): "Moulton"}
             selected_method_display = st.radio("method_select", list(method_options.keys()), label_visibility="collapsed", horizontal=True)
@@ -2565,6 +2559,7 @@ def show_simulation_page():
     st.subheader(model_name_tr)
 
     if submitted:
+        # ... (giữ nguyên logic xử lý form submit giống code của bạn)
         with st.spinner(tr('screen2_info_area_running')):
             is_valid = True
             if not selected_steps_int:
@@ -2607,6 +2602,7 @@ def show_simulation_page():
         st.info(tr('screen2_info_area_init'))
     else:
         validated_params = st.session_state.validated_params
+        # ... (giữ nguyên phần hiển thị info và các tab kết quả)
         if 'last_calculated_c' in st.session_state and validated_params.get('model_id') == 'model2':
             st.info(f"**{tr('model2_calculated_c_label')}** {st.session_state.last_calculated_c:.6g}")
         if 'last_calculated_r' in st.session_state and validated_params.get('model_id') == 'model3':
@@ -2618,15 +2614,13 @@ def show_simulation_page():
 
         can_run_dynamic = model_data.get("can_run_abm_on_screen3", False) or model_id in ['model2', 'model5']
         if can_run_dynamic:
+            # === THAY ĐỔI QUAN TRỌNG Ở ĐÂY ===
+            # Không cần tạo thêm biến dynamic_plot_data
             if st.button(tr("screen2_goto_screen3_button"), use_container_width=True, type="primary"):
-                # --- SỬA LỖI: Thêm khối code lưu dữ liệu vào session_state ---
-                # Dữ liệu này sẽ được trang mô phỏng động sử dụng
-                st.session_state.dynamic_plot_data = validated_params.copy()
-                
-                # Sau khi lưu dữ liệu, mới chuyển trang
                 st.session_state.page = 'dynamic_simulation'
                 st.rerun()
         
+        # ... (giữ nguyên các tab hiển thị đồ thị và dữ liệu)
         tab1, tab2, tab3, tab4 = st.tabs([
             f"📊 {tr('screen2_plot_solution_title')}", 
             f"📉 {tr('screen2_plot_error_title')}", 
@@ -2914,99 +2908,97 @@ def _run_and_cache_m5_sim2(_solver_func_name, t_array, initial_state, catch_radi
         return None
 
 def run_and_store_model5_scenario2_results():
-	    st.session_state.m5s2_results = {} # Xóa kết quả cũ
-	    
-	    # --- DÒNG QUAN TRỌNG ĐÃ SỬA ---
-	    # Lấy dữ liệu từ validated_params, không phải dynamic_plot_data
-	    validated_params_from_s2 = st.session_state.get('validated_params', {})
-	    if not validated_params_from_s2:
-	        st.error("Lỗi nghiêm trọng: Không tìm thấy validated_params. Vui lòng quay lại trang mô phỏng và chạy lại.")
-	        return
-	        
-	    params_s2 = validated_params_from_s2.get('params', {})
-	    # --- KẾT THÚC SỬA LỖI ---
-	    
-	    # --- 1. Lấy và thiết lập các tham số mô phỏng ---
-	    V_TN_MAX_SIM = params_s2.get('u', 3.0) 
-	    R_TN_PARAM_SIM = 2.0
-	    V_KT_SIM = params_s2.get('v', 6.0)
-	    INITIAL_DISTANCE_D_SIM = 30.0
-	    OMEGA_TN_PARAM_SIM = V_TN_MAX_SIM / R_TN_PARAM_SIM if R_TN_PARAM_SIM > 1e-6 else 0.1
-	    T_START_SIM = params_s2.get('t₀', 0.0)
-	    SOLVER_MAX_DURATION_GUESS = 70.0 
-	    T_END_SIM_S2 = T_START_SIM + SOLVER_MAX_DURATION_GUESS
-	    
-	    AVOIDANCE_RADIUS_SIM = INITIAL_DISTANCE_D_SIM * 0.40
-	    AVOIDANCE_STRENGTH_FACTOR_SIM = 1.1
-	    CATCH_THRESHOLD_SIM = 0.75
-	    FIELD_OF_VIEW_TN_DEGREES_SIM = 120.0
-	    KT_RADAR_RADIUS_SIM = AVOIDANCE_RADIUS_SIM * 2.8
-	    MIN_TIME_BETWEEN_FREE_TURNS_TN_SIM = SOLVER_MAX_DURATION_GUESS / 10.0
-	    FREE_TURN_ANGLE_MAX_RAD_TN_SIM = np.deg2rad(50)
-	    
-	    st.session_state.m5s2_params = {
-	        'v_kt': V_KT_SIM, 'z0_kt': np.array([params_s2.get('x0', 0.0), params_s2.get('y0', 0.0)]),
-	        'v_tn_max': V_TN_MAX_SIM,
-	        't_start': T_START_SIM, 't_end': T_END_SIM_S2, 
-	        'simulation_duration': SOLVER_MAX_DURATION_GUESS,
-	        'method_short': validated_params_from_s2.get('method_short', 'Bashforth'),
-	        'method_steps': validated_params_from_s2.get('selected_steps_int', [4])[-1],
-	        'avoidance_radius': AVOIDANCE_RADIUS_SIM,
-	        'avoidance_strength': AVOIDANCE_STRENGTH_FACTOR_SIM,
-	        'fov_tn_degrees': FIELD_OF_VIEW_TN_DEGREES_SIM,
-	        'kt_radar_radius': KT_RADAR_RADIUS_SIM,
-	        'min_time_free_turn': MIN_TIME_BETWEEN_FREE_TURNS_TN_SIM,
-	        'max_angle_free_turn_rad': FREE_TURN_ANGLE_MAX_RAD_TN_SIM,
-	        'catch_threshold': CATCH_THRESHOLD_SIM,
-	        'R_TN_PARAM': R_TN_PARAM_SIM, 'OMEGA_TN_PARAM': OMEGA_TN_PARAM_SIM
-	    }
-	    
-	    z0_kt_sim = st.session_state.m5s2_params['z0_kt']
-	    random_angle_init = random.uniform(0, 2 * np.pi)
-	    tn_offset_x = INITIAL_DISTANCE_D_SIM * np.cos(random_angle_init)
-	    tn_offset_y = INITIAL_DISTANCE_D_SIM * np.sin(random_angle_init)
-	    
-	    params_x_tn = [{"amp": random.uniform(12.0, 24.0), "freq": random.uniform(0.0015, 0.007), "phase": random.uniform(0, 2*np.pi), "type": 'sin'}]
-	    params_y_tn = [{"amp": random.uniform(10.0, 20.0), "freq": random.uniform(0.002, 0.008), "phase": random.uniform(0, 2*np.pi), "type": 'cos'}]
-	    
-	    sum_x_at_t0 = sum(p["amp"] * (np.sin(p["freq"] * T_START_SIM + p["phase"]) if p["type"] == 'sin' else np.cos(p["freq"] * T_START_SIM + p["phase"])) for p in params_x_tn)
-	    sum_y_at_t0 = sum(p["amp"] * (np.sin(p["freq"] * T_START_SIM + p["phase"]) if p["type"] == 'sin' else np.cos(p["freq"] * T_START_SIM + p["phase"])) for p in params_y_tn)
-	
-	    offset_x_tn = z0_kt_sim[0] + tn_offset_x - sum_x_at_t0
-	    offset_y_tn = z0_kt_sim[1] + tn_offset_y - sum_y_at_t0
-	
-	    st.session_state.m5s2_trajectory_params = {
-	        "offset_x": offset_x_tn, "offset_y": offset_y_tn,
-	        "params_x": params_x_tn, "params_y": params_y_tn
-	    }
-	    
-	    z_tn_actual_start = _m5s2_z_tn_base(T_START_SIM, st.session_state.m5s2_trajectory_params)
-	
-	    # Cache simulation results
-	    params_json = json.dumps(st.session_state.m5s2_params, cls=NumpyEncoder)
-	    traj_params_json = json.dumps(st.session_state.m5s2_trajectory_params, cls=NumpyEncoder)
-	
-	    method_short = st.session_state.m5s2_params['method_short']
-	    method_steps = st.session_state.m5s2_params['method_steps']
-	    
-	    solver_map_names = {
-	        "Bashforth": {2: "AB2_system_M5_Sim2_CombinedLogic", 3: "AB3_system_M5_Sim2_CombinedLogic", 4: "AB4_system_M5_Sim2_CombinedLogic", 5: "AB5_system_M5_Sim2_CombinedLogic"},
-	        "Moulton": {2: "AM2_system_M5_Sim2_CombinedLogic", 3: "AM3_system_M5_Sim2_CombinedLogic", 4: "AM4_system_M5_Sim2_CombinedLogic"}
-	    }
-	    solver_func_name = solver_map_names.get(method_short, {}).get(method_steps, "AB4_system_M5_Sim2_CombinedLogic")
-	    
-	    num_solver_steps = int(np.ceil(100 * st.session_state.m5s2_params['simulation_duration']))
-	    t_array_solver = np.linspace(st.session_state.m5s2_params['t_start'], st.session_state.m5s2_params['t_end'], num_solver_steps + 1)
-	    initial_state = np.array([z0_kt_sim[0], z0_kt_sim[1], z_tn_actual_start[0], z_tn_actual_start[1]])
-	
-	    st.session_state.m5s2_results = _run_and_cache_m5_sim2(
-	        _solver_func_name=solver_func_name,
-	        t_array=t_array_solver,
-	        initial_state=initial_state,
-	        catch_radius=st.session_state.m5s2_params['catch_threshold'],
-	        _params_dict_json=params_json,
-	        _traj_params_dict_json=traj_params_json
-	    )
+    st.session_state.m5s2_results = {} # Xóa kết quả cũ
+    
+    # Lấy dữ liệu từ validated_params, đây là điểm mấu chốt
+    validated_params_from_s2 = st.session_state.get('validated_params', {})
+    if not validated_params_from_s2:
+        st.error("Lỗi nghiêm trọng: Không tìm thấy validated_params. Vui lòng quay lại trang mô phỏng và chạy lại.")
+        return
+        
+    params_s2 = validated_params_from_s2.get('params', {})
+    
+    # ... (Toàn bộ phần còn lại của hàm được giữ nguyên y hệt)
+    # --- 1. Lấy và thiết lập các tham số mô phỏng ---
+    V_TN_MAX_SIM = params_s2.get('u', 3.0) 
+    R_TN_PARAM_SIM = 2.0
+    V_KT_SIM = params_s2.get('v', 6.0)
+    INITIAL_DISTANCE_D_SIM = 30.0
+    OMEGA_TN_PARAM_SIM = V_TN_MAX_SIM / R_TN_PARAM_SIM if R_TN_PARAM_SIM > 1e-6 else 0.1
+    T_START_SIM = params_s2.get('t₀', 0.0)
+    SOLVER_MAX_DURATION_GUESS = 70.0 
+    T_END_SIM_S2 = T_START_SIM + SOLVER_MAX_DURATION_GUESS
+    
+    AVOIDANCE_RADIUS_SIM = INITIAL_DISTANCE_D_SIM * 0.40
+    AVOIDANCE_STRENGTH_FACTOR_SIM = 1.1
+    CATCH_THRESHOLD_SIM = 0.75
+    FIELD_OF_VIEW_TN_DEGREES_SIM = 120.0
+    KT_RADAR_RADIUS_SIM = AVOIDANCE_RADIUS_SIM * 2.8
+    MIN_TIME_BETWEEN_FREE_TURNS_TN_SIM = SOLVER_MAX_DURATION_GUESS / 10.0
+    FREE_TURN_ANGLE_MAX_RAD_TN_SIM = np.deg2rad(50)
+    
+    st.session_state.m5s2_params = {
+        'v_kt': V_KT_SIM, 'z0_kt': np.array([params_s2.get('x0', 0.0), params_s2.get('y0', 0.0)]),
+        'v_tn_max': V_TN_MAX_SIM,
+        't_start': T_START_SIM, 't_end': T_END_SIM_S2, 
+        'simulation_duration': SOLVER_MAX_DURATION_GUESS,
+        'method_short': validated_params_from_s2.get('method_short', 'Bashforth'),
+        'method_steps': validated_params_from_s2.get('selected_steps_int', [4])[-1],
+        'avoidance_radius': AVOIDANCE_RADIUS_SIM,
+        'avoidance_strength': AVOIDANCE_STRENGTH_FACTOR_SIM,
+        'fov_tn_degrees': FIELD_OF_VIEW_TN_DEGREES_SIM,
+        'kt_radar_radius': KT_RADAR_RADIUS_SIM,
+        'min_time_free_turn': MIN_TIME_BETWEEN_FREE_TURNS_TN_SIM,
+        'max_angle_free_turn_rad': FREE_TURN_ANGLE_MAX_RAD_TN_SIM,
+        'catch_threshold': CATCH_THRESHOLD_SIM,
+        'R_TN_PARAM': R_TN_PARAM_SIM, 'OMEGA_TN_PARAM': OMEGA_TN_PARAM_SIM
+    }
+    
+    z0_kt_sim = st.session_state.m5s2_params['z0_kt']
+    random_angle_init = random.uniform(0, 2 * np.pi)
+    tn_offset_x = INITIAL_DISTANCE_D_SIM * np.cos(random_angle_init)
+    tn_offset_y = INITIAL_DISTANCE_D_SIM * np.sin(random_angle_init)
+    
+    params_x_tn = [{"amp": random.uniform(12.0, 24.0), "freq": random.uniform(0.0015, 0.007), "phase": random.uniform(0, 2*np.pi), "type": 'sin'}]
+    params_y_tn = [{"amp": random.uniform(10.0, 20.0), "freq": random.uniform(0.002, 0.008), "phase": random.uniform(0, 2*np.pi), "type": 'cos'}]
+    
+    sum_x_at_t0 = sum(p["amp"] * (np.sin(p["freq"] * T_START_SIM + p["phase"]) if p["type"] == 'sin' else np.cos(p["freq"] * T_START_SIM + p["phase"])) for p in params_x_tn)
+    sum_y_at_t0 = sum(p["amp"] * (np.sin(p["freq"] * T_START_SIM + p["phase"]) if p["type"] == 'sin' else np.cos(p["freq"] * T_START_SIM + p["phase"])) for p in params_y_tn)
+
+    offset_x_tn = z0_kt_sim[0] + tn_offset_x - sum_x_at_t0
+    offset_y_tn = z0_kt_sim[1] + tn_offset_y - sum_y_at_t0
+
+    st.session_state.m5s2_trajectory_params = {
+        "offset_x": offset_x_tn, "offset_y": offset_y_tn,
+        "params_x": params_x_tn, "params_y": params_y_tn
+    }
+    
+    z_tn_actual_start = _m5s2_z_tn_base(T_START_SIM, st.session_state.m5s2_trajectory_params)
+
+    params_json = json.dumps(st.session_state.m5s2_params, cls=NumpyEncoder)
+    traj_params_json = json.dumps(st.session_state.m5s2_trajectory_params, cls=NumpyEncoder)
+
+    method_short = st.session_state.m5s2_params['method_short']
+    method_steps = st.session_state.m5s2_params['method_steps']
+    
+    solver_map_names = {
+        "Bashforth": {2: "AB2_system_M5_Sim2_CombinedLogic", 3: "AB3_system_M5_Sim2_CombinedLogic", 4: "AB4_system_M5_Sim2_CombinedLogic", 5: "AB5_system_M5_Sim2_CombinedLogic"},
+        "Moulton": {2: "AM2_system_M5_Sim2_CombinedLogic", 3: "AM3_system_M5_Sim2_CombinedLogic", 4: "AM4_system_M5_Sim2_CombinedLogic"}
+    }
+    solver_func_name = solver_map_names.get(method_short, {}).get(method_steps, "AB4_system_M5_Sim2_CombinedLogic")
+    
+    num_solver_steps = int(np.ceil(100 * st.session_state.m5s2_params['simulation_duration']))
+    t_array_solver = np.linspace(st.session_state.m5s2_params['t_start'], st.session_state.m5s2_params['t_end'], num_solver_steps + 1)
+    initial_state = np.array([z0_kt_sim[0], z0_kt_sim[1], z_tn_actual_start[0], z_tn_actual_start[1]])
+
+    st.session_state.m5s2_results = _run_and_cache_m5_sim2(
+        _solver_func_name=solver_func_name,
+        t_array=t_array_solver,
+        initial_state=initial_state,
+        catch_radius=st.session_state.m5s2_params['catch_threshold'],
+        _params_dict_json=params_json,
+        _traj_params_dict_json=traj_params_json
+    )
 	
 def create_animation_gif(lang_code, model_id, model_data, validated_params, speed_multiplier):
     # --- CÀI ĐẶT FONT VÀ HÀM DỊCH NGÔN NGỮ CỤC BỘ ---
