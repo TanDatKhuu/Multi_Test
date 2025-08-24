@@ -3230,7 +3230,6 @@ def create_animation_gif(lang_code, model_id, model_data, validated_params, spee
     # Tạo GIF
     gif_buf.seek(0)
     return gif_buf.getvalue(), final_stats
-
 def show_dynamic_simulation_page():
     # --- CSS và các hàm nội bộ ---
     st.markdown("""
@@ -3246,6 +3245,8 @@ def show_dynamic_simulation_page():
     """, unsafe_allow_html=True)
 
     def _cleanup_and_navigate(destination_page):
+        """Dọn dẹp state của (các) trang liên quan và điều hướng đến trang mới."""
+        # 1. Luôn dọn dẹp state của trang mô phỏng động (trang hiện tại)
         dynamic_keys_to_delete = [
             k for k in st.session_state 
             if k.startswith('anim_') or k.startswith('m5s') or k.startswith('gif_') 
@@ -3256,6 +3257,8 @@ def show_dynamic_simulation_page():
             if key in st.session_state:
                 del st.session_state[key]
         
+        # 2. Luôn dọn dẹp state của trang mô phỏng tĩnh, vì nó là "trang mẹ"
+        #    của trang mô phỏng động.
         st.session_state.simulation_results = {}
         st.session_state.validated_params = {}
         static_keys_to_clear = [k for k in st.session_state if k.startswith('last_calculated_')]
@@ -3263,9 +3266,10 @@ def show_dynamic_simulation_page():
             if key in st.session_state:
                 del st.session_state[key]
 
+        # 3. Đặt trang mới và rerun để áp dụng thay đổi ngay lập tức
         st.session_state.page = destination_page
         st.rerun()
-        
+		
     def display_custom_metric(placeholder, data_dict):
         html_content = "<div class='metric-container'>"
         for label, value_info in data_dict.items():
@@ -3284,7 +3288,6 @@ def show_dynamic_simulation_page():
     model_id = validated_params.get("model_id")
     model_data = MODELS_DATA.get(st.session_state.get("selected_model_key"))
     is_processing = st.session_state.get('gif_is_processing', False)
-    
     # --- Bố cục giao diện chính ---
     header_cols = st.columns([1.5, 4, 1.5])
     with header_cols[0]:
@@ -3303,17 +3306,24 @@ def show_dynamic_simulation_page():
             st.subheader(tr('screen3_settings_group_title'))
             
             speed_options = {
-                tr("speed_slow"): 0.5, tr("speed_normal"): 1.0,
-                tr("speed_fast"): 2.0, tr("speed_very_fast"): 4.0
+                tr("speed_slow"): 0.5,
+                tr("speed_normal"): 1.0,
+                tr("speed_fast"): 2.0,
+                tr("speed_very_fast"): 4.0
             }
             selected_speed_label = st.selectbox(
-                tr("screen3_speed_label"), options=speed_options.keys(),
-                index=1, key="gif_speed_selector", disabled=is_processing
+                tr("screen3_speed_label"),
+                options=speed_options.keys(),
+                index=1,
+                key="gif_speed_selector",
+				disabled=is_processing
             )
             speed_multiplier = speed_options[selected_speed_label]
             st.session_state.speed_multiplier = speed_multiplier
 
+            # Highlight: Sửa logic của nút bấm
             if st.button(f"🚀 {tr('generate_and_show_button')}", use_container_width=True, type="primary", disabled=is_processing):
+                # Chỉ đặt cờ, không rerun
                 st.session_state.generate_gif_request = True
                 if 'generated_gif' in st.session_state:
                     del st.session_state['generated_gif']
@@ -3324,14 +3334,18 @@ def show_dynamic_simulation_page():
                 if 'm5_scenario' not in st.session_state: st.session_state.m5_scenario = 1
                 scenario_options = {tr("screen3_sim1_name_m5"): 1, tr("screen3_sim2_name_m5"): 2}
                 def on_scenario_change():
+                    # Hàm này sẽ được gọi KHI người dùng chọn radio button mới
                     keys_to_delete = [k for k in st.session_state if k.startswith('m5s') or k == 'generated_gif' or k == 'final_anim_stats']
                     for k in keys_to_delete:
                         if k in st.session_state:
                             del st.session_state[k]
                 selected_scenario_disp = st.radio(
-                    tr("screen3_sim_list_group_title"), options=scenario_options.keys(), 
-                    index=st.session_state.m5_scenario - 1, key="m5_scenario_selector",
-                    on_change=on_scenario_change, disabled=is_processing
+                    tr("screen3_sim_list_group_title"), 
+                    options=scenario_options.keys(), 
+                    index=st.session_state.m5_scenario - 1, 
+                    key="m5_scenario_selector",
+                    on_change=on_scenario_change,
+					disabled=is_processing
                 )
                 st.session_state.m5_scenario = scenario_options[selected_scenario_disp]
 
@@ -3348,66 +3362,38 @@ def show_dynamic_simulation_page():
 
     # --- Cột hiển thị chính ---
     with col_display:
+        # Highlight: Sửa lại logic hiển thị
+        # Ưu tiên kiểm tra cờ yêu cầu tạo GIF trước
         if st.session_state.get('generate_gif_request', False):
-            st.session_state.generate_gif_request = False 
-
-            # <<< SỬA LỖI: CHUẨN BỊ TOÀN BỘ DỮ LIỆU CẦN THIẾT BÊN NGOÀI HÀM CACHE >>>
-            m5s2_ref_traj_json = "{}"
-            sim_results_json = "{}"
-            last_calc_r_json = "{}"
+            speed_multiplier = st.session_state.get('speed_multiplier', 1.0)
+            # Hàm create_animation_gif sẽ tự điền vào các placeholder nó tạo ra
+            gif_bytes, final_stats = gif_bytes, final_stats = create_animation_gif(
+                st.session_state.lang, # Truyền mã ngôn ngữ hiện tại
+                model_id, 
+                model_data, 
+                validated_params, 
+                speed_multiplier
+            )
             
-            # 1. Chuẩn bị dữ liệu cho Model 5, Kịch bản 2
-            if model_id == 'model5' and st.session_state.get('m5_scenario') == 2:
-                with st.spinner("Đang chạy mô phỏng logic phức tạp để tạo dữ liệu tham chiếu..."):
-                    prep_ok, _, _ = _prepare_simulation_functions(model_data, validated_params['params'], validated_params['method_short'])
-                    if not prep_ok:
-                        st.error("Không thể chạy mô phỏng tham chiếu cho kịch bản 2.")
-                        return 
-                    ref_data = st.session_state.get('m5s2_reference_trajectory', {})
-                    if ref_data:
-                        m5s2_ref_traj_json = json.dumps(ref_data, cls=NumpyEncoder)
-            
-            # 2. Chuẩn bị dữ liệu cho các model khác (2, 3, 5.1)
-            else:
-                results = st.session_state.get('simulation_results', {})
-                sim_results_json = json.dumps(results, cls=NumpyEncoder)
-            
-            # 3. Chuẩn bị các giá trị tính toán riêng lẻ (ví dụ: 'r' cho Model 3)
-            if model_id == 'model3':
-                last_calc_r_json = json.dumps({'r': st.session_state.get('last_calculated_r')})
-
-            # 4. Render GIF với tất cả dữ liệu đã được chuẩn bị
-            with st.spinner(tr('gif_generating_spinner')):
-                model_data_for_cache = {k: v for k, v in model_data.items() if not callable(v)}
-                model_data_json = json.dumps(model_data_for_cache)
-                validated_params_json = json.dumps(validated_params)
-                
-                gif_bytes, final_stats = create_animation_gif(
-                    st.session_state.lang,
-                    model_id,
-                    model_data_json,
-                    validated_params_json,
-                    st.session_state.get('speed_multiplier', 1.0),
-                    st.session_state.get('m5_scenario', 1),
-                    m5s2_ref_traj_json,
-                    sim_results_json, # <<< THAM SỐ MỚI
-                    last_calc_r_json  # <<< THAM SỐ MỚI
-                )
-
+            st.session_state.generate_gif_request = False # Reset cờ
+            st.session_state.gif_is_processing = False
             if gif_bytes:
                 st.session_state.generated_gif = gif_bytes
                 st.session_state.final_anim_stats = final_stats
+                st.rerun()
             else:
                 st.error(tr("gif_generation_error"))
                 info_placeholder.error(tr("gif_generation_error"))
-            st.rerun()
+                st.rerun()
 
         elif 'generated_gif' in st.session_state and st.session_state.generated_gif:
+            # Nếu đã có GIF, hiển thị nó
             st.image(st.session_state.generated_gif)
             final_stats = st.session_state.get('final_anim_stats', {})
             if final_stats:
                 display_custom_metric(info_placeholder, final_stats)
         else:
+            # Trạng thái ban đầu
             plot_placeholder = st.empty()
             with plot_placeholder.container():
                 fig, ax = plt.subplots(figsize=(8,8))
