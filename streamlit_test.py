@@ -3403,7 +3403,7 @@ def show_dynamic_simulation_page():
         # Ưu tiên kiểm tra cờ yêu cầu tạo GIF trước
         if st.session_state.get('generate_gif_request', False):
             st.session_state.generate_gif_request = False
-			if model_id == 'model5' and st.session_state.get('m5_scenario') == 2:
+            if model_id == 'model5' and st.session_state.get('m5_scenario') == 2:
                 with st.spinner("Đang chạy mô phỏng logic phức tạp..."):
                     prep_ok, _, _ = _prepare_simulation_functions(model_data, validated_params['params'], validated_params['method_short'])
                     if not prep_ok:
