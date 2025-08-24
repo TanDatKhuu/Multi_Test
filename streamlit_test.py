@@ -3125,26 +3125,88 @@ def create_animation_gif(lang_code, model_id, model_data, validated_params, spee
                     ax.set_title(tr("screen3_model5_plot_title_sim1") + f"\nTime: {t_data[frame_idx]:.2f}s")
                 
                 # --- MODEL 5.2: TÀU KHU TRỤC ---
-                elif model_id == 'model5' and st.session_state.m5_scenario == 2:
+               elif model_id == 'model5' and st.session_state.m5_scenario == 2:
                     t_points, state_hist = sim_data['time_points'], sim_data['state_history']
                     is_caught, catch_time = sim_data['caught'], sim_data['time_of_catch']
+                    
+                    # Lấy dữ liệu quỹ đạo
                     pursuer_path, evader_path = state_hist[:, 0:2], state_hist[:, 2:4]
                     
-                    ax.plot(pursuer_path[:, 0], pursuer_path[:, 1], 'r-', label=tr('screen3_legend_m5s2_path_destroyer'))
-                    ax.plot(evader_path[:, 0], evader_path[:, 1], 'b--', label=tr('screen3_legend_m5s2_path_submarine'))
-                    ax.plot(pursuer_path[frame_idx, 0], pursuer_path[frame_idx, 1], 'rP', markersize=12, label=tr('screen3_legend_m5s2_destroyer'))
-                    ax.plot(evader_path[frame_idx, 0], evader_path[frame_idx, 1], 'bo', markersize=8, label=tr('screen3_legend_m5s2_submarine'))
+                    # Lấy tọa độ hiện tại tại frame này
+                    pursuer_pos = pursuer_path[frame_idx]
+                    evader_pos = evader_path[frame_idx]
+
+                    # Lấy các tham số radar đã được lưu trong session_state
+                    m5s2_params = st.session_state.get('m5s2_params', {})
+                    kt_radar_radius = m5s2_params.get('kt_radar_radius', 30.0) # Lấy giá trị hoặc dùng default
+                    tn_avoid_radius = m5s2_params.get('avoidance_radius', 12.0) # Lấy giá trị hoặc dùng default
+
+                    # === BẮT ĐẦU SỬA ĐỔI ===
+
+                    # 1. Vẽ quỹ đạo (vẽ trước để các đối tượng khác nổi lên trên)
+                    ax.plot(pursuer_path[:, 0], pursuer_path[:, 1], 'r-', label=tr('screen3_legend_m5s2_path_destroyer'), zorder=1)
+                    ax.plot(evader_path[:, 0], evader_path[:, 1], 'b--', label=tr('screen3_legend_m5s2_path_submarine'), zorder=1)
+
+                    # 2. Vẽ các vòng tròn radar (sử dụng matplotlib.patches.Circle)
+                    # Vòng radar của Tàu khu trục (màu đỏ)
+                    kt_radar_circle = MplCircle(pursuer_pos, kt_radar_radius, 
+                                                color='red', fill=False, 
+                                                linestyle=':', alpha=0.6, zorder=2)
+                    ax.add_patch(kt_radar_circle)
+
+                    # Vòng radar né tránh của Tàu ngầm (màu xanh dương hoặc cam cho nổi bật)
+                    tn_avoid_circle = MplCircle(evader_pos, tn_avoid_radius, 
+                                                color='darkorange', fill=False, 
+                                                linestyle=':', alpha=0.8, zorder=2)
+                    ax.add_patch(tn_avoid_circle)
+
+                    # 3. Vẽ vị trí hiện tại của hai tàu (vẽ sau cùng để nổi lên trên hết)
+                    ax.plot(pursuer_pos[0], pursuer_pos[1], 'rP', markersize=12, label=tr('screen3_legend_m5s2_destroyer'), zorder=4)
+                    ax.plot(evader_pos[0], evader_pos[1], 'bo', markersize=8, label=tr('screen3_legend_m5s2_submarine'), zorder=4)
                     
+                    # Logic vẽ điểm bắt được (giữ nguyên)
                     if is_caught and t_points[frame_idx] >= catch_time:
+                        # Tìm frame chính xác nơi bắt được
                         catch_frame_idx = np.where(t_points >= catch_time)[0][0]
                         catch_point = state_hist[catch_frame_idx, 0:2]
-                        ax.plot(catch_point[0], catch_point[1], 'gX', markersize=15, label=tr('screen3_legend_m5s2_catch_point'))
+                        ax.plot(catch_point[0], catch_point[1], 'gX', markersize=15, label=tr('screen3_legend_m5s2_catch_point'), zorder=5)
                     
-                    ax.set_xlabel(tr("screen3_model5_plot_xlabel_sim2")); ax.set_ylabel(tr("screen3_model5_plot_ylabel_sim2"))
-                    ax.grid(True); ax.legend(); ax.set_aspect('equal')
+                    # Cài đặt đồ thị (giữ nguyên)
+                    ax.set_xlabel(tr("screen3_model5_plot_xlabel_sim2"))
+                    ax.set_ylabel(tr("screen3_model5_plot_ylabel_sim2"))
+                    
+                    # === TẠO CHÚ THÍCH (LEGEND) MỘT CÁCH CHUYÊN NGHIỆP ===
+                    # Tạo các đối tượng "giả" để hiển thị trong legend
+                    legend_handles = [
+                        Line2D([0], [0], color='r', lw=2, label=tr('screen3_legend_m5s2_path_destroyer')),
+                        Line2D([0], [0], color='b', lw=2, linestyle='--', label=tr('screen3_legend_m5s2_path_submarine')),
+                        Line2D([0], [0], marker='P', color='w', markerfacecolor='r', markersize=10, label=tr('screen3_legend_m5s2_destroyer')),
+                        Line2D([0], [0], marker='o', color='w', markerfacecolor='b', markersize=8, label=tr('screen3_legend_m5s2_submarine')),
+                        Line2D([0], [0], linestyle=':', color='r', lw=1, label=f"{tr('screen3_legend_m5s2_kt_radar_radius')} ({kt_radar_radius:.1f}m)"),
+                        Line2D([0], [0], linestyle=':', color='darkorange', lw=1, label=f"{tr('screen3_legend_m5s2_tn_avoid_radius')} ({tn_avoid_radius:.1f}m)")
+                    ]
+                    if is_caught:
+                        legend_handles.append(Line2D([0], [0], marker='X', color='w', markerfacecolor='g', markersize=10, label=tr('screen3_legend_m5s2_catch_point')))
+                    
+                    ax.legend(handles=legend_handles, loc='upper right', fontsize='small')
+                    ax.grid(True)
+                    ax.set_aspect('equal')
                     ax.set_title(tr("screen3_model5_plot_title_sim2") + f"\nTime: {t_points[frame_idx]:.2f}s")
+                    
+                    # Điều chỉnh giới hạn đồ thị một cách linh hoạt (tùy chọn nhưng nên có)
+                    all_x = np.concatenate([pursuer_path[:, 0], evader_path[:, 0]])
+                    all_y = np.concatenate([pursuer_path[:, 1], evader_path[:, 1]])
+                    x_min, x_max = all_x.min(), all_x.max()
+                    y_min, y_max = all_y.min(), all_y.max()
+                    x_range = x_max - x_min
+                    y_range = y_max - y_min
+                    padding = max(x_range, y_range) * 0.1 # Thêm 10% padding
+                    ax.set_xlim(x_min - padding, x_max + padding)
+                    ax.set_ylim(y_min - padding, y_max + padding)
+
+                    # Dừng animation nếu bắt được
                     if is_caught and t_points[frame_idx] >= catch_time:
-                        break
+                        break # Dừng vòng lặp for frame_idx
                 
                 # --- Ghi frame vào GIF ---
                 fig.canvas.draw()
