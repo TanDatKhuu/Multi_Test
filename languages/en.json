@@ -26,7 +26,7 @@
 	"screen1_description_label": "Description and parameters:", 
 	"screen1_continue_button": "Continue with this model", 
 	"model1_name": "Model 1: Energy demand", 
-	"model1_eq": "\\begin{aligned} \\frac{dO}{dt} = kO \\end{aligned}<sub>\\begin{aligned} O(t) = O_0e^{kt} \\end{aligned}",
+	"model1_eq": "\\begin{aligned} \\frac{dO}{dt} = kO \\end{aligned}<br>\\begin{aligned} O(t) = O_0e^{kt} \\end{aligned}",
 	"model1_desc": "Exponential growth model describing energy consumption over time.<br>O(t): Energy consumption level at time t.<br>dO/dt: Rate of growth of energy consumption.<br>O<sub>0</sub>: Initial energy consumption level at time t<sub>0</sub>.<br>k: Constant representing the growth rate.<br>",
 	"model1_param1": "Initial energy consumption (O₀)",
 	"model1_param2": "Growth rate constant (k)",
