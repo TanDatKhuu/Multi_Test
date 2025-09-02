@@ -2154,7 +2154,7 @@ def show_model_selection_page():
             eq_text = tr(model_data['equation_key'])
             
             # Tách chuỗi PTVP và Nghiệm giải tích
-            ode_html, exact_html = (eq_text.split('<br>', 1) + [None])[:2] if '<br>' in eq_text else (eq_text, None)
+            ode_html, exact_html = (eq_text.split('<br>', 1) )
 
             # Lấy tiêu đề PTVP: mặc định hoặc tiêu đề riêng của model
             ode_label_key = model_data.get("ode_label_key", "screen1_ode_label")
