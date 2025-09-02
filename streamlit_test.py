@@ -2103,26 +2103,24 @@ def show_model_selection_page():
         .main { background-color: #E6ECF4; }
         div[data-testid="stAppViewBlockContainer"] { padding-top: 2rem; }
         .st-emotion-cache-1r4qj8v { margin-bottom: 1rem; } 
+        /* Tùy chọn: Giảm khoảng cách giữa 2 cặp phương trình nếu cần */
         div[data-testid="stVerticalBlock"] div[data-testid="stHorizontalBlock"] {
              padding-bottom: 0.5rem;
         }
         </style>
     """, unsafe_allow_html=True)
 
-    # --- NỘI DUNG CHÍNH CỦA TRANG (LOGIC ĐƯỢC CẬP NHẬT) ---
+    # --- NỘI DUNG CHÍNH CỦA TRANG (LOGIC CALLBACK ĐÚNG) ---
     st.title(tr('screen1_title'))
     
     # Chuẩn bị danh sách tên hiển thị và key nội bộ
     model_display_names = [tr(f"{data['id']}_name") for data in MODELS_DATA.values()]
     model_vi_keys = list(MODELS_DATA.keys())
 
-    # HIGHLIGHT: Bước 1 - Tạo hàm callback
+    # Hàm callback để cập nhật model ngay lập tức
     def on_model_change():
-        # Lấy tên hiển thị được chọn từ session_state thông qua key của selectbox
         selected_display = st.session_state.model_selector
-        # Tìm index tương ứng
         selected_index = model_display_names.index(selected_display)
-        # Cập nhật key mô hình trong session_state
         st.session_state.selected_model_key = model_vi_keys[selected_index]
 
     # Khởi tạo key mô hình nếu chưa có
@@ -2132,7 +2130,7 @@ def show_model_selection_page():
     # Xác định index hiện tại để hiển thị đúng trong selectbox
     current_selection_index = model_vi_keys.index(st.session_state.selected_model_key)
     
-    # HIGHLIGHT: Bước 2 - Cập nhật st.selectbox với key và on_change
+    # Cập nhật st.selectbox với key và on_change
     st.selectbox(
         label=" ", 
         options=model_display_names, 
@@ -2141,13 +2139,12 @@ def show_model_selection_page():
         on_change=on_model_change # Thêm callback
     )
     
-    # HIGHLIGHT: Bước 3 - Luôn đọc dữ liệu từ session_state
-    # st.session_state.selected_model_key giờ là "nguồn chân lý" duy nhất
+    # Luôn đọc dữ liệu từ session_state đã được callback cập nhật
     model_data = MODELS_DATA[st.session_state.selected_model_key]
     
     st.write("") 
     
-    # --- PHẦN THÔNG TIN MÔ HÌNH (giữ nguyên bố cục hoàn chỉnh) ---
+    # --- PHẦN THÔNG TIN MÔ HÌNH (BỐ CỤC GIAO DIỆN ĐÚNG) ---
     with st.container(border=True):
         st.subheader(tr('screen1_model_info_group_title'))
         
@@ -2159,18 +2156,21 @@ def show_model_selection_page():
             if '<br>' in eq_text:
                 ode_html, exact_html = eq_text.split('<br>', 1)
                 
+                # Cặp 1: Phương trình vi phân
                 label_ode, formula_ode = st.columns([1, 2], vertical_alignment="center")
                 with label_ode:
                     st.markdown(f"**{tr('screen1_ode_label')}**")
                 with formula_ode:
                     st.latex(html_to_latex(ode_html.strip()))
                 
+                # Cặp 2: Nghiệm giải tích
                 label_exact, formula_exact = st.columns([1, 2], vertical_alignment="center")
                 with label_exact:
                     st.markdown(f"**{tr('screen1_exact_label')}**")
                 with formula_exact:
                     st.latex(html_to_latex(exact_html.strip()))
             else:
+                # Trường hợp chỉ có một phương trình
                 label_ode, formula_ode = st.columns([1, 2], vertical_alignment="center")
                 with label_ode:
                     st.markdown(f"**{tr('screen1_ode_label')}**")
