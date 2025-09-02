@@ -61,7 +61,7 @@
 	"model4_param_t0": "Time $t_0$",
 	"model4_param_t1": "Time $t_1$",
 	"model5_name": "Model 5: Pursuit curve",
-	"model5_eq": "\\frac{dx}{dt} = -v \\cdot \\frac{x}{\\sqrt{x^2+y^2}}<br>\\frac{dy}{dt} = -v \\cdot \\frac{y}{\\sqrt{x^2+y^2}} - u",
+	"model5_eq": "\\begin{aligned} \\frac{dx}{dt} &= -v \\cdot \\frac{x}{\\sqrt{x^2+y^2}} \\\\ \\frac{dy}{dt} &= -v \\cdot \\frac{y}{\\sqrt{x^2+y^2}} - u \\end{aligned}",
 	"model5_desc": "Model to find the trajectory of a boat moving under the influence of a current.<br>(x(t), y(t)): Coordinates of the boat at time t.<br>v: Velocity of the boat (relative to water).<br>u: Velocity of the current (in the negative y-direction).<br>x_0, y_0: Initial coordinates of the boat.<br>t_0, t_1: Simulation time interval.",
 	"model5_param_x0": "Initial x-coordinate ($x_0$)",
 	"model5_param_y0": "Initial y-coordinate ($y_0$)",
