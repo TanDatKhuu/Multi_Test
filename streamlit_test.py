@@ -2165,7 +2165,10 @@ def show_model_selection_page():
                 st.markdown(f"**{tr(ode_label_key)}**")
             with formula_ode:
                 st.latex(html_to_latex(ode_html.strip()))
-            
+
+			# Thêm khoảng trống
+                st.write("")
+				
             # Chỉ hiển thị Nghiệm giải tích NẾU nó tồn tại VÀ không bị cờ "hide"
             if exact_html and not model_data.get("hide_exact_solution_display", False):
                 label_exact, formula_exact = st.columns([1, 2], vertical_alignment="center")
