@@ -21,6 +21,7 @@
 	"screen1_model_info_group_title": "Model information", 
 	"screen1_model_application_group_title": "Model application", 
 	"screen1_ode_label": "Differential Equation",
+	"model6_ode_system_label": "System of Differential Equations",
     "screen1_exact_label": "Analytical Solution", 
 	"screen1_description_label": "Description and parameters:", 
 	"screen1_continue_button": "Continue with this model", 
