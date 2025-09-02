@@ -1834,6 +1834,10 @@ MODELS_DATA = {
     LANG_VI["model5_name"]: {
         "id": "model5", "is_system": True, "uses_rk5_reference": True,      
         "equation_key": "model5_eq", "description_key": "model5_desc",
+		# --- THÊM 2 DÒNG NÀY ---
+        "ode_label_key": "model6_ode_system_label", # Key ngôn ngữ riêng cho tiêu đề
+        "hide_exact_solution_display": True, # Cờ để ẩn nghiệm giải tích
+        # --- KẾT THÚC THÊM ---
         "internal_param_keys": ["x0", "y0", "u", "v", "t₀", "t₁"], 
         "ode_func": get_model5_ode,
         "exact_func": None,
