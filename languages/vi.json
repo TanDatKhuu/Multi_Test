@@ -21,6 +21,7 @@
     "screen1_model_info_group_title": "Thông tin mô hình",
     "screen1_model_application_group_title": "Ứng dụng của mô hình",
     "screen1_ode_label": "Phương trình vi phân",
+    "model6_ode_system_label": "Hệ phương trình vi phân",
     "screen1_exact_label": "Nghiệm giải tích",
     "screen1_description_label": "Mô tả và ý nghĩa tham số:",
     "screen1_continue_button": "Tiếp tục với mô hình này",
