@@ -61,7 +61,7 @@
     "model4_param_t0": "Thời gian $t_0$",
     "model4_param_t1": "Thời gian $t_1$",
     "model5_name": "Mô hình 5: Đường cong truy đuổi",
-    "model5_eq": "\\frac{dx}{dt} = -v \\cdot \\frac{x}{\\sqrt{x^2+y^2}}<br>\\frac{dy}{dt} = -v \\cdot \\frac{y}{\\sqrt{x^2+y^2}} - u",
+    "model5_eq": "\\begin{aligned} \\frac{dx}{dt} &= -v \\cdot \\frac{x}{\\sqrt{x^2+y^2}} \\\\ \\frac{dy}{dt} &= -v \\cdot \\frac{y}{\\sqrt{x^2+y^2}} - u \\end{aligned}",
     "model5_desc": "Mô hình tìm quỹ đạo của con thuyền di chuyển dưới tác động của dòng chảy.<br>$(x(t), y(t))$: Tọa độ của con thuyền tại thời điểm $t$.<br>$v$: Vận tốc của con thuyền (tương đối so với nước).<br>$u$: Vận tốc của dòng chảy (theo chiều âm trục y).<br>$x_0, y_0$: Tọa độ ban đầu của con thuyền.<br>$t_0, t_1$: Khoảng thời gian mô phỏng.",
     "model5_param_x0": "Tọa độ x ban đầu ($x_0$)",
     "model5_param_y0": "Tọa độ y ban đầu ($y_0$)",
