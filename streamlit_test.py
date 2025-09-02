@@ -2106,7 +2106,7 @@ def show_model_selection_page():
         </style>
     """, unsafe_allow_html=True)
 
-    # --- NỘI DUNG CHÍNH CỦA TRANG (phần chọn model giữ nguyên) ---
+    # --- NỘI DUNG CHÍNH CỦA TRANG (giữ nguyên) ---
     st.title(tr('screen1_title'))
     model_display_names = [tr(f"{data['id']}_name") for data in MODELS_DATA.values()]
     model_vi_keys = list(MODELS_DATA.keys())
@@ -2118,38 +2118,41 @@ def show_model_selection_page():
     model_data = MODELS_DATA[selected_key]
     st.write("") 
     
-    # --- PHẦN THÔNG TIN MÔ HÌNH (ĐƯỢC CẬP NHẬT LOGIC TÁCH DÒNG) ---
+    # --- PHẦN THÔNG TIN MÔ HÌNH (ĐƯỢC CẬP NHẬT HOÀN TOÀN) ---
     with st.container(border=True):
         st.subheader(tr('screen1_model_info_group_title'))
         
         col_equation, col_description = st.columns([1, 1.5])
 
-        # === CỘT BÊN TRÁI: HIỂN THỊ PHƯƠNG TRÌNH (ĐÃ TÁCH) ===
+        # === CỘT BÊN TRÁI: HIỂN THỊ PHƯƠNG TRÌNH (LOGIC CĂN GIỮA MỚI) ===
         with col_equation:
-            # Lấy chuỗi phương trình từ file ngôn ngữ
             eq_text = tr(model_data['equation_key'])
             
-            # Tách chuỗi thành PTVP và Nghiệm giải tích dựa vào thẻ <br>
             if '<br>' in eq_text:
                 ode_html, exact_html = eq_text.split('<br>', 1)
                 
-                # Hiển thị Phương trình vi phân
-                st.write(tr('screen1_ode_label')) # Sử dụng key ngôn ngữ mới
-                st.latex(html_to_latex(ode_html.strip()))
+                # Bố cục con cho Phương trình vi phân
+                ode_label_col, ode_formula_col = st.columns([1, 2], vertical_alignment="center")
+                with ode_label_col:
+                    st.write(tr('screen1_ode_label'))
+                with ode_formula_col:
+                    st.latex(html_to_latex(ode_html.strip()))
                 
-                # Thêm một chút khoảng trống để 2 phần tách biệt
-                st.write("") 
-                
-                # Hiển thị Nghiệm giải tích
-                st.write(tr('screen1_exact_label')) # Sử dụng key ngôn ngữ mới
-                st.latex(html_to_latex(exact_html.strip()))
-
+                # Bố cục con cho Nghiệm giải tích
+                exact_label_col, exact_formula_col = st.columns([1, 2], vertical_alignment="center")
+                with exact_label_col:
+                    st.write(tr('screen1_exact_label'))
+                with exact_formula_col:
+                    st.latex(html_to_latex(exact_html.strip()))
             else:
-                # Trường hợp đặc biệt chỉ có PTVP (ví dụ Model 5 không có nghiệm giải tích)
-                st.write(tr('screen1_ode_label'))
-                st.latex(html_to_latex(eq_text.strip()))
+                # Trường hợp chỉ có 1 phương trình (ví dụ Model 5)
+                ode_label_col, ode_formula_col = st.columns([1, 2], vertical_alignment="center")
+                with ode_label_col:
+                    st.write(tr('screen1_ode_label'))
+                with ode_formula_col:
+                    st.latex(html_to_latex(eq_text.strip()))
 
-        # === CỘT BÊN PHẢI: HIỂN THỊ MÔ TẢ (giữ nguyên logic cũ) ===
+        # === CỘT BÊN PHẢI: HIỂN THỊ MÔ TẢ (LOGIC SỬA LỖI DẤU CHẤM) ===
         with col_description:
             st.markdown(f"**{tr('screen1_description_label')}**")
             full_description_html = tr(model_data['description_key'])
@@ -2158,8 +2161,16 @@ def show_model_selection_page():
                 parts = full_description_html.split('<br>', 1)
                 general_desc = parts[0]
                 params_desc_html = parts[1]
+                
                 st.markdown(general_desc, unsafe_allow_html=True)
-                params_desc_markdown = "- " + params_desc_html.replace('<br>', '\n- ')
+                
+                # Logic mới để xử lý dấu chấm thừa
+                param_list = params_desc_html.split('<br>')
+                # Lọc ra các chuỗi rỗng có thể được tạo bởi thẻ <br> ở cuối
+                cleaned_params = [p.strip() for p in param_list if p.strip()] 
+                # Ghép lại thành một chuỗi Markdown hoàn chỉnh
+                params_desc_markdown = "\n".join([f"- {p}" for p in cleaned_params])
+                
                 st.markdown(params_desc_markdown, unsafe_allow_html=True)
             else:
                 st.markdown(full_description_html, unsafe_allow_html=True)
