@@ -2097,14 +2097,16 @@ def show_welcome_page():
     st.markdown('</div>', unsafe_allow_html=True) 
 # --- Thay thế hàm show_model_selection_page cũ ---
 def show_model_selection_page():   
-	# --- CSS TÙY CHỈNH ---
+    # --- CSS TÙY CHỈNH (giữ nguyên) ---
     st.markdown("""
         <style>
         .main { background-color: #E6ECF4; }
         div[data-testid="stAppViewBlockContainer"] { padding-top: 2rem; }
+        .st-emotion-cache-1r4qj8v { margin-bottom: 1rem; } /* Giảm khoảng cách dưới container */
         </style>
     """, unsafe_allow_html=True)
-	# --- NỘI DUNG CHÍNH CỦA TRANG ---
+
+    # --- NỘI DUNG CHÍNH CỦA TRANG (phần chọn model giữ nguyên) ---
     st.title(tr('screen1_title'))
     model_display_names = [tr(f"{data['id']}_name") for data in MODELS_DATA.values()]
     model_vi_keys = list(MODELS_DATA.keys())
@@ -2116,17 +2118,51 @@ def show_model_selection_page():
     model_data = MODELS_DATA[selected_key]
     st.write("") 
     
+    # --- PHẦN THÔNG TIN MÔ HÌNH (ĐƯỢC THAY ĐỔI) ---
     with st.container(border=True):
         st.subheader(tr('screen1_model_info_group_title'))
-        st.markdown(f"**{tr('screen1_equation_label')}**")
-        eq_text = tr(model_data['equation_key'])
-        latex_eq = html_to_latex(eq_text)
-        st.latex(latex_eq)
-        st.markdown(f"**{tr('screen1_description_label')}**")
-        st.markdown(tr(model_data['description_key']), unsafe_allow_html=True)
+        
+        # Sử dụng st.columns để tạo layout 2 cột
+        # Tỉ lệ [1, 1.5] có nghĩa là cột phải sẽ rộng hơn cột trái một chút
+        col_equation, col_description = st.columns([1, 1.5])
+
+        # === CỘT BÊN TRÁI: HIỂN THỊ PHƯƠNG TRÌNH ===
+        with col_equation:
+            st.markdown(f"**{tr('screen1_equation_label')}**")
+            # Lấy chuỗi phương trình từ file ngôn ngữ
+            eq_text = tr(model_data['equation_key'])
+            # Chuyển đổi HTML sang LaTeX để st.latex hiển thị đúng
+            latex_eq = html_to_latex(eq_text)
+            st.latex(latex_eq)
+
+        # === CỘT BÊN PHẢI: HIỂN THỊ MÔ TẢ VÀ THAM SỐ ===
+        with col_description:
+            st.markdown(f"**{tr('screen1_description_label')}**")
+            
+            # Lấy chuỗi mô tả đầy đủ từ file ngôn ngữ
+            full_description_html = tr(model_data['description_key'])
+            
+            # Tách chuỗi mô tả ra làm 2 phần: mô tả chung và giải thích tham số
+            # Ta sẽ tách ở thẻ <br> đầu tiên
+            if '<br>' in full_description_html:
+                parts = full_description_html.split('<br>', 1)
+                general_desc = parts[0]
+                params_desc_html = parts[1]
+                
+                # Hiển thị phần mô tả chung
+                st.markdown(general_desc, unsafe_allow_html=True)
+                
+                # Hiển thị phần giải thích tham số dưới dạng danh sách (bullet list)
+                # Thay thế <br> bằng ký tự xuống dòng và gạch đầu dòng của Markdown
+                params_desc_markdown = "- " + params_desc_html.replace('<br>', '\n- ')
+                st.markdown(params_desc_markdown, unsafe_allow_html=True)
+            else:
+                # Nếu không có <br>, chỉ hiển thị toàn bộ mô tả
+                st.markdown(full_description_html, unsafe_allow_html=True)
         
     st.write("") 
 
+    # --- PHẦN ỨNG DỤNG VÀ NÚT BẤM (giữ nguyên) ---
     with st.container(border=True):
         st.subheader(tr('screen1_model_application_group_title'))
         model_id = model_data.get("id")
