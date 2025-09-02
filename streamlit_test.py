@@ -2102,7 +2102,7 @@ def show_model_selection_page():
         <style>
         .main { background-color: #E6ECF4; }
         div[data-testid="stAppViewBlockContainer"] { padding-top: 2rem; }
-        .st-emotion-cache-1r4qj8v { margin-bottom: 1rem; } /* Giảm khoảng cách dưới container */
+        .st-emotion-cache-1r4qj8v { margin-bottom: 1rem; } 
         </style>
     """, unsafe_allow_html=True)
 
@@ -2118,46 +2118,50 @@ def show_model_selection_page():
     model_data = MODELS_DATA[selected_key]
     st.write("") 
     
-    # --- PHẦN THÔNG TIN MÔ HÌNH (ĐƯỢC THAY ĐỔI) ---
+    # --- PHẦN THÔNG TIN MÔ HÌNH (ĐƯỢC CẬP NHẬT LOGIC TÁCH DÒNG) ---
     with st.container(border=True):
         st.subheader(tr('screen1_model_info_group_title'))
         
-        # Sử dụng st.columns để tạo layout 2 cột
-        # Tỉ lệ [1, 1.5] có nghĩa là cột phải sẽ rộng hơn cột trái một chút
         col_equation, col_description = st.columns([1, 1.5])
 
-        # === CỘT BÊN TRÁI: HIỂN THỊ PHƯƠNG TRÌNH ===
+        # === CỘT BÊN TRÁI: HIỂN THỊ PHƯƠNG TRÌNH (ĐÃ TÁCH) ===
         with col_equation:
-            st.markdown(f"**{tr('screen1_equation_label')}**")
             # Lấy chuỗi phương trình từ file ngôn ngữ
             eq_text = tr(model_data['equation_key'])
-            # Chuyển đổi HTML sang LaTeX để st.latex hiển thị đúng
-            latex_eq = html_to_latex(eq_text)
-            st.latex(latex_eq)
+            
+            # Tách chuỗi thành PTVP và Nghiệm giải tích dựa vào thẻ <br>
+            if '<br>' in eq_text:
+                ode_html, exact_html = eq_text.split('<br>', 1)
+                
+                # Hiển thị Phương trình vi phân
+                st.write(tr('screen1_ode_label')) # Sử dụng key ngôn ngữ mới
+                st.latex(html_to_latex(ode_html.strip()))
+                
+                # Thêm một chút khoảng trống để 2 phần tách biệt
+                st.write("") 
+                
+                # Hiển thị Nghiệm giải tích
+                st.write(tr('screen1_exact_label')) # Sử dụng key ngôn ngữ mới
+                st.latex(html_to_latex(exact_html.strip()))
 
-        # === CỘT BÊN PHẢI: HIỂN THỊ MÔ TẢ VÀ THAM SỐ ===
+            else:
+                # Trường hợp đặc biệt chỉ có PTVP (ví dụ Model 5 không có nghiệm giải tích)
+                st.write(tr('screen1_ode_label'))
+                st.latex(html_to_latex(eq_text.strip()))
+
+        # === CỘT BÊN PHẢI: HIỂN THỊ MÔ TẢ (giữ nguyên logic cũ) ===
         with col_description:
             st.markdown(f"**{tr('screen1_description_label')}**")
-            
-            # Lấy chuỗi mô tả đầy đủ từ file ngôn ngữ
             full_description_html = tr(model_data['description_key'])
             
-            # Tách chuỗi mô tả ra làm 2 phần: mô tả chung và giải thích tham số
-            # Ta sẽ tách ở thẻ <br> đầu tiên
             if '<br>' in full_description_html:
                 parts = full_description_html.split('<br>', 1)
                 general_desc = parts[0]
                 params_desc_html = parts[1]
-                
-                # Hiển thị phần mô tả chung
                 st.markdown(general_desc, unsafe_allow_html=True)
-                
-                # Hiển thị phần giải thích tham số dưới dạng danh sách (bullet list)
-                # Thay thế <br> bằng ký tự xuống dòng và gạch đầu dòng của Markdown
                 params_desc_markdown = "- " + params_desc_html.replace('<br>', '\n- ')
                 st.markdown(params_desc_markdown, unsafe_allow_html=True)
             else:
-                # Nếu không có <br>, chỉ hiển thị toàn bộ mô tả
                 st.markdown(full_description_html, unsafe_allow_html=True)
         
     st.write("") 
