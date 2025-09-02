@@ -2144,39 +2144,35 @@ def show_model_selection_page():
     
     st.write("") 
     
-    # --- PHẦN THÔNG TIN MÔ HÌNH (BỐ CỤC GIAO DIỆN ĐÚNG) ---
+    # --- PHẦN THÔNG TIN MÔ HÌNH (BỐ CỤC ĐƠN GIẢN HÓA) ---
     with st.container(border=True):
         st.subheader(tr('screen1_model_info_group_title'))
         
         col_equation, col_description = st.columns([1.2, 1.5])
 
+        # === CỘT BÊN TRÁI: HIỂN THỊ PHƯƠNG TRÌNH (BỐ CỤC XUỐNG DÒNG MỚI) ===
         with col_equation:
             eq_text = tr(model_data['equation_key'])
             
             if '<br>' in eq_text:
                 ode_html, exact_html = eq_text.split('<br>', 1)
                 
-                # Cặp 1: Phương trình vi phân
-                label_ode, formula_ode = st.columns([1, 2], vertical_alignment="center")
-                with label_ode:
-                    st.markdown(f"**{tr('screen1_ode_label')}**")
-                with formula_ode:
-                    st.latex(html_to_latex(ode_html.strip()))
+                # Hiển thị PTVP
+                st.markdown(f"**{tr('screen1_ode_label')}**")
+                st.latex(html_to_latex(ode_html.strip()))
                 
-                # Cặp 2: Nghiệm giải tích
-                label_exact, formula_exact = st.columns([1, 2], vertical_alignment="center")
-                with label_exact:
-                    st.markdown(f"**{tr('screen1_exact_label')}**")
-                with formula_exact:
-                    st.latex(html_to_latex(exact_html.strip()))
+                # Thêm khoảng trống
+                st.write("")
+                
+                # Hiển thị Nghiệm giải tích
+                st.markdown(f"**{tr('screen1_exact_label')}**")
+                st.latex(html_to_latex(exact_html.strip()))
             else:
                 # Trường hợp chỉ có một phương trình
-                label_ode, formula_ode = st.columns([1, 2], vertical_alignment="center")
-                with label_ode:
-                    st.markdown(f"**{tr('screen1_ode_label')}**")
-                with formula_ode:
-                    st.latex(html_to_latex(eq_text.strip()))
+                st.markdown(f"**{tr('screen1_ode_label')}**")
+                st.latex(html_to_latex(eq_text.strip()))
 
+        # === CỘT BÊN PHẢI: HIỂN THỊ MÔ TẢ (giữ nguyên) ===
         with col_description:
             st.markdown(f"**{tr('screen1_description_label')}**")
             full_description_html = tr(model_data['description_key'])
@@ -2197,7 +2193,6 @@ def show_model_selection_page():
                 st.markdown(full_description_html, unsafe_allow_html=True)
         
     st.write("") 
-
     # --- PHẦN ỨNG DỤNG VÀ NÚT BẤM (giữ nguyên) ---
     with st.container(border=True):
         st.subheader(tr('screen1_model_application_group_title'))
