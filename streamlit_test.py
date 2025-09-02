@@ -2153,23 +2153,26 @@ def show_model_selection_page():
         with col_equation:
             eq_text = tr(model_data['equation_key'])
             
-            if '<br>' in eq_text:
-                ode_html, exact_html = eq_text.split('<br>', 1)
-                
-                # Hiển thị PTVP
-                st.markdown(f"**{tr('screen1_ode_label')}**")
+            # Tách chuỗi PTVP và Nghiệm giải tích
+            ode_html, exact_html = (eq_text.split('<br>', 1) + [None])[:2] if '<br>' in eq_text else (eq_text, None)
+
+            # Lấy tiêu đề PTVP: mặc định hoặc tiêu đề riêng của model
+            ode_label_key = model_data.get("ode_label_key", "screen1_ode_label")
+            
+            # Hiển thị PTVP (luôn luôn có)
+            label_ode, formula_ode = st.columns([1, 2], vertical_alignment="center")
+            with label_ode:
+                st.markdown(f"**{tr(ode_label_key)}**")
+            with formula_ode:
                 st.latex(html_to_latex(ode_html.strip()))
-                
-                # Thêm khoảng trống
-                st.write("")
-                
-                # Hiển thị Nghiệm giải tích
-                st.markdown(f"**{tr('screen1_exact_label')}**")
-                st.latex(html_to_latex(exact_html.strip()))
-            else:
-                # Trường hợp chỉ có một phương trình
-                st.markdown(f"**{tr('screen1_ode_label')}**")
-                st.latex(html_to_latex(eq_text.strip()))
+            
+            # Chỉ hiển thị Nghiệm giải tích NẾU nó tồn tại VÀ không bị cờ "hide"
+            if exact_html and not model_data.get("hide_exact_solution_display", False):
+                label_exact, formula_exact = st.columns([1, 2], vertical_alignment="center")
+                with label_exact:
+                    st.markdown(f"**{tr('screen1_exact_label')}**")
+                with formula_exact:
+                    st.latex(html_to_latex(exact_html.strip()))
 
         # === CỘT BÊN PHẢI: HIỂN THỊ MÔ TẢ (giữ nguyên) ===
         with col_description:
