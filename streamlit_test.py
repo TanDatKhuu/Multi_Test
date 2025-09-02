@@ -1844,26 +1844,25 @@ MODELS_DATA = {
         "uses_rk5_reference": False,
         "equation_key": "model6_eq",
         "description_key": "model6_desc",
+        
+        # --- THÊM 2 DÒNG NÀY ---
+        "ode_label_key": "model6_ode_system_label", # Key ngôn ngữ riêng cho tiêu đề
+        "hide_exact_solution_display": True, # Cờ để ẩn nghiệm giải tích
+        # --- KẾT THÚC THÊM ---
+        
         "param_keys_vi": [
             LANG_VI["model6_param_yA0"], LANG_VI["model6_param_yB0"], LANG_VI["model6_param_yC0"],
             LANG_VI["model6_param_k1"], LANG_VI["model6_param_k2"],
             LANG_VI["model6_param_t0"], LANG_VI["model6_param_t1"],
         ],
         "param_keys_en": [
-            LANG_EN["model6_param_yA0"], LANG_EN["model6_param_yB0"], LANG_EN["model6_param_yC0"],
-            LANG_EN["model6_param_k1"], LANG_EN["model6_param_k2"],
-            LANG_EN["model6_param_t0"], LANG_EN["model6_param_t1"],
+            # ... (giữ nguyên)
         ],
         "internal_param_keys": ["y_A0", "y_B0", "y_C0", "k1", "k2", "t0", "t1"],
-        
-        # Sửa dòng này để gọi hàm helper, cho nhất quán
         "ode_func": get_model6_ode,
-        
-        # Dòng này giữ nguyên, nó đã đúng rồi
         "exact_func": lambda k1, k2, y_A0, y_B0, y_C0, t0, t1: (
             lambda t_arr: _model6_exact_solution(k1, k2, y_A0, y_B0, y_C0, t0, t_arr)
         ),
-
         # Thêm thông tin về các thành phần (bạn đã có sẵn, rất tốt!)
         "components": {
             "A": "model6_component_A",
