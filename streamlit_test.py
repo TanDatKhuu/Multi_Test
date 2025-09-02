@@ -1894,6 +1894,32 @@ def _model5_ode_system(t, x, y, u, v):
     dxdt = -v * x / r
     dydt = -v * y / r - u
     return np.array([dxdt, dydt])
+
+def _model6_exact_solution(k1, k2, y_A0, y_B0, y_C0, t0, t_arr):
+    """
+    Tính nghiệm giải tích cho hệ A -> B -> C.
+    Trả về một tuple: (y_A_values, y_B_values, y_C_values)
+    """
+    t_rel = np.asarray(t_arr) - t0
+    total_initial_concentration = y_A0 + y_B0 + y_C0
+
+    # Tính nồng độ A
+    yA_vals = y_A0 * np.exp(-k1 * t_rel)
+
+    # Tính nồng độ B
+    yB_vals = np.zeros_like(t_rel)
+    if abs(k1 - k2) < 1e-9: # Trường hợp k1 = k2
+        yB_vals = (k1 * y_A0 * t_rel + y_B0) * np.exp(-k1 * t_rel)
+    else: # Trường hợp k1 != k2
+        term1 = (k1 * y_A0) / (k2 - k1)
+        term2 = np.exp(-k1 * t_rel) - np.exp(-k2 * t_rel)
+        term3 = y_B0 * np.exp(-k2 * t_rel)
+        yB_vals = term1 * term2 + term3
+
+    # Tính nồng độ C bằng định luật bảo toàn khối lượng
+    yC_vals = total_initial_concentration - yA_vals - yB_vals
+    
+    return yA_vals, yB_vals, yC_vals
 # --- 4. CẤU TRÚC CHÍNH CỦA ỨNG DỤNG STREAMLIT ---
 
 # Khởi tạo st.session_state để lưu trạng thái
