@@ -2103,50 +2103,80 @@ def show_model_selection_page():
         .main { background-color: #E6ECF4; }
         div[data-testid="stAppViewBlockContainer"] { padding-top: 2rem; }
         .st-emotion-cache-1r4qj8v { margin-bottom: 1rem; } 
+        div[data-testid="stVerticalBlock"] div[data-testid="stHorizontalBlock"] {
+             padding-bottom: 0.5rem;
+        }
         </style>
     """, unsafe_allow_html=True)
 
-    # --- NỘI DUNG CHÍNH CỦA TRANG (giữ nguyên) ---
+    # --- NỘI DUNG CHÍNH CỦA TRANG (LOGIC ĐƯỢC CẬP NHẬT) ---
     st.title(tr('screen1_title'))
+    
+    # Chuẩn bị danh sách tên hiển thị và key nội bộ
     model_display_names = [tr(f"{data['id']}_name") for data in MODELS_DATA.values()]
     model_vi_keys = list(MODELS_DATA.keys())
-    current_selection_index = model_vi_keys.index(st.session_state.selected_model_key) if st.session_state.selected_model_key in model_vi_keys else 0
-    selected_model_display_name = st.selectbox(label=" ", options=model_display_names, index=current_selection_index)
-    selected_model_index = model_display_names.index(selected_model_display_name)
-    selected_key = model_vi_keys[selected_model_index]
-    st.session_state.selected_model_key = selected_key
-    model_data = MODELS_DATA[selected_key]
+
+    # HIGHLIGHT: Bước 1 - Tạo hàm callback
+    def on_model_change():
+        # Lấy tên hiển thị được chọn từ session_state thông qua key của selectbox
+        selected_display = st.session_state.model_selector
+        # Tìm index tương ứng
+        selected_index = model_display_names.index(selected_display)
+        # Cập nhật key mô hình trong session_state
+        st.session_state.selected_model_key = model_vi_keys[selected_index]
+
+    # Khởi tạo key mô hình nếu chưa có
+    if 'selected_model_key' not in st.session_state or st.session_state.selected_model_key not in model_vi_keys:
+        st.session_state.selected_model_key = model_vi_keys[0]
+
+    # Xác định index hiện tại để hiển thị đúng trong selectbox
+    current_selection_index = model_vi_keys.index(st.session_state.selected_model_key)
+    
+    # HIGHLIGHT: Bước 2 - Cập nhật st.selectbox với key và on_change
+    st.selectbox(
+        label=" ", 
+        options=model_display_names, 
+        index=current_selection_index,
+        key='model_selector', # Thêm key định danh
+        on_change=on_model_change # Thêm callback
+    )
+    
+    # HIGHLIGHT: Bước 3 - Luôn đọc dữ liệu từ session_state
+    # st.session_state.selected_model_key giờ là "nguồn chân lý" duy nhất
+    model_data = MODELS_DATA[st.session_state.selected_model_key]
+    
     st.write("") 
     
-    # --- PHẦN THÔNG TIN MÔ HÌNH (BỐ CỤC ĐƠN GIẢN HÓA) ---
+    # --- PHẦN THÔNG TIN MÔ HÌNH (giữ nguyên bố cục hoàn chỉnh) ---
     with st.container(border=True):
         st.subheader(tr('screen1_model_info_group_title'))
         
         col_equation, col_description = st.columns([1.2, 1.5])
 
-        # === CỘT BÊN TRÁI: HIỂN THỊ PHƯƠNG TRÌNH (BỐ CỤC XUỐNG DÒNG MỚI) ===
         with col_equation:
             eq_text = tr(model_data['equation_key'])
             
             if '<br>' in eq_text:
                 ode_html, exact_html = eq_text.split('<br>', 1)
                 
-                # Hiển thị PTVP
-                st.markdown(f"**{tr('screen1_ode_label')}**")
-                st.latex(html_to_latex(ode_html.strip()))
+                label_ode, formula_ode = st.columns([1, 2], vertical_alignment="center")
+                with label_ode:
+                    st.markdown(f"**{tr('screen1_ode_label')}**")
+                with formula_ode:
+                    st.latex(html_to_latex(ode_html.strip()))
                 
-                # Thêm khoảng trống
-                st.write("")
-                
-                # Hiển thị Nghiệm giải tích
-                st.markdown(f"**{tr('screen1_exact_label')}**")
-                st.latex(html_to_latex(exact_html.strip()))
+                label_exact, formula_exact = st.columns([1, 2], vertical_alignment="center")
+                with label_exact:
+                    st.markdown(f"**{tr('screen1_exact_label')}**")
+                with formula_exact:
+                    st.latex(html_to_latex(exact_html.strip()))
             else:
-                # Trường hợp chỉ có một phương trình
-                st.markdown(f"**{tr('screen1_ode_label')}**")
-                st.latex(html_to_latex(eq_text.strip()))
+                label_ode, formula_ode = st.columns([1, 2], vertical_alignment="center")
+                with label_ode:
+                    st.markdown(f"**{tr('screen1_ode_label')}**")
+                with formula_ode:
+                    st.latex(html_to_latex(eq_text.strip()))
 
-        # === CỘT BÊN PHẢI: HIỂN THỊ MÔ TẢ (giữ nguyên) ===
         with col_description:
             st.markdown(f"**{tr('screen1_description_label')}**")
             full_description_html = tr(model_data['description_key'])
