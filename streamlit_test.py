@@ -2118,38 +2118,38 @@ def show_model_selection_page():
     model_data = MODELS_DATA[selected_key]
     st.write("") 
     
-    # --- PHẦN THÔNG TIN MÔ HÌNH (ĐƯỢC CẬP NHẬT HOÀN TOÀN) ---
+    # --- PHẦN THÔNG TIN MÔ HÌNH (CẬP NHẬT LẦN CUỐI) ---
     with st.container(border=True):
         st.subheader(tr('screen1_model_info_group_title'))
         
-        col_equation, col_description = st.columns([1, 1.5])
+        col_equation, col_description = st.columns([1.2, 1.5]) # Điều chỉnh tỉ lệ một chút
 
-        # === CỘT BÊN TRÁI: HIỂN THỊ PHƯƠNG TRÌNH (LOGIC CĂN GIỮA MỚI) ===
+        # === CỘT BÊN TRÁI: HIỂN THỊ PHƯƠNG TRÌNH (LOGIC THẲNG HÀNG MỚI) ===
         with col_equation:
-            eq_text = tr(model_data['equation_key'])
+            # Tạo hai cột con: một cho tiêu đề, một cho công thức
+            label_col, formula_col = st.columns([1, 2])
             
+            # Lấy và tách chuỗi phương trình
+            eq_text = tr(model_data['equation_key'])
             if '<br>' in eq_text:
                 ode_html, exact_html = eq_text.split('<br>', 1)
-                
-                # Bố cục con cho Phương trình vi phân
-                ode_label_col, ode_formula_col = st.columns([1, 2], vertical_alignment="center")
-                with ode_label_col:
-                    st.write(tr('screen1_ode_label'))
-                with ode_formula_col:
+
+                # Điền nội dung cho cột tiêu đề (bên trái của cột con)
+                with label_col:
+                    st.markdown(f"**{tr('screen1_ode_label')}**")
+                    # Thêm khoảng trống lớn để đẩy tiêu đề tiếp theo xuống
+                    st.markdown("<br>", unsafe_allow_html=True) 
+                    st.markdown(f"**{tr('screen1_exact_label')}**")
+
+                # Điền nội dung cho cột công thức (bên phải của cột con)
+                with formula_col:
                     st.latex(html_to_latex(ode_html.strip()))
-                
-                # Bố cục con cho Nghiệm giải tích
-                exact_label_col, exact_formula_col = st.columns([1, 2], vertical_alignment="center")
-                with exact_label_col:
-                    st.write(tr('screen1_exact_label'))
-                with exact_formula_col:
                     st.latex(html_to_latex(exact_html.strip()))
             else:
-                # Trường hợp chỉ có 1 phương trình (ví dụ Model 5)
-                ode_label_col, ode_formula_col = st.columns([1, 2], vertical_alignment="center")
-                with ode_label_col:
-                    st.write(tr('screen1_ode_label'))
-                with ode_formula_col:
+                # Xử lý trường hợp chỉ có một phương trình
+                with label_col:
+                    st.markdown(f"**{tr('screen1_ode_label')}**")
+                with formula_col:
                     st.latex(html_to_latex(eq_text.strip()))
 
         # === CỘT BÊN PHẢI: HIỂN THỊ MÔ TẢ (LOGIC SỬA LỖI DẤU CHẤM) ===
@@ -2164,11 +2164,9 @@ def show_model_selection_page():
                 
                 st.markdown(general_desc, unsafe_allow_html=True)
                 
-                # Logic mới để xử lý dấu chấm thừa
+                # Logic mới để xử lý dấu chấm thừa, đảm bảo luôn đúng
                 param_list = params_desc_html.split('<br>')
-                # Lọc ra các chuỗi rỗng có thể được tạo bởi thẻ <br> ở cuối
                 cleaned_params = [p.strip() for p in param_list if p.strip()] 
-                # Ghép lại thành một chuỗi Markdown hoàn chỉnh
                 params_desc_markdown = "\n".join([f"- {p}" for p in cleaned_params])
                 
                 st.markdown(params_desc_markdown, unsafe_allow_html=True)
