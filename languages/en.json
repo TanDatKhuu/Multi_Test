@@ -73,7 +73,7 @@
 	"model5_component_x": "X-Component",
 	"model5_component_y": "Y-Component",
 	"model6_name": "Model 6: Chemical Reaction Chain",
-    "model6_eq": "dy<sub>A</sub>/dt = -k<sub>1</sub>y<sub>A</sub><br>dy<sub>B</sub>/dt = k<sub>1</sub>y<sub>A</sub> - k<sub>2</sub>y<sub>B</sub><br>dy<sub>C</sub>/dt = k<sub>2</sub>y<sub>B</sub>",
+    "model6_eq": "\\begin{aligned} \\frac{dy_A}{dt} &= -k_1 y_A \\\\ \\frac{dy_B}{dt} &= k_1 y_A - k_2 y_B \\\\ \\frac{dy_C}{dt} &= k_2 y_B \\end{aligned}",
     "model6_desc": "Simulates the concentration of substances in a consecutive chemical reaction A → B → C.<br>y<sub>A</sub>(t), y<sub>B</sub>(t), y<sub>C</sub>(t): Concentrations of substances A, B, C.<br>y<sub>A0</sub>, y<sub>B0</sub>, y<sub>C0</sub>: Initial concentrations of A, B, C.<br>k<sub>1</sub>: Rate constant for the reaction A → B.<br>k<sub>2</sub>: Rate constant for the reaction B → C.",
     "model6_param_yA0": "Initial concentration of A (y<sub>A0</sub>)",
     "model6_param_yB0": "Initial concentration of B (y<sub>B0</sub>)",
