@@ -3574,8 +3574,8 @@ def create_animation_gif(lang_code, model_id, model_data, validated_params, spee
         plt.rcParams['axes.unicode_minus'] = False 
     
     translations = load_language_file(lang_code)
-    def _tr(key):
-        return translations.get(key, key)
+    def _tr(key, default=""):
+        return translations.get(key, default if default else key)
 
     progress_container = st.empty()
     with progress_container.container():
@@ -3585,31 +3585,30 @@ def create_animation_gif(lang_code, model_id, model_data, validated_params, spee
     gif_buf = io.BytesIO()
     with imageio.get_writer(gif_buf, mode='I', format='gif', duration=0.1 / speed_multiplier, loop=None) as writer:
         try:
-            fig, ax = plt.subplots(figsize=(10, 10), dpi=90)
+            # Đồng bộ figsize và dpi với placeholder để có tỷ lệ khung hình đúng
+            fig, ax = plt.subplots(figsize=(8, 6), dpi=100)
+            
             final_stats = {}
 
             # --- Lấy dữ liệu mô phỏng cần thiết ---
             sim_data = {}
             if model_id == 'model5' and st.session_state.m5_scenario == 1:
-                # Chạy lại tính toán cho Sim 1 với solver và điều kiện dừng đúng
                 validated_params_json = json.dumps(validated_params, cls=NumpyEncoder)
                 sim_data = run_and_prepare_m5s1_animation_data(validated_params_json)
             elif model_id == 'model5' and st.session_state.m5_scenario == 2:
                 if 'm5s2_results' not in st.session_state or not st.session_state.m5s2_results:
                     run_and_store_model5_scenario2_results()
                 sim_data = st.session_state.get('m5s2_results', {})
-            else: # Các model khác
+            else: 
                 results = st.session_state.get('simulation_results', {})
                 best_sim_data = None
                 if results:
-                    highest_step_found = -1
-                    best_method_key = None
+                    highest_step_found = -1; best_method_key = None
                     for method_key, step_results in results.items():
                         if step_results:
                             current_max_step = max(int(k) for k in step_results.keys())
                             if current_max_step > highest_step_found:
-                                highest_step_found = current_max_step
-                                best_method_key = method_key
+                                highest_step_found = current_max_step; best_method_key = method_key
                     if best_method_key is not None and highest_step_found != -1:
                         best_sim_data = results[best_method_key][highest_step_found]
                 sim_data = best_sim_data if best_sim_data is not None else {}
@@ -3631,20 +3630,14 @@ def create_animation_gif(lang_code, model_id, model_data, validated_params, spee
                 r_val = st.session_state.get('last_calculated_r', 0.0001)
                 ptrans = np.clip(r_val * abm_params.get("r_to_ptrans_factor", 5000), abm_params.get("ptrans_min", 0.01), abm_params.get("ptrans_max", 0.9))
                 total_pop = int(validated_params['params']['n'] + 1)
-                abm_instance = DiseaseSimulationABM(
-                    total_population=total_pop, initial_infected_count_for_abm=1,
-                    room_dimension=abm_params.get('room_dimension', 10.0), 
-                    contact_radius=abm_params.get('base_contact_radius', 0.5),
-                    transmission_prob=ptrans, 
-                    agent_speed=abm_params.get('base_agent_speed', 0.05)
-                )
+                abm_instance = DiseaseSimulationABM(total_population=total_pop, initial_infected_count_for_abm=1, room_dimension=abm_params.get('room_dimension', 10.0), contact_radius=abm_params.get('base_contact_radius', 0.5), transmission_prob=ptrans, agent_speed=abm_params.get('base_agent_speed', 0.05))
             model2_cells = [Cell(0, 0, gen=0)] if model_id == 'model2' else []
             
             # --- Vòng lặp tạo từng frame ---
             loop_iterator = range(num_frames)
             if model_id == 'model3':
                 max_steps_abm = num_frames
-                loop_iterator = range(max_steps_abm) # Chỉ cần range, logic break sẽ xử lý
+                loop_iterator = range(max_steps_abm)
             
             for frame_idx in loop_iterator:
                 progress_percent = (frame_idx + 1) / num_frames if num_frames > 0 else 0
@@ -3714,10 +3707,15 @@ def create_animation_gif(lang_code, model_id, model_data, validated_params, spee
                     point_ship, = ax.plot(x_path[frame_idx], y_path[frame_idx], 
                                           marker='*', markersize=15, color='gold', 
                                           markeredgecolor='red', markeredgewidth=0.5)
+                                          
                     ax.axhline(0, color='slategray', linestyle=':', linewidth=1.2, zorder=0.5)
+                    
                     ax.set_xlabel(_tr('screen3_model5_plot_xlabel_sim1')); ax.set_ylabel(_tr('screen3_model5_plot_ylabel_sim1'))
                     ax.grid(True, linestyle=':'); ax.set_aspect('equal')
-                    ax.set_title(_tr("screen3_model5_plot_title_sim1") + f"\nTime: {t_data[frame_idx]:.2f}s")
+
+                    # THAY ĐỔI: Tái sử dụng key dịch 'screen3_result_time'
+                    time_label = _tr("screen3_result_time").replace(":", "") # Bỏ dấu hai chấm
+                    ax.set_title(f"{_tr('screen3_model5_plot_title_sim1')}\n{time_label}: {t_data[frame_idx]:.2f}s")
                     
                     proxy_ship_legend = Line2D([0], [0], linestyle='None', marker='*', markersize=10, color='gold', markeredgecolor='red', markeredgewidth=0.5)
                     legend_handles = [line_ship_path, proxy_ship_legend]
@@ -3737,8 +3735,12 @@ def create_animation_gif(lang_code, model_id, model_data, validated_params, spee
                     pursuer_path, evader_path = state_hist[:, 0:2], state_hist[:, 2:4]
                     ax.plot(pursuer_path[:, 0], pursuer_path[:, 1], 'r-', label=_tr('screen3_legend_m5s2_path_destroyer'))
                     ax.plot(evader_path[:, 0], evader_path[:, 1], 'b--', label=_tr('screen3_legend_m5s2_path_submarine'))
-                    ax.plot(pursuer_path[frame_idx, 0], pursuer_path[frame_idx, 1], 'rP', markersize=12, label=_tr('screen3_legend_m5s2_destroyer'))
-                    ax.plot(evader_path[frame_idx, 0], evader_path[frame_idx, 1], 'bo', markersize=8, label=_tr('screen3_legend_m5s2_submarine'))
+                    ax.plot(pursuer_path[frame_idx, 0], pursuer_path[frame_idx, 1], 
+                            marker='*', color='red', markeredgecolor='black', markersize=10, 
+                            label=_tr('screen3_legend_m5s2_destroyer')) # Tàu khu trục (pursuer) màu đỏ
+                    ax.plot(evader_path[frame_idx, 0], evader_path[frame_idx, 1], 
+                            marker='*', color='gold', markeredgecolor='black', markersize=10, 
+                            label=_tr('screen3_legend_m5s2_submarine')) # Tàu ngầm (target) màu vàng
                     if is_caught and t_points[frame_idx] >= catch_time:
                         catch_frame_idx_arr = np.where(t_points >= catch_time)[0]
                         if len(catch_frame_idx_arr) > 0:
@@ -3747,12 +3749,14 @@ def create_animation_gif(lang_code, model_id, model_data, validated_params, spee
                             ax.plot(catch_point[0], catch_point[1], 'gX', markersize=15, label=_tr('screen3_legend_m5s2_catch_point'))
                     ax.set_xlabel(_tr("screen3_model5_plot_xlabel_sim2")); ax.set_ylabel(_tr("screen3_model5_plot_ylabel_sim2"))
                     ax.grid(True); ax.legend(); ax.set_aspect('equal')
-                    ax.set_title(_tr("screen3_model5_plot_title_sim2") + f"\nTime: {t_points[frame_idx]:.2f}s")
+                    time_label = _tr("screen3_result_time").replace(":", "") # Lấy "Thời gian mô phỏng (t)" và bỏ dấu :
+                    ax.set_title(f"{_tr('screen3_model5_plot_title_sim2')}\n{time_label}: {t_points[frame_idx]:.2f}s")
                     if is_caught and t_points[frame_idx] >= catch_time: break
                 
+                # --- Ghi frame vào GIF ---
                 fig.canvas.draw()
                 frame_buf = io.BytesIO()
-                fig.subplots_adjust(left=0.1, right=0.9, top=0.9, bottom=0.1)
+                fig.tight_layout(pad=1.5)
                 fig.savefig(frame_buf, format='png')
                 frame_buf.seek(0)
                 writer.append_data(imageio.imread(frame_buf))
@@ -3987,7 +3991,7 @@ def show_dynamic_simulation_page():
             # Trạng thái ban đầu
             plot_placeholder = st.empty()
             with plot_placeholder.container():
-                fig, ax = plt.subplots(figsize=(8,8))
+                fig, ax = plt.subplots(figsize=(8, 6), dpi=100)
                 ax.text(0.5, 0.5, tr("press_generate_to_see_info"), ha='center', va='center')
                 ax.set_xticks([]); ax.set_yticks([])
                 st.pyplot(fig)
